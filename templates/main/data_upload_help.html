@@ -1,0 +1,801 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Upload Help & Templates{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Only show header when NOT in iframe (standalone page) -->
+    <div class="d-flex justify-content-between align-items-center mb-3" id="page-header" style="display: none;">
+        <div class="d-flex align-items-center">
+            <h2>📋 Data Upload Help & Templates</h2>
+            <a href="{% url 'main:data_upload' %}" class="btn btn-outline-primary btn-sm ms-3" title="Back to Data Upload">
+                📤 Data Upload
+            </a>
+        </div>
+    </div>
+    
+    <script>
+    // Show header only when page is NOT in iframe
+    if (window.self === window.top) {
+        document.getElementById('page-header').style.display = 'flex';
+    }
+    </script>
+    
+    <div class="alert alert-info">
+        <h5>📝 CSV Format Requirements</h5>
+        <ul>
+            <li>Files must be in CSV format (.csv extension)</li>
+            <li>First row should contain column headers</li>
+            <li>Column names are case-insensitive and spaces are automatically converted to underscores</li>
+            <li>Date fields should be in YYYY-MM-DD format</li>
+            <li>Numeric fields should contain valid numbers</li>
+            <li><strong>File encoding:</strong> UTF-8, Latin-1, or Windows-1252 (the system will automatically detect the encoding)</li>
+        </ul>
+    </div>
+    
+    <div class="alert alert-warning">
+        <h5>⚠️ Encoding Issues</h5>
+        <p>If you encounter encoding errors like "utf-8 codec can't decode byte", try these solutions:</p>
+        <ul>
+            <li>Open the CSV file in a text editor (like Notepad++) and save it as UTF-8</li>
+            <li>If using Excel, save the file as "CSV UTF-8 (Comma delimited)"</li>
+            <li>Ensure the file doesn't contain special characters that might cause encoding issues</li>
+        </ul>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Yield Data Template -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>📊 Yield Data Template</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('yield')">
+                        📥 Download Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p><strong>Required columns:</strong> month, country, portfolio, assetno</p>
+                    <p><strong>Note:</strong> All other columns are optional. Download the template CSV to see the complete structure with all available fields.</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>month</th>
+                                    <th>country</th>
+                                    <th>portfolio</th>
+                                    <th>assetno</th>
+                                    <th>dc_capacity_mw</th>
+                                    <th>ic_approved_budget</th>
+                                    <th>expected_budget</th>
+                                    <th>weather_loss_or_gain</th>
+                                    <th>weather_corrected_budget</th>
+                                    <th>grid_curtailment</th>
+                                    <th>actual_curtailment</th>
+                                    <th>grid_outage</th>
+                                    <th>grid_loss</th>
+                                    <th>scheduled_outage_loss</th>
+                                    <th>operation_budget</th>
+                                    <th>string failure</th>
+                                    <th>inverter failure</th>
+                                    <th>ac_failure</th>
+                                    <th>breakdown_loss</th>
+                                    <th>unclassified_loss</th>
+                                    <th>unclassified_loss_%</th>
+                                    <th>ac_capacity_mw</th>
+                                    <th>bess_capacity_mwh</th>
+                                    <th>bess_generation_mwh</th>
+                                    <th>budgeted_irradiation</th>
+                                    <th>actual_irradiation</th>
+                                    <th>expected_pr</th>
+                                    <th>actual_pr</th>
+                                    <th>pr_gap</th>
+                                    <th>pr_gap_observation</th>
+                                    <th>pr_gap_action_need_to_taken</th>
+                                    <th>revenue_loss</th>
+                                    <th>revenue_loss_observation</th>
+                                    <th>revenue_loss_action_need_to_taken</th>
+                                    <th>ppa_rate</th>
+                                    <th>ic_approved_budget_$</th>
+                                    <th>expected_budget_$</th>
+                                    <th>actual_generation_$</th>
+                                    <th>operational_budget_dollar</th>
+                                    <th>revenue_loss_op</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2024-01</td>
+                                    <td>JP</td>
+                                    <td>Portfolio A</td>
+                                    <td>JP-MINA</td>
+                                    <td>10.5</td>
+                                    <td>1000.0</td>
+                                    <td>950.0</td>
+                                    <td>5.2</td>
+                                    <td>955.2</td>
+                                    <td>2.1</td>
+                                    <td>0.0</td>
+                                    <td>0.5</td>
+                                    <td>0.3</td>
+                                    <td>0.0</td>
+                                    <td>10.0</td>
+                                    <td>0.8</td>
+                                    <td>0.3</td>
+                                    <td>0.1</td>
+                                    <td>1.5</td>
+                                    <td>3.2</td>
+                                    <td>2.5</td>
+                                    <td>10.0</td>
+                                    <td>2.5</td>
+                                    <td>200.0</td>
+                                    <td>4.5</td>
+                                    <td>4.3</td>
+                                    <td>85.5</td>
+                                    <td>82.3</td>
+                                    <td>3.2</td>
+                                    <td>Low PR due to weather</td>
+                                    <td>Monitor weather patterns</td>
+                                    <td>15000.0</td>
+                                    <td>Revenue loss observed</td>
+                                    <td>Review PPA terms</td>
+                                    <td>0.15</td>
+                                    <td>150.0</td>
+                                    <td>142.5</td>
+                                    <td>138.0</td>
+                                    <td>150.0</td>
+                                    <td>-12.0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <h6>📝 Field Categories:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Basic Info:</strong> month, country, portfolio, assetno</li>
+                            <li><strong>Capacity:</strong> dc_capacity_mw, ac_capacity_mw, bess_capacity_mwh</li>
+                            <li><strong>Budget & Generation:</strong> ic_approved_budget, expected_budget, weather_corrected_budget, actual_generation</li>
+                            <li><strong>Losses:</strong> weather_loss_or_gain, grid_curtailment, actual_curtailment, grid_outage, grid_loss, scheduled_outage_loss, breakdown_loss, unclassified_loss, unclassified_loss_%, string failure, inverter failure, ac_failure</li>
+                            <li><strong>Performance Ratio:</strong> expected_pr, actual_pr, pr_gap, pr_gap_observation, pr_gap_action_need_to_taken</li>
+                            <li><strong>Revenue:</strong> revenue_loss, revenue_loss_observation, revenue_loss_action_need_to_taken, ppa_rate</li>
+                            <li><strong>Dollar Values:</strong> ic_approved_budget_$, expected_budget_$, actual_generation_$, operational_budget_dollar, revenue_loss_op</li>
+                            <li><strong>Irradiation:</strong> budgeted_irradiation, actual_irradiation</li>
+                            <li><strong>BESS:</strong> bess_capacity_mwh, bess_generation_mwh</li>
+                        </ul>
+                        <div class="alert alert-warning mt-2">
+                            <small><strong>Note:</strong> Column names with spaces (like "string failure", "inverter failure") and special characters (like $ and %) are automatically normalized during upload. Use the exact names as shown in the CSV template.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BESS Data Template -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>🔋 BESS Data Template</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('bess')">
+                        📥 Download Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p><strong>Required columns:</strong> date, month, country, portfolio, asset_no</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>date</th>
+                                    <th>month</th>
+                                    <th>country</th>
+                                    <th>portfolio</th>
+                                    <th>asset_no</th>
+                                    <th>battery_capacity_mw</th>
+                                    <th>export_energy_kwh</th>
+                                    <th>pv_energy_kwh</th>
+                                    <th>charge_energy_kwh</th>
+                                    <th>discharge_energy_kwh</th>
+                                    <th>min_soc</th>
+                                    <th>max_soc</th>
+                                    <th>min_ess_temperature</th>
+                                    <th>max_ess_temperature</th>
+                                    <th>min_ess_humidity</th>
+                                    <th>max_ess_humidity</th>
+                                    <th>rte</th>
+                                    <th>Actual No of cycles</th>
+                                    <th>cuf</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2024-01-15</td>
+                                    <td>2024-01</td>
+                                    <td>JP</td>
+                                    <td>Portfolio A</td>
+                                    <td>JP-MINA</td>
+                                    <td>5.0</td>
+                                    <td>1200.5</td>
+                                    <td>1500.0</td>
+                                    <td>1100.2</td>
+                                    <td>1050.8</td>
+                                    <td>20.0</td>
+                                    <td>90.0</td>
+                                    <td>15.5</td>
+                                    <td>25.3</td>
+                                    <td>40.0</td>
+                                    <td>60.0</td>
+                                    <td>0.95</td>
+                                    <td>2</td>
+                                    <td>0.75</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <h6>📝 Field Categories:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Basic Info:</strong> date, month, country, portfolio, asset_no</li>
+                            <li><strong>Energy Metrics:</strong> export_energy_kwh, pv_energy_kwh, charge_energy_kwh, discharge_energy_kwh</li>
+                            <li><strong>Battery Status:</strong> min_soc, max_soc, battery_capacity_mw</li>
+                            <li><strong>Environmental:</strong> min_ess_temperature, max_ess_temperature, min_ess_humidity, max_ess_humidity</li>
+                            <li><strong>Performance:</strong> rte (Round Trip Efficiency), Actual No of cycles, cuf (Capacity Utilization Factor)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BESS V1 Data Template -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>⚡ BESS V1 Performance Template</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('bess_v1')">
+                        📥 Download Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p><strong>Required columns:</strong> month, country, portfolio, asset_no</p>
+                    <p class="mb-2"><strong>Includes:</strong> actual vs budget energy flows, CUF and RTE metrics, system losses, and cycle counts.</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>month</th>
+                                    <th>country</th>
+                                    <th>portfolio</th>
+                                    <th>asset_no</th>
+                                    <th>battery_capacity_mwh</th>
+                                    <th>actual_pv_energy_kwh</th>
+                                    <th>actual_export_energy_kwh</th>
+                                    <th>actual_charge_energy_kwh</th>
+                                    <th>actual_discharge_energy</th>
+                                    <th>actual_pv_grid_kwh</th>
+                                    <th>actual_system_losses</th>
+                                    <th>min_soc</th>
+                                    <th>max_soc</th>
+                                    <th>min_ess_temp</th>
+                                    <th>max_ess_temp</th>
+                                    <th>actual_avg_rte</th>
+                                    <th>actual_cuf</th>
+                                    <th>actual_no_of_cycles</th>
+                                    <th>budget_pv_energy_kwh</th>
+                                    <th>budget_export_energy_kwh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2025-01</td>
+                                    <td>Korea</td>
+                                    <td>Blackwood</td>
+                                    <td>KR_BW_18</td>
+                                    <td>1.4976</td>
+                                    <td>39748</td>
+                                    <td>38327</td>
+                                    <td>19371</td>
+                                    <td>17950</td>
+                                    <td>20377</td>
+                                    <td>-1421</td>
+                                    <td>2%</td>
+                                    <td>91%</td>
+                                    <td>16.5</td>
+                                    <td>22.3</td>
+                                    <td>93.67</td>
+                                    <td>43.44%</td>
+                                    <td>31</td>
+                                    <td>35470.7</td>
+                                    <td>32186.6</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <h6 class="mb-2">Key Metrics Captured:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Energy Flow:</strong> PV generation, PV to grid/BESS, export energy, system losses.</li>
+                            <li><strong>Operational KPIs:</strong> CUF (actual & budget), battery cycles, round trip efficiency, SOC and temperature ranges.</li>
+                            <li><strong>Budget Comparison:</strong> Budgeted energy, grid imports, and RTE to analyze performance gaps.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Data Templates -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>📅 Daily Data Templates</h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadTemplate('actual_generation_daily')">
+                            📥 Generation Template
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('expected_budget_daily')">
+                            📥 Budget Template
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h6>Actual Generation Daily</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>date</th>
+                                    <th>asset_code</th>
+                                    <th>generation_kwh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2024-01-15</td>
+                                    <td>JP-MINA</td>
+                                    <td>2500.5</td>
+                                </tr>
+                                <tr>
+                                    <td>2024-01-15</td>
+                                    <td>KR_BW_01</td>
+                                    <td>3200.8</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h6 class="mt-3">Expected Budget Daily</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>date</th>
+                                    <th>asset_code</th>
+                                    <th>expected_budget_kwh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2024-01-15</td>
+                                    <td>JP-MINA</td>
+                                    <td>2400.0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Data Template -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>🗺️ Map Data Template</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('map')">
+                        📥 Download Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p><strong>Required columns:</strong> asset_no, country, site_name, portfolio</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>asset_no</th>
+                                    <th>country</th>
+                                    <th>site_name</th>
+                                    <th>portfolio</th>
+                                    <th>dc_capacity_mwp</th>
+                                    <th>latitude</th>
+                                    <th>longitude</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>JP-MINA</td>
+                                    <td>JP</td>
+                                    <td>Minamata Solar Plant</td>
+                                    <td>Portfolio A</td>
+                                    <td>10.5</td>
+                                    <td>32.2094</td>
+                                    <td>130.4017</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IC Budget vs Expected Data Template -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>📊 IC Budget vs Expected Data Template</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('icvsexvscur')">
+                        📥 Download Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p><strong>Required columns:</strong> country, portfolio, month</p>
+                    <div class="alert alert-warning">
+                        <h6>📅 Month Format:</h6>
+                        <p>The month column should be in the format: <strong>"25-Apr"</strong>, <strong>"25-May"</strong>, etc.</p>
+                        <ul class="mb-0">
+                            <li>First part: 2-digit year (e.g., "25" for 2025)</li>
+                            <li>Second part: 3-letter month abbreviation (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec)</li>
+                        </ul>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Country</th>
+                                    <th>Portfolio</th>
+                                    <th>DC Capacity (Mwp)</th>
+                                    <th>Month</th>
+                                    <th>IC Approved Budget (MWh)</th>
+                                    <th>Expected Budget (MWh)</th>
+                                    <th>Actual Generation (MWh)</th>
+                                    <th>Expected PR (%)</th>
+                                    <th>Actual PR (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Japan</td>
+                                    <td>JP Minamata</td>
+                                    <td>28.25</td>
+                                    <td>25-Jan</td>
+                                    <td>2072.6</td>
+                                    <td>2018.5</td>
+                                    <td>1554.2</td>
+                                    <td>76.43%</td>
+                                    <td>54.57%</td>
+                                </tr>
+                                <tr>
+                                    <td>Korea</td>
+                                    <td>Korea-Blackwood</td>
+                                    <td>64.13</td>
+                                    <td>25-Feb</td>
+                                    <td>6317.5</td>
+                                    <td>6053.1</td>
+                                    <td>5998.9</td>
+                                    <td>81.90%</td>
+                                    <td>73.74%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <h6>📝 Column Details:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Month:</strong> Will be automatically converted to a date and displayed as "Jan 2025", "Feb 2025", etc.</li>
+                            <li><strong>DC Capacity (Mwp):</strong> DC capacity in megawatts peak</li>
+                            <li><strong>IC Approved Budget (MWh):</strong> Investment Committee approved budget in megawatt hours</li>
+                            <li><strong>Expected Budget (MWh):</strong> Expected budget in megawatt hours</li>
+                            <li><strong>Actual Generation (MWh):</strong> Actual generation in megawatt hours</li>
+                            <li><strong>PR (%):</strong> Performance Ratio in percentage format (can include % symbol or not)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loss Calculation Template -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>📊 Loss Calculation Template</h5>
+                    <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('loss_calculation')">
+                        📥 Download Template
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p><strong>Required columns:</strong> month, asset_no</p>
+                    <div class="alert alert-warning">
+                        <h6>⚠️ Column Name Mapping:</h6>
+                        <p>Your CSV column names will be automatically mapped to database fields:</p>
+                        <ul class="mb-0">
+                            <li><strong>"S No"</strong> → <code>l</code> (Loss ID)</li>
+                            <li><strong>"Start Dae"</strong> → <code>start_date</code></li>
+                            <li><strong>"Subcatergory"</strong> → <code>subcategory</code></li>
+                            <li><strong>"Budget PR (%)"</strong> → <code>budget_pr_percent</code></li>
+                            <li><strong>"PPA Rate in USD"</strong> → <code>ppa_rate_usd</code></li>
+                            <li><strong>"Revenue Loss in USD"</strong> → <code>revenue_loss_usd</code></li>
+                        </ul>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>L</th>
+                                    <th>Month</th>
+                                    <th>Start Date</th>
+                                    <th>Start Time</th>
+                                    <th>End Date</th>
+                                    <th>End Time</th>
+                                    <th>Asset No</th>
+                                    <th>Country</th>
+                                    <th>Portfolio</th>
+                                    <th>DC Capacity</th>
+                                    <th>Site Name</th>
+                                    <th>Category</th>
+                                    <th>Subcategory</th>
+                                    <th>Breakdown Equipment</th>
+                                    <th>BD Description</th>
+                                    <th>Action to be taken</th>
+                                    <th>Status of BD</th>
+                                    <th>Breakdown DC capacity (kW)</th>
+                                    <th>Irradiation during breakdown (kWh/M2)</th>
+                                    <th>Budget PR (%)</th>
+                                    <th>Generation Loss (kWh)</th>
+                                    <th>PPA Rate in USD</th>
+                                    <th>Revenue Loss in USD</th>
+                                    <th>Severity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>8</td>
+                                    <td>25-Jan</td>
+                                    <td>28-Jan-25</td>
+                                    <td>6:30</td>
+                                    <td>31-Jan-25</td>
+                                    <td>18:00</td>
+                                    <td>KR_BW_06</td>
+                                    <td>Korea</td>
+                                    <td>Korea-Blackwood</td>
+                                    <td>996.4</td>
+                                    <td>Narae Solar Power</td>
+                                    <td>Plant</td>
+                                    <td>Inverter Failure</td>
+                                    <td>All Inverters</td>
+                                    <td>Inverter production issue</td>
+                                    <td>Response is pending from PEK Team</td>
+                                    <td>Closed</td>
+                                    <td>996.4</td>
+                                    <td>13.25</td>
+                                    <td>0.859570552</td>
+                                    <td>-11661.59</td>
+                                    <td>0.078421904</td>
+                                    <td>-914.5240919</td>
+                                    <td>0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <h6>📝 Column Details:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Month:</strong> Format like "25-Jan", "25-Feb", etc.</li>
+                            <li><strong>Asset No:</strong> Asset identifier (required)</li>
+                            <li><strong>Dates:</strong> Can be in various formats (DD-MMM-YY, DD-MM-YYYY, etc.)</li>
+                            <li><strong>Numeric fields:</strong> Use decimal numbers for percentages and rates</li>
+                            <li><strong>Severity:</strong> Integer value (0-5 typically)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Templates -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>📋 Additional Templates</h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadTemplate('aoc')">
+                            📥 AOC Template
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadTemplate('ice')">
+                            📥 ICE Template
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadTemplate('icvsexvscur')">
+                            📥 IC Budget vs Expected Template
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="downloadTemplate('minamata')">
+                            📥 Minamata Template
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6>AOC Data</h6>
+                            <small class="text-muted">Areas of Concern data with columns: s_no, month, asset_no, country, portfolio</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>ICE Data</h6>
+                            <small class="text-muted">ICE performance data with columns: month, portfolio</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>IC Budget vs Expected Data</h6>
+                            <small class="text-muted">IC Budget vs Expected Generation data with columns: country, portfolio, month</small>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>Minamata Data</h6>
+                            <small class="text-muted">String loss data with columns: month</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Upload Modes -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>📤 Upload Modes</h5>
+                </div>
+                <div class="card-body">
+                    <h6>📈 Append Mode</h6>
+                    <p class="small">Add new data to existing records. Duplicates are skipped if "Skip duplicates" is enabled.</p>
+                    
+                    <h6>🔄 Replace Mode</h6>
+                    <p class="small">Delete existing data in the specified date range and replace with new data.</p>
+                    
+                    <h6>⚙️ Advanced Options</h6>
+                    <ul class="small">
+                        <li><strong>Skip duplicates:</strong> Prevents duplicate records from being imported</li>
+                        <li><strong>Validate data:</strong> Checks data format and required columns</li>
+                        <li><strong>Batch size:</strong> Number of records processed at once (100-10000)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Data Types -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>📊 Data Types</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <h6 class="mb-1">Yield Data</h6>
+                            <small class="text-muted">Monthly yield and performance data</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">BESS Data</h6>
+                            <small class="text-muted">Battery energy storage system data</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">AOC Data</h6>
+                            <small class="text-muted">Areas of concern data</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">ICE Data</h6>
+                            <small class="text-muted">ICE performance data</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">IC Budget vs Expected Data</h6>
+                            <small class="text-muted">IC Budget vs Expected Generation data</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">IC Approved Budget Daily Data</h6>
+                            <small class="text-muted">IC Approved Budget Daily data</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">Loss Calculation Data</h6>
+                            <small class="text-muted">Loss calculation and breakdown data</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">Map Data</h6>
+                            <small class="text-muted">Site location and basic information</small>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-1">Daily Data</h6>
+                            <small class="text-muted">Daily generation, budget, and GII data</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="card">
+                <div class="card-header">
+                    <h5>💡 Tips</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="small">
+                        <li>Use Excel to prepare your CSV files</li>
+                        <li>Ensure date formats are consistent (YYYY-MM-DD)</li>
+                        <li>Check for empty cells in required columns</li>
+                        <li>Use the preview feature to verify data before upload</li>
+                        <li>Start with small files to test the format</li>
+                        <li>Backup your data before large updates</li>
+                        <li><strong>Download templates</strong> to ensure correct format</li>
+                    </ul>
+                    
+                    <div class="alert alert-success mt-3">
+                        <h6>🆕 Recent Improvements:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Progress Indicators:</strong> See real-time upload progress with spinner and progress bar</li>
+                            <li><strong>Toast Notifications:</strong> Get immediate feedback on upload success/failure</li>
+                            <li><strong>Upload History:</strong> Track all your uploads with detailed information</li>
+                            <li><strong>Enhanced Error Handling:</strong> Better error messages and validation</li>
+                            <li><strong>Auto-dismissing Messages:</strong> Alerts automatically disappear after 5 seconds</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadTemplate(dataType) {
+    // Create sample data based on data type
+    let csvContent = '';
+    let filename = '';
+    
+    switch(dataType) {
+        case 'yield':
+            csvContent = 'month,country,portfolio,assetno,dc_capacity_mw,ic_approved_budget,expected_budget,weather_loss_or_gain,weather_corrected_budget,grid_curtailment,actual_curtailment,grid_outage,grid_loss,scheduled_outage_loss,operation_budget,string failure,inverter failure,ac_failure,breakdown_loss,unclassified_loss,unclassified_loss_%,ac_capacity_mw,bess_capacity_mwh,bess_generation_mwh,budgeted_irradiation,actual_irradiation,expected_pr,actual_pr,pr_gap,pr_gap_observation,pr_gap_action_need_to_taken,revenue_loss,revenue_loss_observation,revenue_loss_action_need_to_taken,ppa_rate,ic_approved_budget_$,expected_budget_$,actual_generation_$,operational_budget_dollar,revenue_loss_op\n2024-01,JP,Portfolio A,JP-MINA,10.5,1000.0,950.0,5.2,955.2,2.1,0.0,0.5,0.3,0.0,10.0,0.8,0.3,0.1,1.5,3.2,2.5,10.0,2.5,200.0,4.5,4.3,85.5,82.3,3.2,Low PR due to weather,Monitor weather patterns,15000.0,Revenue loss observed,Review PPA terms,0.15,150.0,142.5,138.0,150.0,-12.0\n2024-01,KR,Portfolio B,KR_BW_01,15.2,1500.0,1450.0,6.1,1456.1,2.5,0.0,0.8,0.5,0.0,12.0,1.2,0.5,0.2,2.0,4.5,3.2,15.0,3.0,250.0,5.2,5.0,86.2,83.1,3.1,Minor PR gap,Check inverter performance,18000.0,Review revenue impact,Optimize operations,0.12,180.0,174.0,170.4,175.0,-5.0';
+            filename = 'yield_data_template.csv';
+            break;
+        case 'bess':
+            csvContent = 'date,month,country,portfolio,asset_no,battery_capacity_mw,export_energy_kwh,pv_energy_kwh,charge_energy_kwh,discharge_energy_kwh,min_soc,max_soc,min_ess_temperature,max_ess_temperature,min_ess_humidity,max_ess_humidity,rte,Actual No of cycles,cuf\n2024-01-15,2024-01,JP,Portfolio A,JP-MINA,5.0,1200.5,1500.0,1100.2,1050.8,20.0,90.0,15.5,25.3,40.0,60.0,0.95,2,0.75';
+            filename = 'bess_data_template.csv';
+            break;
+        case 'bess_v1':
+            csvContent = 'month,country,portfolio,asset_no,battery_capacity_mwh,actual_pv_energy_kwh,actual_export_energy_kwh,actual_charge_energy_kwh,actual_discharge_energy,actual_pv_grid_kwh,actual_system_losses,min_soc,max_soc,min_ess_temp,max_ess_temp,actual_avg_rte,actual_cuf,actual_no_of_cycles,budget_pv_energy_kwh,budget_export_energy_kwh,budget_charge_energy_kwh,budget_discharge_energy,budget_pv_grid_kwh,budget_system_losses,budget_cuf,budget_no_of_cycles,budget_grid_import_kwh,actual_grid_import_kwh,budget_avg_rte\n2025-01,Korea,Blackwood,KR_BW_18,1.4976,39748,38327,19371,17950,20377,-1421,2%,91%,16.5,22.3,93.66813038,43.44%,31,35470.69409,32186.61328,26105.57088,22821.49006,9365.123218,-3284.080816,56.49%,31,0,0,95\n2025-01,Korea,Blackwood,KR_BW_36,0.832,21295.8,20643.8,11770,11118,9525.8,-652,1%,90%,15.7,22.9,95.95369453,48.43%,31,20386.51023,18309.03893,16514.08031,14436.60901,3872.429926,-2077.471303,64.34%,31,0,0,95';
+            filename = 'bess_v1_data_template.csv';
+            break;
+        case 'actual_generation_daily':
+            csvContent = 'date,asset_code,generation_kwh\n2024-01-15,JP-MINA,2500.5\n2024-01-15,KR_BW_01,3200.8';
+            filename = 'actual_generation_daily_template.csv';
+            break;
+        case 'expected_budget_daily':
+            csvContent = 'date,asset_code,expected_budget_kwh\n2024-01-15,JP-MINA,2400.0\n2024-01-15,KR_BW_01,3000.0';
+            filename = 'expected_budget_daily_template.csv';
+            break;
+        case 'map':
+            csvContent = 'asset_no,country,site_name,portfolio,dc_capacity_mwp,latitude,longitude\nJP-MINA,JP,Minamata Solar Plant,Portfolio A,10.5,32.2094,130.4017';
+            filename = 'map_data_template.csv';
+            break;
+        case 'aoc':
+            csvContent = 's_no,month,asset_no,country,portfolio,issue_description,status\n1,2024-01,JP-MINA,JP,Portfolio A,Sample issue,Open';
+            filename = 'aoc_data_template.csv';
+            break;
+        case 'ice':
+            csvContent = 'month,portfolio,ic_approved,expected\n2024-01,Portfolio A,1000.0,950.0\n2024-01,Portfolio B,1500.0,1450.0';
+            filename = 'ice_data_template.csv';
+            break;
+        case 'icvsexvscur':
+            csvContent = 'Country,Portfolio,DC Capacity (Mwp),Month,IC Approved Budget (MWh),Expected Budget (MWh),Actual Generation (MWh),Grid Curtailment Budget (MWh),Actual Curtailment (MWh),Budget Irradiation (kWh/M2),Actual Irradiation (kWh/M2),Expected PR (%),Actual PR (%)\nJapan,JP Minamata,28.25,25-Jan,2072.6,2018.5,1554.2,251.8,515.65,93.5,100.84,76.43%,54.57%\nKorea,Korea-Blackwood,64.13,25-Jan,5863.3,5635.4,5332.7,0,0,4983,5468.9,80.49%,66.80%';
+            filename = 'icvsexvscur_data_template.csv';
+            break;
+        case 'minamata':
+            csvContent = 'month,string_loss_percentage,damage_description\n2024-01,2.5,Minor damage from typhoon';
+            filename = 'minamata_data_template.csv';
+            break;
+        case 'ic_approved_budget_daily':
+            csvContent = 'date,asset_code,ic_approved_budget_kwh\n2024-01-15,JP-MINA,2400.0\n2024-01-15,KR_BW_01,3000.0';
+            filename = 'ic_approved_budget_daily_template.csv';
+            break;
+        case 'loss_calculation':
+            csvContent = 'L,Month,Start Date,Start Time,End Date,End Time,Asset No,Country,Portfolio,DC Capacity,Site Name,Category,Subcategory,Breakdown Equipment,BD Description,Action to be taken,Status of BD,Breakdown DC capacity (kW),irradiation during breakdown (kWh/M2),Budget PR (%),Generation Loss (kWh),PPA Rate in USD,Revenue Loss in USD,Severity\n8,25-Jan,28-Jan-25,6:30,31-Jan-25,18:00,KR_BW_06,Korea,Korea-Blackwood,996.4,Narae Solar Power,Plant,Inverter Failure,All Inverters,Inverter production issue. Information not received from PEK team,Response is pending from PEK Team,Closed,996.4,13.25,0.859570552,-11661.59,0.078421904,-914.5240919,0';
+            filename = 'loss_calculation_template.csv';
+            break;
+        default:
+            alert('Template not available for this data type');
+            return;
+    }
+    
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %} 

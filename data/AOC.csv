@@ -1,0 +1,593 @@
+s_no,month,asset_no,country,portfolio,remarks
+1,2025,All Sites,All Countries,All Portfolio,"Japan Minamata: 
+1. On 26th Jan, Fiber Optic Cable failure occurred from PCS5 & PCS6 to GSS. Due to this, Inv-05 & 06 were in off condition from 26th Jan to 04th Feb. Generation loss: 163 MWh and Revenue Loss $ 38,795. 
+
+2. On 7th Feb 2025, PCS3 tripped due to low insulation resistance from 15:30 hrs to 17:48 Hrs. Gen Loss: 0.719 MWh. Revenue Loss: $ 174 . 
+
+3. On 12th Feb 2025, PCS6 tripped due to low insulation resistance from 12:27 Hrs and 13:38 Hrs. Gen Loss: 0.388 MWh and Revenue Loss:  $ 93.53.
+
+4. On 26th Feb, PCS1, PCS2, and PCS3, and on 27th Feb, PCS4, PCS5, and PCS6 were in software updating mode by the Sun grow team for 03:48 hours (average) for each inverter. After the software update, all the inverters came into operation mode. Generation Loss: 49.98 MWh and Revenue Loss: $ 12,054.
+
+5. Curtailment Details: 
+     a) Budgeted: 16.08% (2527 MWh)
+     b) Actual: 18.06% (2839 MWh)
+     c) Excess Curtailment: 1.99% (312 MWh)
+
+6. Inverter failures due to low insulation resistance and other faults from Jan-25 to June-25: 781 MWh and Revenue Loss: $ 193,995. 
+
+7. String failure loss due to typhoon damage. Gen Loss: 2516 MWh from Jan-25 to June-25. Revenue Loss: $ 624,979. 
+
+Korea Blackwood: 
+
+1. Asset No.15:  
+a.  104.475 kWp capacity of faulty solar modules due to insulation failure, crack & Hotspot are removed to resume the inverters generation. Need to replace the solar modules to resume the generation.  Generation loss: 58 MWh and Revenue Loss: $ 4,473. 
+
+b. Blackwood agreed to replace the damaged modules and vendor finalization is under progress. 
+
+2. Asset No. 28: Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation.  Gen Loss: 28 MWh and Revenue Loss:  $ 2,216. 
+
+Korea Iceberg
+
+1. From Feb 5 to 9, 2025, snowfall caused reduced generation and PR. Operations have now normalized as the snow has melted
+
+2. On 9th, 23rd, 26th and 30th Mar 2025, As per KEPCO's requirement curtailment has been implemented at site. Gen Loss: 706 MWh and Revenue Loss: $ 40,327.
+
+3. As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 06th,13th,26th and 29th Apr 2025.  Gen Loss: -652 MWh and Revenue Loss: $ 37,807.
+
+4. As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 04th & 07th  May 2025.  Gen Loss: -464 MWh and Revenue Loss: $ 26,868.
+
+5. May-25, Inverters are tripped due to Ground Fault, Instantaneous fault and No Grid etc., Gen Loss: 11 MWh and Revenue Loss: $ 614. 
+
+6. June-25, Inverters are tripped due to Ground Fault and PDP Pro., Gen Loss: 5.75 MWh and Revenue Loss: $ 333.26.
+
+Korea Sroof: 
+
+1. Samyang Foods: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+2, Sung jin: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+Singapore:
+
+As per client safety request, plant shutdown during maintenance activity in April-2025. Gen Loss: 7.3 MWh and Revenue Loss: $ 579. 
+
+Taiwan:
+
+a). Site Monitoring Website credential are received on 22nd April 2025. 
+"
+2,2025,JP-MINA,Japan ,JP Minamata,"1. On 26th Jan, Fiber Optic Cable failure occurred from PCS5 & PCS6 to GSS. Due to this, Inv-05 & 06 were in off condition from 26th Jan to 04th Feb. Generation loss: 163 MWh and Revenue Loss $ 38,795. 
+
+2. On 7th Feb 2025, PCS3 tripped due to low insulation resistance from 15:30 hrs to 17:48 Hrs. Gen Loss: 0.719 MWh. Revenue Loss: $ 174 . 
+
+3. On 12th Feb 2025, PCS6 tripped due to low insulation resistance from 12:27 Hrs and 13:38 Hrs. Gen Loss: 0.388 MWh and Revenue Loss:  $ 93.53.
+
+4. On 26th Feb, PCS1, PCS2, and PCS3, and on 27th Feb, PCS4, PCS5, and PCS6 were in software updating mode by the Sun grow team for 03:48 hours (average) for each inverter. After the software update, all the inverters came into operation mode. Generation Loss: 49.98 MWh and Revenue Loss: $ 12,054.
+
+5. Curtailment Details: 
+     a) Budgeted: 16.08% (2527 MWh)
+     b) Actual: 18.06% (2839 MWh)
+     c) Excess Curtailment: 1.99% (312 MWh)
+
+6. Inverter failures due to low insulation resistance and other faults from Jan-25 to June-25: 781 MWh and Revenue Loss: $ 193,995. 
+
+7. String failure loss due to typhoon damage. Gen Loss: 2516 MWh from Jan-25 to June-25. Revenue Loss: $ 624,979. "
+3,2025,KR_BW_02,Korea,Korea-Blackwood ,"1. Asset No.15:  
+a.  104.475 kWp capacity of faulty solar modules due to insulation failure, crack & Hotspot are removed to resume the inverters generation. Need to replace the solar modules to resume the generation.  Generation loss: 58 MWh and Revenue Loss: $ 4,473. 
+
+b. Blackwood agreed to replace the damaged modules and vendor finalization is under progress. 
+
+2. Asset No. 28: Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation.  Gen Loss: 28 MWh and Revenue Loss:  $ 2,216. 
+
+3. Asset No.26: On 19th, 20th, 26th Feb 2025, As per KEPCO’s requirement curtailment implemented at site. Gen loss: -110.08 MWh & Revenue  Loss: $ 8,633 
+
+4. Apr-25, Asset No.,12,13,16,19,21,23,24,26,28,30,31,34,39,41: As per KEPCO’s requirement curtailment implemented at site in Mar-25. Gen loss: 135.80 MWh & Revenue Loss: $ 10,496 . 
+
+5. Apr-25, Asset No: 11,13,16,26,34,39,41 & 42: As per KEPCO requirement, 100% curtailment implemented at multiple time slots. Gen Loss: 46 MWh and Gen Loss: $ 3,588. 
+
+6. Asset No: 5, Generation stopped from 20th Apr 13:34 hrs to 21st Apr 15:15 hrs due to system failure . Gen Loss: 6.3 MWh and Revenue Loss: $ 488.
+
+7. May-25 , Asset No: 11,12,13,21,24,26,39,41 & 42: As per KEPCO requirement, 100% curtailment implemented at multiple time slots. Gen Loss: 174 MWh and Gen Loss: $ 3,588. 
+
+8. May-25, Asset No: 36,31,4,5,6,9,11,14,19,20,21,30,35,2& 8 , string failure and inverter failure caused Gen Loss: 104.37 MWh and Revenue Loss: $ 8386.14
+
+9. Asset No: 1, Site Name: Songpyeong TI Solar Power, 194.4 kWp , is removed from the list, as per the information received from PEK. 
+
+10. June-25 , Asset No: 19: As per KEPCO requirement, Grid outage due to blaclout. Gen Loss: 11.89 MWh and Gen Loss: $932.69 . 
+
+11. June-25, Asset No: 4,5,6,7,8,9,11,19,20,21,24,30 & 35, string failure and inverter failure caused Gen Loss:  43.81 MWh and Revenue Loss: $ 3560.01 ."
+4,2025,KR_IB_49,Korea,Korea-Iceberg,"1. From Feb 5 to 9, 2025, snowfall caused reduced generation and PR. Operations have now normalized as the snow has melted
+
+2. On 9th, 23rd, 26th and 30th Mar 2025, As per KEPCO's requirement curtailment has been implemented at site. Gen Loss: 706 MWh and Revenue Loss: $ 40,327.
+
+3.From Feb 12 to 15, 2025 / During rainy and humid conditions, Insulation fault occurred in some cables of inverters P-3-1, P-3-2, and P-4-2 / Immediate repairs were completed .The capacity loss due to the Insulation fault is insignificant in comparison to the total 100MW site capacity
+
+4. As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 06th,13th,26th and 29th Apr 2025.  Gen Loss: -652 MWh and Revenue Loss: $ 37,807.
+
+5. Inverters are tripped due to Ground Fault, Instantaneous fault and No Grid etc., Gen Loss: 20.13 MWh and Revenue Loss: $ 1,167.
+
+6. As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 04th & 07th  May 2025.  Gen Loss: -464 MWh and Revenue Loss: $ 26,868.
+
+7. May-25, Inverters are tripped due to Ground Fault, Instantaneous fault and No Grid etc., Gen Loss: 11 MWh and Revenue Loss: $ 614
+
+8. June-25, Inverters are tripped due to Ground Fault and PDP Pro., Gen Loss: 5.75 MWh and Revenue Loss: $ 333.26."
+5,2025,KR_DG_ONS_00028,Korea,Korean-Sroof,"1. Samyang Foods: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+2, Sung jin: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+B) Weather sensors are installed & configured on 29th May 2025. 
+
+IC Approved & Expected budget for both sites considered from COD. "
+6,2025,SG_DG_ONS_00055,Singapore ,SG Matco Asia,"1. Singapore Matco Asia: Due to communication failure in the data logger at the site, remote monitoring is restricted on 28th Feb 2025 due to data logger license is expired and same has been resolved on 21st Mar 2025. No generation loss due to this communication failure. 
+
+2. New sim card has been purchased and installed in the system to resume the communication.
+
+3. Poor weather condition in Singapore in March-2025. It was unusually rainy. 
+
+4. As per client safety request, plant shutdown during maintenance activity in April-2025. Gen Loss: 7.3 MWh and Revenue Loss: $ 579. "
+7,2025,TW1,Taiwan ,TW-Yunlin ,"1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. The IC approved budget has been calculated based on a DC capacity of 29.20 MWp as projected by PVsyst, whereas the actual as-built DC capacity from January 2025 to June 2025 is 24.82 MWp, thereby providing a basis for direct comparison over the same period."
+8,25-Jan,KR_BW_15,Korea,Korea-Blackwood ,"Asset No.15: Fire incident happened in the month of Oct-2024 and all the inverters are damaged. Spares inverters are not available to replace.   Response, repair and restoration time is too high for OCI make inverters, they are yet to repair and restore the generation at TOP Infra Electric solar site (384KW). There is a partial discharge in the spacer after checking the transformer. Spacer will be replaced. 
+
+"
+9,25-Jan,KR_BW_26,Korea,Korea-Blackwood ,"Asset No.26: Remote monitoring portals are accessible only in Korea but Peak Energy Technical centre does not have access. E.g. Namjeong floating solar (26MW).
+
+String level monitoring is not available to monitor string healthiness and estimate generation loss in case of breakdown. Unclassified losses are high due to string wise data are not available for 29 sites out of 47 sites in Korea-blackwood for further analysis.
+
+Note: Unclassified losses are high due to string wise data are not available for 29 sites in Korea-blackwood for further analysis.  
+"
+10,25-Jan,JP-MINA,Japan ,JP Minamata,"1. Grid curtailment is a major concern for Minamata site. 25.55% of curtailment is recorded in Jan-25. It is 13.07% higher than the budgeted curtailment of 12.48%. 
+     a) Grid Curtailment is set by Utility and it is uncontrollable. 
+
+2. Module damages due to typhoon is causing generation loss, approximately 200 strings are    down due to damages.
+a) To reduce the number of string failures, rearrangement of solar modules being done.
+b) Rectification process initiated and is in the stage of selection of suitable solar modules to replace the existing damaged modules. 
+
+3. Poor response & visibility of site operation from the site team. Working on to resolve the issue and improve the response. 
+
+4. On 26th Jan, Fiber Optic Cable failure occurred from PCS5 & PCS6 to GSS. Due to this, Inv-05 & 06 were in off condition from 26th Jan to 04th Feb. 
+    a) At present, the generation is resumed by connecting spare cable. Existing damaged cable need to be repaired. 
+    (Generation loss: -111.17 MWh   and Revenue Loss $ 26,414). 
+
+5. Curtailment Details: 
+     a) Budgeted: 12.48% (252 MWh)
+     b) Actual: 25.55% (515 MWh)
+     c) Excess Curtailment: 13.07% (264 MWh)
+
+Note: Proxy curtailment details are yet to be published for Jan-25"
+11,25-Jan,SG_DG_ONS_00055,Singapore ,SG Matco Asia,Nil
+12,25-Jan,TW1,Taiwan ,TW-Yunlin ,"1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. The IC Approved budget is based on the DC capacity of 29.04 MWp, while the Expected Budget is calculated using the as-built DC capacity of 24.817 MWp. This discrepancy accounts for the significant difference observed between the two budgets. "
+13,25-Jan,All Sites,All Countries,All Portfolio,"1. Japan Minamata: On 26th Jan, Fiber Optic Cable failure occurred from PCS5 & PCS6 to GSS. Due to this, Inv-05 & 06 were in off condition from 26th Jan to 04th Feb. Jan-25: Generation loss: -111 MWh   and Revenue Loss $ 26,414.
+
+2. Korea Blackwood: Asset No.15: Fire incident happened in the month of Oct-2024 and all the inverters are damaged. Spares inverters are not available to replace.   Response, repair and restoration time is too high for OCI make inverters, they are yet to repair and restore the generation at TOP Infra Electric solar site (384KW). There is a partial discharge in the spacer after checking the transformer. Spacer will be replaced.  "
+14,25-Jan,KR_IB_49,Korea,Korea-Iceberg,"
+1) Budget mentioned in the above graph is commercial budget.
+
+2) Due to non availability of as-built drawings, PVsyst report is not done hence technical budget is not available.
+
+3) Due to non-availability of string wise data, breakdown details are not classified. So, identical DC capacity inverters are compared to find cumulative breakdown losses.   "
+15,25-Feb,KR_BW_02,Korea,Korea-Blackwood ,"1. Asset No.15: Fire incident happened in the month of Oct-2024 and all the inverters are damaged. Spares inverters are not available to replace. Response, repair and restoration time is too high for OCI make inverters, they are yet to repair and restore the generation at TOP Infra Electric solar site (384KW). There is a partial discharge in the spacer after checking the transformer. Spacer will be replaced. Feb-24 Gen Loss: 37.67 MWh & Revenue Loss: $ 2,956.
+
+2. Limited features in monitoring portal preventing us from deep analysis on performance of the sites, visibility of equipment availability,  weather parameters and actual energy exported. Asset No.26 & 28 does not have monitoring facility. 
+
+3. String level monitoring is not available to monitor string healthiness and estimate generation loss in case of breakdown. Unclassified losses are high due to string wise data are not available for 29 sites out of 47 sites in Korea-blackwood for further analysis.
+
+4. We are in discussions with vendor to retrofit complete monitoring system to acquire required data to analyse plant performance and maintain historical data. 
+
+5. Vendor will be finalised based on technical competency and POC results. 
+
+6. Asset No.26: On 19th,20th,26th Feb 2025, As per KEPCOâ€™s requirement curtailment implemented at site. Gen loss: 110.08 MWh & Revenue Loss: $ 8,633. 
+
+Note:. 
+a) Unclassified losses potentially caused  due to snow fall from 4th Feb to 8th Feb.
+b) Limited features in the monitoring portal prevents further analysis on unclassified losses
+c) Asset No: 26 Grid curtailed for first time in Korea-Blackwood portfolio.  "
+16,25-Feb,All Sites,All Countries,All Portfolio,"1. Japan Minamata: On 26th Jan, Fiber Optic Cable failure occurred from PCS5 & PCS6 to GSS. Due to this, Inv-05 & 06 were in off condition from 26th Jan to 04th Feb. At present, the generation is resumed by connecting spare cable. Existing damaged cable need to be repaired. (Generation loss for Feb-25: 51.33 MWh and Revenue Loss $ 12,381). 
+
+2. Korea Blackwood: Asset No.15: Fire incident happened in the month of Oct-2024 and all the inverters are damaged. Spares inverters are not available to replace. Response, repair and restoration time is too high for OCI make inverters, they are yet to repair and restore the generation at TOP Infra Electric solar site (384KW). There is a partial discharge in the spacer after checking the transformer. Spacer will be replaced. Feb-24 Gen Loss: 37.67 MWh & Revenue Loss: 2,956 in USD.
+
+3. Singapore Matco Asia: Due to communication failure in the data logger at the site, remote monitoring is restricted. Data from February 28, 2025, was not recorded for analysis and it is restored in Mar-25. 
+
+4. Korea Iceberg: Monthly IC approved budgets are proportionated from annual IC approved budget with respect to monthly expected generation from PVsyst report.  "
+17,25-Feb,JP-MINA,Japan ,JP Minamata,"1. Typhoon causing module damage and string failures. 278 strings are down due to module damages. 
+
+2. To reduce the number of string failures, technical evaluation of rearrangement of solar modules done.
+
+3. Rectification process initiated and is in the stage of selection of suitable solar modules to replace the existing damaged modules. 
+
+4. To match with installed solar modules specifications, we are discussing with Jinko Solar to provide the modules with same specification. Module selection will be finalized by Mar-25. 
+
+5. Modules will be delivered to the site 45 days after purchase order is placed with the vendor.  
+
+6. We are in discussions with vendor to execute the replacement work. Service order will be issued to the finalized vendor. 
+
+7. All damaged modules expected to be replaced at site within Oct-25. 
+
+Preventive Action:
+To prevent damages to the solar modules due to typhoon, additional clamps will be procured and fixed with solar modules
+
+8. On 26th Jan, Fiber Optic Cable failure occurred from PCS5 & PCS6 to GSS. Due to this, Inv-05 & 06 were in off condition from 26th Jan to 04th Feb. At present, the generation is resumed by connecting spare cable. Existing damaged cable need to be repaired. (Generation loss for Feb-25: 51.33 MWh and Revenue Loss $ 12,381). 
+
+9.   On 7th Feb 2025, PCS3 tripped due to low insulation resistance from 15:30 hrs to 17:48 Hrs. Gen Loss: 0.719 MWh. Revenue Loss: $ 173.62. 
+
+10. On 12th Feb 2025, PCS6 tripped due to low insulation resistance from 12:27 Hrs and 13:38 Hrs. Gen Loss: 0.388 MWh and Revenue Loss: $ 93.53.
+ 
+11. On 26th Feb, PCS1, PCS2, and PCS3, and on 27th Feb, PCS4, PCS5, and PCS6 were in software updating mode by the Sun grow team for 03:48 hours (average) for each inverter. After the software update, all the inverters came into operation mode. Generation Loss: 49.98 MWh and Revenue Loss: $ 12,054.
+
+12. Curtailment Details: 
+     a) Budgeted: 15.69% (339 MWh)
+     b) Actual: 17.31% (374 MWh)
+     c) Excess Curtailment: 1.61% (35 MWh)
+
+Note: 
+a) Proxy curtailment details are yet to be published for Feb-25. 
+b) Curtailment base line updated with respect to expected generation.
+c) Breakdown losses updated for Jan-25 based on site assessment report-Feb-25. Total no.of breakdown strings were updated from 108 to 278.  "
+18,25-Feb,SG_DG_ONS_00055,Singapore ,SG Matco Asia,"1) Due to communication failure in the data logger at the site, remote monitoring is restricted. Data from February 28, 2025, was not recorded for analysis.
+
+2) Communication issue will be resolved  within Mar-25. "
+19,25-Feb,KR_IB_49,Korea,Korea-Iceberg,"
+1. Monthly IC approved budgets are proportionated from annual IC approved budget with respect to monthly expected generation from PVsyst report. 
+
+2. From Feb 5 to 9, 2025, snowfall caused reduced generation and PR. Operations have now normalized as the snow has melted.
+
+3. From Feb 12 to 15, 2025 / During rainy and humid conditions, Insulation fault occurred in some cables of inverters P-3-1, P-3-2, and P-4-2 / Immediate repairs were completed .The capacity loss due to the Insulation fault is insignificant in comparison to the total 100MW site capacity"
+20,25-Feb,TW1,Taiwan ,TW-Yunlin ,"1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. The IC Approved budget is based on the DC capacity of 29.04 MWp, while the Expected Budget is calculated using the as-built DC capacity of 24.817 MWp. This discrepancy accounts for the significant difference observed between the two budgets. "
+21,25-Mar,KR_BW_02,Korea,Korea-Blackwood ,"1. Asset No.15: Fire incident happened in the month of Oct-2024 and all the inverters are damaged and spacer in the transformer needs to be changed. 
+a) New inverters are installed and spacer in the transformer changed on 11th Mar 2025. Mar-25 Gen Loss: 13 MWh & Revenue Loss: $ 967.
+
+b) 104.475 kWp capacity of faulty solar modules are isolated due to insulation failure, crack & Hotspot. Damaged modules need to be replaced to resume the operational capacity of the plant to the designed capacity. Mar-25 Generation loss: 9 MWh and Revenue Loss: $ 725 . 
+
+2. Asset No. 28: On 09th Mar 2025, due to BESS fire incident, PV plant is isolated for safety precaution.
+a) Post physical inspection and mandatory testing of electrical equipment, PV plant is energized on 12th Mar 2025. Gen Loss: 99MWh & Revenue Loss: $ 7612. 
+
+b) Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation.  Mar-25 Gen Loss:  5 MWh & Revenue Loss:  $ 387. 
+
+3. Asset No.,12,13,16,19,21,23,24,26,28,30,31,34,39,41: As per KEPCOâ€™s requirement curtailment implemented at site. Gen loss: 135.80 MWh & Revenue Loss: $ 10,496 . 
+
+4. On 26th Mar 2025, Enlighten Team presented demo of Monitoring system and it is finalized for S-Roof construction. "
+22,25-Mar,KR_IB_49,Korea,Korea-Iceberg,"1. On 9th, 23rd,26th and 30th Mar 2025, As per KEPCO's requirement curtailment has been implemented at site. Gen Loss: 706 MWh and Revenue Loss: $ 40,327.
+
+2. 18/03/2025 Decrease in power generation caused by snowfall
+
+3. 27/03/2025 Decrease in power generation caused by rainfall
+
+4. Reasons for curtailment:  As per KEPCO instructions, rapid increase in the renewable energy installations, Regional Imbalance between Power Supply & Demand and Low Power Demand & High Generation leading to the curtailment. "
+23,25-Mar,JP-MINA,Japan ,JP Minamata,"1. PCS3 & PCS4 tripped due to Low Insulation Resistance for 6 times in Mar-25. Gen Loss: 12 MWh and Revenue Loss: $ 2774.
+
+2. PCS2 is tripped due to PDP (Potential Distribution Protection) from 18th Mar 2025 to 31st Mar 2025. Gen Loss: 209 MWh & Revenue Loss: $ 50410.
+
+3. On 27th Mar 2025, CDT failure and replacement is in progress. 
+ 
+4. To replace the damaged modules due to typhoon, we are in discussions with vendor to execute the replacement work. Service order will be issue10 to finalize the vendor. 
+
+5. Curtailment Details: 
+     a) Budgeted: 8.64% (265 MWh) 
+     b) Actual: 29.59% (907 MWh)
+     c) Excess Curtailment: 20.95% (643 MWh)
+
+6. Weather loss is high. The same has been confirmed via multiple sources- On site sensors, Solar GIS and JMA data. "
+24,25-Mar,All Sites,All Countries,All Portfolio,"1. Japan Minamata: 
+a) PCS3 & PCS4 tripped due to Low Insulation Resistance for 6 times in Mar-25. Gen Loss: 12 MWh and Revenue Loss: $ 2774
+b) PCS2 is tripped due to PDP (Potential Distribution Protection) from 18th Mar 2025 to 31st Mar 2025. Gen Loss: 209 MWh and Revenue Loss: $ 50410.
+c) On 27th Mar 2025, CDT failure and replacement is in progress. 
+
+2. Korea Blackwood: 
+a) Asset No: 15 Fire incident happened in the month of Oct-2024 and all the inverters are damaged. New inverters are installed and spacer in the transformer changed on 11th Mar 2025. Mar-24 Gen Loss: 13 MWh and Revenue Loss: $ 967.
+
+b) 104.475 kWp capacity of faulty solar modules due to insulation failure, crack & Hotspot are removed to resume the inverters generation. Need to replace the solar modules to resume the generation.  Mar-25 Generation loss: 9 MWh and Revenue Loss: $ 725 . 
+
+b) Asset No. 28: On 09th Mar 2025, due to BESS fire incident, PV plant is isolated for safety precaution. Post physical inspection and mandatory  testing of electrical equipment, PV plant is energized on 12th Mar 2025. Gen Loss: 98.49 MWh and Revenue Loss: 7611.73 USD. Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation. Mar-25  Gen Loss:  5 MWh and Revenue Loss:  $ 387.  
+
+c) Asset No.,12,13,16,19,21,23,24,26,28,30,31,34,39,41: As per KEPCOâ€™s requirement curtailment implemented at site. Gen loss: 135.80 MWh & Revenue Loss: $ 10,496 . 
+
+3. Korea Iceberg: On 9th, 23rd, 26th and 30th Mar 2025, As per KEPCO's requirement curtailment has been implemented at site. Gen Loss: 706 MWh and Revenue Loss: $ 40,327.
+
+4. Singapore Matco Asia: Data logger communication issue has been resolved on 21st Mar 2025. "
+25,25-Mar,SG_DG_ONS_00055,Singapore ,SG Matco Asia,"
+1. On 28th Feb 2025, site remote monitoring is interrupted due to data logger license mismatch. The issue has been resolved on 21st Mar 2025. New sim card has been purchased and installed in the system to resume the communication.
+
+2. Poor weather condition in Singapore in March-2025. It was unusually rainy. "
+26,25-Mar,TW1,Taiwan ,TW-Yunlin ,"1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. The IC Approved budget is based on the DC capacity of 29.04 MWp, while the Expected Budget is calculated using the as-built DC capacity of 24.817 MWp. This discrepancy accounts for the significant difference observed between the two budgets. "
+27,25-Apr,KR_BW_01,Korea,Korea-Blackwood ,"1. Asset No.15:  
+a) 104.475 kWp capacity of faulty solar modules are isolated due to insulation failure, crack & Hotspot. Damaged modules need to be replaced to resume the operational capacity of the plant to the designed capacity. Apr-25 Generation loss: 8 MWh and Revenue Loss: $ 618 . 
+
+b) Blackwood agreed to replace the damaged modules and vendor finalization is under progress. 
+
+2. Asset No. 28: Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation.  Apr-25 Gen Loss:  8.4 MWh & Revenue Loss:  $ 664. 
+
+3. Asset No: 11,13,16,26,34,39,41 & 42: As per KEPCO requirement, 100% curtailment implemented at multiple time slots. Gen Loss: 46 MWh and Gen Loss: $ 3,588. 
+
+4. Asset No: 5, Generation stopped from 20th Apr 13:34 hrs to 21st Apr 15:15 hrs due to system failure . Gen Loss: 6.3 MWh and Revenue Loss: $ 488.
+
+5. Asset No: 31, String failure and MCCB tripping in Apr-25 caused Gen Loss: 57.5 MWh and Revenue Loss: $ 4,498. 
+
+6. Asset No: 1,4,6,8,9,14,19,20,21,24,26,27,30 and 35, string failure and inverter failure caused Gen Loss: 123 MWh and Revenue Loss: $ 9,837."
+28,25-Apr,KR_IB_49,Korea,Korea-Iceberg,"1. As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 06th,13th,26th and 29th Apr 2025.  Gen Loss: -652 MWh and Revenue Loss: $ 37,807.
+
+2. Inverters are tripped due to Ground Fault, Instantaneous fault and No Grid etc., Gen Loss: 20.13 MWh and Revenue Loss: $ 1,167."
+29,25-Apr,JP-MINA,Japan ,JP Minamata,"1. PCS-02 tripped due to PDP Protection from 01st, 02nd April 2025. Gen Loss: 23.5 MWh Revenue Loss:$ 5829.
+
+2. PCS-03 tripped on low insulation resistance n 1st & 10th April 2025. Gen Loss:  1.05 MWh and Revenue Loss: $ 261.
+
+3.Curtailment Details: 
+     a) Budgeted: 29.09% (804 MWh)
+     b) Actual: 9.89% (273 MWh)
+     c) Curtailment Gain: 19.20 % (531 MWh)  (Actual curtailment is lesser than the budgeted curtailment)
+
+4. Module related losses due to typhoon damage. Gen Loss: 409 MWh and Revenue Loss: $ 101,647.
+
+5. PCS-01, JB-01 to JB-07, string related losses due to typhoon damage: Gen Loss 228 MWh and Revenue Loss: $ 56,635"
+30,25-Apr,SG_DG_ONS_00055,Singapore ,SG Matco Asia,"As per client safety request, plant shutdown during maintenance activity in April-2025. Gen Loss: 7.3 MWh and Revenue Loss: $ 579. "
+31,25-Apr,All Sites,All Countries,All Portfolio,"Japan: 
+
+1. PCS-02 tripped due to PDP Protection from 01st, 02nd April 2025. Gen Loss: 23.5 MWh Revenue Loss:$ 5829.
+
+2. PCS-03 tripped on low insulation resistance n 1st & 10th April 2025. Gen Loss:  1.05 MWh and Revenue Loss: $ 261.
+
+3.Curtailment Details: 
+     a) Budgeted: 29.09% (804 MWh)
+     b) Actual: 9.89% (273 MWh)
+     c) Curtailment Gain: 19.20 % (531 MWh)  (Actual curtailment is lesser than the budgeted curtailment)
+
+4. Module related losses due to typhoon damage. Gen Loss: 409 MWh and Revenue Loss: $ 101,647.
+
+5. PCS-01, JB-01 to JB-07, string related losses due to typhoon damage: Gen Loss 228 MWh and Revenue Loss: $ 56,635
+
+Korea-Blackwood: 
+
+1. Asset No: 11,13,16,26,34,39,41 & 42: As per KEPCO requirement, 100% curtailment implemented  on multiple time slots. Gen Loss: 46 MWh and Gen Loss: $ 3,588. 
+
+2. Asset No: 5, On 21st April 2025, generation stopped due to system failure. Gen Loss: 6.3 MWh and Revenue Loss: $ 488.
+
+Korea-Iceberg: 
+
+1.  As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 06th,13th,26th and 29th Apr 2025.  Gen Loss: -652 MWh and Revenue Loss: $ 37,807.
+
+2. Inverters are tripped due to Ground Fault, Instantaneous fault and No Grid etc., Gen Loss: 20.13 MWh and Revenue Loss: $ 1,167.
+
+Singapore:
+
+As per client safety request, plant shutdown during maintenance activity in April-2025. Gen Loss: 7.3 MWh and Revenue Loss: $ 579. 
+
+Taiwan:
+
+1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. As built Drawings, PV System Report and other necessary documents are requested for further analysis"
+32,25-Apr,TW1,Taiwan ,TW-Yunlin ,"1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. The IC Approved budget is based on the DC capacity of 29.04 MWp, while the Expected Budget is calculated using the as-built DC capacity of 24.817 MWp. This discrepancy accounts for the significant difference observed between the two budgets. "
+33,25-May,All Sites,All Countries,All Portfolio,"Japan: 
+1. PCS-04 tripped due to low insulation resistance on 11th May 2025. Gen Loss:  2 MWh Revenue Loss:$ 480.
+
+2. PCS-03 tripped on low insulation resistance on 11th & 17th May 2025. Gen Loss:2.5 MWh and Revenue Loss: $ 629.
+
+3. PCS-06 tripped on low insulation resistance on 25th, 26th,29th, 30th and 31st May 2025. Gen Loss:71.40 MWh and Revenue Loss: $ 17,738.
+
+4.Curtailment Details: 
+     a) Budgeted: 11.91% (401 MWh)
+     b) Actual: 20.18% (680 MWh) 
+     c) Curtailment Loss: 8.27 % (278 MWh)
+
+5. Module related losses due to typhoon damage. Gen Loss: 404  MWh and Revenue Loss: $100,573 .
+
+6. PCS-01, JB-01 to JB-07, string related losses due to typhoon damage: Gen Loss  182 MWh and Revenue Loss: $45,221 .
+
+
+Korea-Blackwood: 
+
+1. Asset No.15:  
+a) 104.475 kWp capacity of faulty solar modules are isolated due to insulation failure, crack & Hotspot. Damaged modules need to be replaced to resume the operational capacity of the plant to the designed capacity. May-25 Generation loss: 18 MWh and Revenue Loss: $ 1379 . 
+
+b) Blackwood agreed to replace the damaged modules and vendor finalization is under progress. 
+
+2. Asset No. 28: Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation. May-25 Gen Loss:  7 MWh & Revenue Loss:  $ 543. 
+
+3. May-25 , Asset No: 11,12,13,21,24,26,39,41 & 42: As per KEPCO requirement, 100% curtailment implemented at multiple time slots. Gen Loss: 174 MWh and Gen Loss: $ 3,588. 
+
+4. May-25, Asset No: 36,31,4,5,6,9,11,14,19,20,21,30,35,2 & 8 string failure and inverter failure caused Gen Loss: 104.37MWh and Revenue Loss: $ 8386.14
+
+5. Asset No: 1, Site Name: Songpyeong TI Solar Power, 194.4 kWp , is removed from the list, as per the information received from PEK. 
+
+
+
+Korea-Iceberg: 
+
+1. As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 04th & 07th May 2025.  Gen Loss: -464 MWh and Revenue Loss: $ 26,868.
+
+2. Inverters are tripped due to Ground Fault, Instantaneous fault and No Grid etc., Gen Loss: 11 MWh and Revenue Loss: $ 614.
+
+
+
+Korea-Sroof:
+
+1. Samyang Foods: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+2, Sung jin: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+B) Weather sensors are installed & configured on 29th May 2025. 
+
+IC Approved & Expected budget for both sites considered from COD. 
+
+
+
+Taiwan:
+
+1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. As built Drawings, PV System Report and other necessary documents are requested for further analysis 
+
+3. Breakdown losses are calculated based on comparison of same capacity healthy inverters. "
+34,25-May,KR_BW_02,Korea,Korea-Blackwood ,"1. Asset No.15:  
+a) 104.475 kWp capacity of faulty solar modules are isolated due to insulation failure, crack & Hotspot. Damaged modules need to be replaced to resume the operational capacity of the plant to the designed capacity. May-25 Generation loss: 18 MWh and Revenue Loss: $ 1379 . 
+
+b) Blackwood agreed to replace the damaged modules and vendor finalization is under progress. 
+
+2. Asset No. 28: Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation. May-25 Gen Loss:  7 MWh & Revenue Loss:  $ 543. 
+
+3. May-25 , Asset No: 11,12,13,21,24,26,39,41 & 42: As per KEPCO requirement, 100% curtailment implemented at multiple time slots. Gen Loss: 174 MWh and Gen Loss: $ 13,683. 
+
+4. May-25, Asset No: 36,31,4,5,6,9,11,14,19,20,21,30,35,2& 8 , string failure and inverter failure caused Gen Loss: 104.37 MWh and Revenue Loss: $ 8386.14
+
+5. Asset No: 26 & 27 sites are not available in the monitoring portal. So, data is awaited from site. 
+
+6. Asset No: 2,19,28,30 & 34 breakdown & communication issue details are awaited from site. 
+
+7. Asset No: 1, Site Name: Songpyeong TI Solar Power, 194.4 kWp , is removed from the list, as per the information received from PEK. "
+35,25-May,KR_IB_49,Korea,Korea-Iceberg,"1. As per KEPCO instructions, Korea-iceberg plant curtailment implemented on 04th & 07th  May 2025.  Gen Loss: -464 MWh and Revenue Loss: $ 26,868.
+
+2. Inverters are tripped due to Ground Fault, Instantaneous fault and No Grid etc., Gen Loss: 11 MWh and Revenue Loss: $ 614."
+36,25-May,JP-MINA,Japan ,JP Minamata,"1. PCS-04 tripped due to low insulation resistance on 11th May 2025. Gen Loss:  2 MWh Revenue Loss:$ 480.
+
+2. PCS-03 tripped on low insulation resistance on 11th & 17th May 2025. Gen Loss:2.5 MWh and Revenue Loss: $ 629.
+
+3. PCS-06 tripped on low insulation resistance on 25th, 26th,29th, 30th and 31st May 2025. Gen Loss:71.40 MWh and Revenue Loss: $ 17,738.
+
+4.Curtailment Details: 
+     a) Budgeted: 11.91% (401 MWh)
+     b) Actual: 20.18% (680 MWh) 
+     c) Curtailment Loss: 8.27 % (278 MWh)
+
+5. Module related losses due to typhoon damage. Gen Loss: 404  MWh and Revenue Loss: $100,573 .
+
+6. PCS-01, JB-01 to JB-07, string related losses due to typhoon damage: Gen Loss  182 MWh and Revenue Loss: $45,221 ."
+37,25-May,SG_DG_ONS_00055,Singapore ,SG Matco Asia,Nil
+38,25-May,TW1,Taiwan ,TW-Yunlin ,"1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. The IC Approved budget is based on the DC capacity of 29.04 MWp, while the Expected Budget is calculated using the as-built DC capacity of 24.817 MWp. This discrepancy accounts for the significant difference observed between the two budgets. "
+39,25-May,KR_DG_ONS_00028,Korea,Korean-Sroof,"1. Samyang Foods: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+2, Sung jin: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+
+B) Weather sensors are installed & configured on 29th May 2025. 
+
+IC Approved & Expected budget for both sites considered from COD. "
+44,25-Jun,JP-MINA,Japan ,JP Minamata,"1. PCS-03 tripped due to low insulation resistance on 2nd, 3rd, 10th, 14th, 22nd, 23rd and 29th June 2025. Gen Loss: 4.428 MWh Revenue Loss:$ 1,100.07
+
+2. PCS-04 tripped on low insulation resistance on 3rd, 23rd and 28th June  2025. Gen Loss: 2.807 MWh and Revenue Loss: $ 697.33 .
+
+3. PCS-06 tripped on low insulation resistance on 1st -5th and 14th of June  2025. Gen Loss: 29.307 MWh and Revenue Loss: $ 7,279.95 .
+
+4.Curtailment Details: 
+     a) Budgeted: 19.9% (465 MWh)
+     b) Actual: 3.82% (89 MWh) 
+     c) Curtailment gain : 16.10% (376 MWh) (Actual curtailment is lesser than the budgeted curtailment)
+
+5. Module related losses due to typhoon damage. Gen Loss: 370.35 MWh and Revenue Loss: $91,995.
+
+6. PCS-01, JB-01 to JB-07, string related losses due to typhoon damage: Gen Loss 164.16 MWh and Revenue Loss: $ 40,778  ."
+45,25-Jun,All Sites,All Countries,All Portfolio,"1. Japan: 
+1. PCS-03 tripped due to low insulation resistance on 2nd, 3rd, 10th, 14th, 22nd, 23rd and 29th June 2025. Gen Loss: 4.428 MWh Revenue Loss:$ 1,100.07
+
+2. PCS-04 tripped on low insulation resistance on 3rd, 23rd and 28th June  2025. Gen Loss: 2.807 MWh and Revenue Loss: $ 697.33 .
+
+3. PCS-06 tripped on low insulation resistance on 1st -5th and 14th of June  2025. Gen Loss: 29.307 MWh and Revenue Loss: $ 7,279.95 .
+
+4.Curtailment Details: 
+     a) Budgeted: 19.9% (465.77MWh)
+     b) Actual: 3.8% (89.286MWh) 
+     c) Curtailment gain : 16.1% (376.484 MWh) (Actual curtailment is lesser than the budgeted curtailment)
+
+5. Module related losses due to typhoon damage. Gen Loss: 370.352  MWh and Revenue Loss: $91,995.49.
+
+6. PCS-01, JB-01 to JB-07, string related losses due to typhoon damage: Gen Loss 164.16 MWh and Revenue Loss: $ 40,778  .
+
+2. Korea-blackwood: 
+
+1. Asset No.15:  
+a) 104.475 kWp capacity of faulty solar modules are isolated due to insulation failure, crack & Hotspot. Damaged modules need to be replaced to resume the operational capacity of the plant to the designed capacity. June-25 Generation loss: 19.25 MWh and Revenue Loss: $ 1509.39 . 
+
+c) The inverters have been continuously shutting down due to defective module insulation resistance on following dates 14th to 17th June and 22nd to 30th June 2025, Gen Loss: 4.96 MWh and Revenue Loss: $ 389.02
+
+b) Blackwood agreed to replace the damaged modules and vendor finalization is under progress. 
+
+2. Asset No. 28: Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation. June-25 Gen Loss: 7.40 MWh & Revenue Loss:  $ 579.54 . 
+
+4. June-25 , Asset No: 19: As per KEPCO requirement, Grid outage due to blaclout. Gen Loss: 11.89 MWh and Gen Loss: $932.69 . 
+
+5. June-25, Asset No: 4,5,6,7,8,9,11,19,20,21,24,30 & 35, string failure and inverter failure caused Gen Loss:  43.81 MWh and Revenue Loss: $ 3560.01 .
+
+3. Korea-Iceberg: 
+
+1. Inverters are tripped due to Ground Fault and PDP Pro., Gen Loss: 5.75 MWh and Revenue Loss: $ 333.26.
+
+4. Korea-Sroof: 
+
+1. Samyang Foods: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+b) PV System shutdown due to scheduled equipement inspection on 4th,5th,10th and 11th June 2025  Gen Loss: 4.8 MWh & Revenue Loss:  $547.40
+
+2, Sung jin: 
+
+Nil 
+
+4. Singapore: 
+
+Nil 
+
+5. Taiwan: 
+
+1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. As built Drawings, PV System Report and other necessary documents are requested for further analysis 
+
+
+
+
+
+
+
+
+
+
+
+"
+46,25-Jun,KR_BW_02,Korea,Korea-Blackwood ,"1. Asset No.15:  
+a) 104.475 kWp capacity of faulty solar modules are isolated due to insulation failure, crack & Hotspot. Damaged modules need to be replaced to resume the operational capacity of the plant to the designed capacity. June-25 Generation loss: 19.25 MWh and Revenue Loss: $ 1509.39 . 
+
+c) The inverters have been continuously shutting down due to defective module insulation resistance on following dates 14th to 17th June and 22nd to 30th June 2025, Gen Loss: 4.96 MWh and Revenue Loss: $ 389.02
+
+b) Blackwood agreed to replace the damaged modules and vendor finalization is under progress. 
+
+2. Asset No. 28: Due to BESS fire incident, 10 Nos of strings near BESS station are damaged. Need to rectify the same to resume the generation. June-25 Gen Loss: 7.40 MWh & Revenue Loss:  $ 579.54 . 
+
+4. June-25 , Asset No: 19: As per KEPCO requirement, Grid outage due to blaclout. Gen Loss: 11.89 MWh and Gen Loss: $932.69 . 
+
+5. June-25, Asset No: 4,5,6,7,8,9,11,19,20,21,24,30 & 35, string failure and inverter failure caused Gen Loss:  43.81 MWh and Revenue Loss: $ 3560.01 ."
+47,25-Jun,SG_DG_ONS_00055,Singapore ,SG Matco Asia,Nil
+48,29-Jun,TW1,Taiwan ,TW-Yunlin ,"1. Site Monitoring Website credential are received on 22nd April 2025. 
+
+2. The IC approved budget has been calculated based on a DC capacity of 29.20 MWp as projected by PVsyst, whereas the actual as-built DC capacity from January 2025 to June 2025 is 24.82 MWp, thereby providing a basis for direct comparison over the same period."
+49,30-Jun,KR_DG_ONS_00028,Korea,Korean-Sroof,"1. Samyang Foods: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. 
+b) PV System shutdown due to scheduled equipement inspection on 4th,5th,10th and 11th June 2025  Gen Loss: 4.8 MWh & Revenue Loss:  $547.40
+
+2, Sung jin: 
+
+a) Site is commissioned on 17th May 2025. HOTO is in process. "
+50,25-Jun,KR_IB_49,Korea,Korea-Iceberg,"
+1. Inverters are tripped due to Ground Fault and PDP Pro., Gen Loss: 5.75 MWh and Revenue Loss: $ 333.26."

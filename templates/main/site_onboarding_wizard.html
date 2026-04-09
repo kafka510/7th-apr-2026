@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load django_vite %}
+
+{% block title %}Single-Site Onboarding Wizard - Admin{% endblock %}
+
+{% block extra_head %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% if DJANGO_VITE_DEV_MODE %}
+    {% vite_hmr_client %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<noscript>
+  <p class="alert alert-warning m-3">JavaScript is required for the onboarding wizard. Enable JavaScript and reload.</p>
+</noscript>
+<div
+  id="react-root"
+  data-app="site-onboarding-wizard"
+  class="js-react-site-onboarding-wizard"
+>
+  <p class="text-muted p-3 mb-0">
+    Loading wizard… If this text does not disappear, the UI bundle failed to load (check Vite build, static files, and browser console).
+  </p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {% vite_asset 'src/main.tsx' %}
+{% endblock %}

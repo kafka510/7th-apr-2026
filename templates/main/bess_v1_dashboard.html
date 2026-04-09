@@ -1,0 +1,2402 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="utf-8" />
+<title>BESS Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="{% static 'bestcalendar.js' %}"></script>
+<script src="{% static 'js/multi-select.js' %}"></script>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f5f8fb;
+    color: #2c3e50;
+  }
+  body {
+    padding: 8px;
+    overflow-x: hidden;
+  }
+  /* Wrapper for centered layout - responsive width control */
+  .wrapper {
+    max-width: 95vw;
+    width: 100%;
+    height: calc(100vh - 16px);
+    margin: 0 auto;
+    padding: 0 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  /* Filters - responsive wrapping */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin-bottom: 8px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .filter-item .icon {
+    font-size: 1.1rem;
+    color: #0072CE;
+  }
+  .filter-item input[type="file"] {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    font-size: 0.85rem;
+    background: #f9f9f9;
+    cursor: pointer;
+    max-width: 180px;
+  }
+  .filter-item select {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    font-size: 0.85rem;
+    background: #f9f9f9;
+    color: #333;
+    cursor: pointer;
+    min-width: 140px;
+  }
+  .filter-item select:hover,
+  .filter-item input[type="file"]:hover {
+    border-color: #0072CE;
+    background: #f0f8ff;
+  }
+  .month-trigger-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    background: #f9f9f9;
+    color: #333;
+    cursor: pointer;
+    font-size: 0.85rem;
+    min-width: 140px;
+    transition: all 0.2s;
+  }
+  .month-trigger-btn:hover {
+    border-color: #0072CE;
+    background: #f0f8ff;
+  }
+  .clear-btn {
+    background: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+  .clear-btn:hover {
+    background: #e63939;
+  }
+  /* Quick Range Buttons */
+  .quick-range-buttons {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+  }
+  .quick-range-btn {
+    background: #0072CE;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .quick-range-btn:hover {
+    background: #005a9e;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 114, 206, 0.3);
+  }
+  .quick-range-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+  .quick-range-btn.active {
+    background: #004d7a;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  /* BestCalendar styles */
+  .bc-picker {
+    position: absolute !important;
+    z-index: 10000 !important;
+    top: 100% !important;
+    left: 0 !important;
+    background: white !important;
+    border: 1px solid #ccc !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+    margin-top: 4px !important;
+    min-width: 280px !important;
+  }
+  .bc-hidden {
+    display: none !important;
+  }
+  #monthMatrixPicker {
+    display: none;
+  }
+  /* Multi-Select Styles */
+  .multi-select-container {
+    position: relative;
+    min-width: 160px;
+    max-width: 250px;
+    width: auto;
+    z-index: 100;
+  }
+  .multi-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #f9f9f9;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #333;
+    transition: border-color 0.2s;
+    min-height: 32px;
+  }
+  .multi-select-trigger:hover {
+    border-color: #0072CE;
+    background: #f0f8ff;
+  }
+  .multi-select-trigger.active {
+    border-color: #0072CE;
+  }
+  .multi-select-container:has(.multi-select-dropdown:not([style*="display: none"])) {
+    z-index: 9999;
+  }
+  .multi-select-arrow {
+    font-size: 11px;
+    color: #0072CE;
+    transition: transform 0.2s;
+    margin-left: 6px;
+  }
+  .multi-select-trigger.active .multi-select-arrow {
+    transform: rotate(180deg);
+  }
+  .multi-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    max-height: 250px;
+    overflow-y: auto;
+    overflow-x: visible;
+    display: none;
+    padding: 4px 0;
+    margin-top: 2px;
+    min-width: 100%;
+    width: auto;
+  }
+  .multi-select-option {
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #333;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .multi-select-option:hover {
+    background-color: #f0f8ff;
+  }
+  .multi-select-option.select-all-option {
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 600;
+    color: #0072CE;
+  }
+  .checkbox-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .checkbox-container input[type="checkbox"] {
+    display: none;
+  }
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    width: 100%;
+    font-size: 0.85rem;
+    color: #333;
+  }
+  .checkbox-custom {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-radius: 3px;
+    margin-right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+    background-color: #0072CE;
+    border-color: #0072CE;
+  }
+  .checkbox-custom::after {
+    content: "✓";
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    display: none;
+  }
+  .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+    display: block;
+  }
+  .selected-items {
+    display: none;
+  }
+  /* Content area with scroll */
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+  }
+  /* KPI container */
+  .kpi-wrapper {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+  }
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    justify-content: flex-start;
+  }
+  .kpi-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e1e6ef;
+    border-left: 4px solid #0088cc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+    padding: 6px 8px;
+    min-width: 0;
+    gap: 6px;
+    transition: all 0.2s ease-in-out;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12);
+  }
+  .kpi-card.good {
+    border-left: 4px solid #00b050;
+    background: #f0fdf4;
+  }
+  .kpi-card.warn {
+    border-left: 4px solid #ffbf00;
+    background: #fffbeb;
+  }
+  .kpi-card.bad {
+    border-left: 4px solid #ff5050;
+    background: #fef2f2;
+  }
+  .kpi-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+  }
+  .kpi-icon {
+    font-size: 16px;
+    color: #1182c6;
+    min-width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-left: 2px;
+  }
+  .kpi-card.good .kpi-icon {
+    color: #00b050;
+  }
+  .kpi-card.warn .kpi-icon {
+    color: #ffbf00;
+  }
+  .kpi-card.bad .kpi-icon {
+    color: #ff5050;
+  }
+  .kpi-label {
+    font-size: 9px;
+    color: #64748b;
+    line-height: 1.1;
+    font-weight: 500;
+  }
+  .kpi-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-top: 2px;
+  }
+  /* Charts grid - responsive */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 14px;
+    align-items: stretch;
+    margin-top: 10px;
+    flex-shrink: 1;
+    min-height: 0;
+  }
+  .chart-card {
+    width: 100%;
+    min-height: 320px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    padding: 12px;
+    min-width: 0;
+  }
+  .chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #004b7c;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .chart-container {
+    height: 320px;
+  }
+  /* Hide Plotly modebar for cleaner export */
+  .plotly .modebar {
+    display: none !important;
+  }
+  /* Responsive grid layout - optimized for different screen sizes */
+  @media (min-width: 1600px) {
+    .wrapper {
+      max-width: 88vw;
+    }
+    .charts-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .kpi-row {
+      grid-template-columns: repeat(8, 1fr);
+      gap: 10px;
+    }
+  }
+  /* 2x2 Matrix for 1400px screens - fits on single screen */
+  @media (min-width: 1300px) and (max-width: 1599px) {
+    .wrapper {
+      max-width: 98vw;
+      height: 100vh;
+    }
+    .filters {
+      padding: 8px 12px;
+      margin-bottom: 6px;
+    }
+    .kpi-wrapper {
+      padding: 4px 8px;
+      margin-bottom: 4px;
+    }
+    .kpi-row {
+      grid-template-columns: repeat(8, 1fr);
+      gap: 6px;
+    }
+    .kpi-card {
+      padding: 4px 6px;
+      min-height: 48px;
+    }
+    .kpi-label {
+      font-size: 8px;
+    }
+    .kpi-value {
+      font-size: 12px;
+    }
+    .charts-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .chart-card {
+      padding: 8px;
+      min-height: auto;
+    }
+    .chart-title {
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .chart-container {
+      height: 260px;
+    }
+    .content-area {
+      overflow-y: hidden;
+    }
+  }
+  @media (min-width: 1200px) and (max-width: 1299px) {
+    .wrapper {
+      max-width: 95vw;
+    }
+    .charts-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .chart-container {
+      height: 300px;
+    }
+  }
+  @media (max-width: 1199px) {
+    .charts-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .chart-container {
+      height: 280px;
+    }
+    .kpi-row {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+  }
+  /* Responsive adjustments for smaller laptops */
+  @media (max-width: 1399px) {
+    .wrapper {
+      max-width: 100%;
+      padding: 0 8px;
+    }
+    .filters {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      row-gap: 8px;
+      padding: 10px 12px;
+    }
+    .kpi-row {
+      gap: 6px;
+    }
+    .kpi-card {
+      padding: 5px 6px;
+    }
+    .kpi-label {
+      font-size: 8px;
+    }
+    .kpi-value {
+      font-size: 13px;
+    }
+    .kpi-icon {
+      font-size: 15px;
+      min-width: 18px;
+    }
+  }
+  /* KPI card height */
+  .kpi-card {
+    min-height: 54px;
+  }
+  /* Filter item sizing */
+  .filter-item input[type="file"],
+  .month-trigger-btn,
+  .multi-select-trigger {
+    min-width: 150px;
+    height: 34px;
+    font-size: 0.9rem;
+  }
+  .filter-item input[type="file"] {
+    max-width: 180px;
+  }
+  /* Laptop screen optimizations (1366px - 1920px) */
+  @media (min-width: 1200px) and (max-width: 1600px) {
+    .filters {
+      gap: 6px;
+      padding: 10px 14px;
+    }
+    .multi-select-container {
+      min-width: 140px;
+      max-width: 200px;
+    }
+    .filter-item select,
+    .month-trigger-btn,
+    .multi-select-trigger {
+      min-width: 135px;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+    .quick-range-btn {
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+    .clear-btn {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+  }
+  /* Standard laptop screens (1366px - 1440px) */
+  @media (min-width: 1200px) and (max-width: 1440px) {
+    .wrapper {
+      max-width: 96vw;
+    }
+    .filters {
+      gap: 5px;
+      padding: 10px 12px;
+    }
+    .filter-item .icon {
+      font-size: 1rem;
+    }
+    .multi-select-container {
+      min-width: 130px;
+      max-width: 180px;
+    }
+    .filter-item select,
+    .month-trigger-btn,
+    .multi-select-trigger {
+      min-width: 125px;
+      font-size: 0.82rem;
+    }
+    .quick-range-btn {
+      padding: 6px 9px;
+      font-size: 0.82rem;
+    }
+  }
+  /* Footer */
+  .footer {
+    margin-top: 20px;
+    font-size: 11px;
+    color: #666;
+    line-height: 1.4;
+  }
+</style>
+</head>
+
+<body>
+  <script id="bessV1DataJSON" type="application/json">{{ bess_v1_data_json|safe }}</script>
+  <div class="wrapper">
+    <!-- Filters Section -->
+    <div class="filters">
+      <label class="filter-item" title="Country">
+        <span class="icon" aria-hidden="true">🌍</span>
+        <div class="multi-select-container">
+          <div id="filterCountryTrigger" class="multi-select-trigger">
+            <span id="filterCountryPlaceholder" data-default="All Countries">All Countries</span>
+            <span class="multi-select-arrow">▼</span>
+          </div>
+          <div id="filterCountryDropdown" class="multi-select-dropdown"></div>
+          <div id="filterCountrySelectedItems" class="selected-items"></div>
+        </div>
+      </label>
+      <label class="filter-item" title="Portfolio">
+        <span class="icon" aria-hidden="true">📂</span>
+        <div class="multi-select-container">
+          <div id="filterPortfolioTrigger" class="multi-select-trigger">
+            <span id="filterPortfolioPlaceholder" data-default="All Portfolios">All Portfolios</span>
+            <span class="multi-select-arrow">▼</span>
+          </div>
+          <div id="filterPortfolioDropdown" class="multi-select-dropdown"></div>
+          <div id="filterPortfolioSelectedItems" class="selected-items"></div>
+        </div>
+      </label>
+      <label class="filter-item" title="Asset">
+        <span class="icon" aria-hidden="true">🏭</span>
+        <div class="multi-select-container">
+          <div id="filterAssetTrigger" class="multi-select-trigger">
+            <span id="filterAssetPlaceholder" data-default="All Assets">All Assets</span>
+            <span class="multi-select-arrow">▼</span>
+          </div>
+          <div id="filterAssetDropdown" class="multi-select-dropdown"></div>
+          <div id="filterAssetSelectedItems" class="selected-items"></div>
+        </div>
+      </label>
+      <div class="filter-item" style="position: relative; z-index: 9998;">
+        <span class="icon" aria-hidden="true">📅</span>
+        <button id="monthMatrixTrigger" type="button" class="month-trigger-btn">
+          <span id="selectedMonthLabel">Select Period</span>
+        </button>
+        <div id="monthMatrixPicker" class="bc-hidden"></div>
+      </div>
+      <div class="filter-item quick-range-buttons">
+        <button id="lastMonthBtn" type="button" class="quick-range-btn">Last Month</button>
+        <button id="lastQuarterBtn" type="button" class="quick-range-btn">Last Quarter</button>
+        <button id="ytdBtn" type="button" class="quick-range-btn">YTD</button>
+      </div>
+      <button id="resetFiltersBtn" type="button" class="clear-btn">Reset</button>
+    </div>
+
+    <!-- Content Area with Scroll -->
+    <div class="content-area">
+      <div class="kpi-wrapper">
+        <div id="kpi-row" class="kpi-row"></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div id="chart-title-energyflow" class="chart-title">Energy Distribution (MWh)</div>
+          <div id="chart-energyflow" class="chart-container"></div>
+        </div>
+        <div class="chart-card">
+          <div id="chart-title-cuf" class="chart-title">Capacity Utilization Factor (%)</div>
+          <div id="chart-cuf" class="chart-container"></div>
+        </div>
+        <div class="chart-card">
+          <div id="chart-title-cycles" class="chart-title">Battery Cycles</div>
+          <div id="chart-cycles" class="chart-container"></div>
+        </div>
+        <div class="chart-card">
+          <div id="chart-title-waterfall" class="chart-title">Actual Energy Flow (MWh)</div>
+          <div id="chart-waterfall" class="chart-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /* -------------------------------------------------------
+     1. GLOBAL STATE
+  ------------------------------------------------------- */
+  let rawData = [];  // rows from CSV (array of objects)
+  let colMap = {};   // detected column mapping
+  let state = {
+    countries: [],
+    portfolios: [],
+    assets: [],
+    selectedMonth: null,
+    selectedYear: null
+  };
+  let bessCalendar = null;
+  let countryMultiSelect = null;
+  let portfolioMultiSelect = null;
+  let assetMultiSelect = null;
+
+  /* -------------------------------------------------------
+     2. HELPER FUNCTIONS
+  ------------------------------------------------------- */
+
+  // trim all keys in an object
+  function normalizeRowKeys(row) {
+    const out = {};
+    Object.keys(row).forEach(k => {
+      if (k === null || k === undefined) return;
+      out[String(k).trim()] = row[k];
+    });
+    return out;
+  }
+
+  // fuzzy column finder
+  function findCol(headers, mustHaveList) {
+    // mustHaveList: array of substrings that all must be contained
+    let best = null;
+    headers.forEach(h => {
+      const hLow = h.toLowerCase().replace(/\s+/g,' ').trim();
+      let ok = true;
+      for (const piece of mustHaveList) {
+        if (!hLow.includes(piece.toLowerCase())) { ok = false; break; }
+      }
+      if (ok && best === null) best = h;
+    });
+    return best;
+  }
+
+  function toNumber(v) {
+    if (v === null || v === undefined || v === "") return 0;
+    // Handle percentage strings (e.g., "2%", "43.44%")
+    if (typeof v === 'string' && v.includes('%')) {
+      v = v.replace('%', '').trim();
+    }
+    const n = Number(v);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function toNumberOrNull(v) {
+    if (v === null || v === undefined || v === "") return null;
+    // Handle percentage strings (e.g., "2%", "91%")
+    if (typeof v === 'string' && v.includes('%')) {
+      v = v.replace('%', '').trim();
+    }
+    const n = Number(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function unique(arr) {
+    return Array.from(new Set(arr));
+  }
+
+  function formatPct(v) {
+    if (v === null || v === undefined || isNaN(v)) return "—";
+    return v.toFixed(2) + "%";
+  }
+  function formatNum(v) {
+    if (v === null || v === undefined || isNaN(v)) return "—";
+    return Number(v).toLocaleString();
+  }
+
+  // Format month from YYYY-MM to MMM-YY (e.g., 2025-01 to Jan-25)
+  function formatMonth(dateStr) {
+    if (!dateStr) return dateStr;
+    const parts = dateStr.split('-');
+    if (parts.length >= 2) {
+      const year = parts[0];
+      const month = parts[1];
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIndex = parseInt(month, 10) - 1;
+      if (monthIndex >= 0 && monthIndex < 12) {
+        return monthNames[monthIndex] + '-' + year.slice(2);
+      }
+    }
+    return dateStr;
+  }
+
+  /* -------------------------------------------------------
+     3. COLUMN MAP DETECTION
+  ------------------------------------------------------- */
+
+  function buildColumnMap(headers) {
+    // Helper function to find exact column match
+    function findExact(headers, exactName) {
+      return headers.find(h => h.toLowerCase().trim() === exactName.toLowerCase());
+    }
+
+    // Core identifiers
+    colMap.date         = findExact(headers, "month") || findCol(headers, ["date"]) || "Date";
+    colMap.country      = findExact(headers, "country") || "Country";
+    colMap.portfolio    = findExact(headers, "portfolio") || "Portfolio";
+    colMap.asset        = findExact(headers, "asset_no") || findCol(headers, ["asset", "no"]) || findCol(headers, ["asset"]) || "Asset No";
+    colMap.capacityMWh  = findExact(headers, "battery_capacity_mwh") || findExact(headers, "battery_capacity_mw") || findCol(headers, ["battery","capacity"]) || "Battery Capacity (MWh)";
+
+    // Actual energy flow columns - matching your exact CSV column names (values in kWh, will be converted to MWh)
+    colMap.pvActual        = findExact(headers, "actual_pv_energy_kwh") || findExact(headers, "actual_pv") || findCol(headers, ["pv","energy"]) || "PV Energy (kWh)";
+    colMap.chargeActual    = findExact(headers, "actual_charge_energy_kwh") || findExact(headers, "actual_cha") || findCol(headers, ["charge","energy"]) || "Charge Energy (kWh)";
+    colMap.dischargeActual = findExact(headers, "actual_discharge_energy") || findExact(headers, "actual_dis") || findCol(headers, ["discharge","energy"]) || "Discharge Energy (kWh)";
+    colMap.exportActual    = findExact(headers, "actual_export_energy_kwh") || findExact(headers, "actual_exp") || findCol(headers, ["export","energy"]) || "Export Energy (kWh)";
+    colMap.pvGridActual    = findExact(headers, "actual_pv_grid_kwh") || findCol(headers, ["actual","pv","grid"]) || "Actual PV to Grid";
+    colMap.sysLossActual   = findExact(headers, "actual_system_losses") || findCol(headers, ["actual","system","loss"]) || "Actual System Losses";
+    colMap.gridImportActual = findExact(headers, "actual_grid_import_kwh") || findCol(headers, ["actual","grid","import"]) || "Actual Grid Import";
+
+    // KPI columns - matching your exact CSV column names
+    colMap.minSOC  = findExact(headers, "min_soc") || findCol(headers, ["min","soc"]) || "Min SOC";
+    colMap.maxSOC  = findExact(headers, "max_soc") || findCol(headers, ["max","soc"]) || "Max SOC";
+    colMap.minTemp = findExact(headers, "min_ess_temp") || findExact(headers, "min_ess_t") || findCol(headers, ["min","ess","temp"]) || "Min ESS Temperature";
+    colMap.maxTemp = findExact(headers, "max_ess_temp") || findExact(headers, "max_ess_t") || findCol(headers, ["max","ess","temp"]) || "Max ESS Temperature";
+    colMap.actualRTE = findExact(headers, "actual_avg_rte") || findExact(headers, "avg_rte") || findCol(headers, ["actual","rte"]) || "Actual Avg RTE";
+    colMap.budgetRTE = findExact(headers, "budget_avg_rte") || findCol(headers, ["budget","rte"]) || "Budget Avg RTE";
+
+    // Budget columns for energy flow - matching your exact CSV column names
+    colMap.bud_pvGen      = findExact(headers, "budget_pv_energy_kwh") || findExact(headers, "budget_pv") || findCol(headers, ["budget","pv","gen"]) || "Budget_PV_Gen_kWh";
+    colMap.bud_pvBess     = findExact(headers, "budget_charge_energy_kwh") || findExact(headers, "budget_ch") || findCol(headers, ["budget","bess"]) || findCol(headers,["budget","charge"]) || "Budget_PV_to_BESS_kWh";
+    colMap.bud_pvGrid     = findExact(headers, "budget_pv_grid_kwh") || findCol(headers, ["budget","pv","grid"]) || "Budget_PV_to_Grid_kWh";
+    colMap.bud_sysLoss    = findExact(headers, "budget_system_losses") || findExact(headers, "budget_sy") || findCol(headers, ["budget","loss"]) || "Budget_System_Losses_kWh";
+    colMap.bud_bessGrid   = findExact(headers, "budget_discharge_energy") || findExact(headers, "budget_dis") || findCol(headers, ["budget","bess","grid"]) || "Budget_BESS_to_Grid_kWh";
+    colMap.bud_export     = findExact(headers, "budget_export_energy_kwh") || findExact(headers, "budget_ex") || findCol(headers, ["budget","export"]) || "Budget_Export_kWh";
+
+    // Budget vs actual CUF and Cycles - matching your exact CSV column names
+    colMap.bud_cuf        = findExact(headers, "budget_cuf") || findExact(headers, "budget_cu") || findCol(headers, ["budget","cuf"]) || "Budget_CUF_pct";
+    colMap.bud_cycles     = findExact(headers, "budget_no_of_cycles") || findExact(headers, "budget_no") || findCol(headers, ["budget","cycle"]) || "Budget_Cycles";
+
+    // Actual CUF and Cycles (from your data) - matching your exact CSV column names
+    colMap.actual_cuf     = findExact(headers, "actual_cuf") || "Actual_CUF";
+    colMap.actual_cycles  = findExact(headers, "actual_no_of_cycles") || findExact(headers, "actual_no") || "Actual_Cycles";
+
+    return colMap;
+  }
+
+  /* -------------------------------------------------------
+     4. FILTERING
+  ------------------------------------------------------- */
+
+  function getFilteredRows() {
+    const filtered = rawData.filter(row => {
+      // Multi-select filtering: if array is empty, show all; otherwise filter by selections
+      const cOK = (state.countries.length === 0 || state.countries.includes(String(row[colMap.country] || '').trim()));
+      const pOK = (state.portfolios.length === 0 || state.portfolios.includes(String(row[colMap.portfolio] || '').trim()));
+      const aOK = (state.assets.length === 0 || state.assets.includes(String(row[colMap.asset] || '').trim()));
+      
+      // Date/period filtering
+      let dateOK = true;
+      if (state.selectedMonth && row[colMap.date]) {
+        const rowMonth = row[colMap.date];
+        if (window.currentBestCalendar && window.currentBestCalendar.selectedRange && 
+            window.currentBestCalendar.selectedRange.start && 
+            window.currentBestCalendar.selectedRange.end) {
+          // Range selected
+          const range = window.currentBestCalendar.selectedRange;
+          dateOK = rowMonth >= range.start && rowMonth <= range.end;
+        } else {
+          // Single month selected
+          dateOK = rowMonth === state.selectedMonth;
+        }
+      }
+      
+      return cOK && pOK && aOK && dateOK;
+    });
+    
+    return filtered;
+  }
+
+  /* -------------------------------------------------------
+     5. AGGREGATION LOGIC
+  ------------------------------------------------------- */
+
+  function computeAggregates(rows) {
+    // We'll aggregate across ALL selected rows for KPI + energy flow
+    // Also build month-wise groups for CUF and Cycles trend charts
+
+    // 5.1 KPI-LEVEL TOTALS
+    let totalPV = 0;
+    let totalCharge = 0;
+    let totalDischarge = 0;
+    let totalExport = 0;
+    let totalPVtoGrid = 0;
+    let totalSysLoss = 0;
+    let totalGridImport = 0;
+    let minSOC = null;
+    let maxSOC = null;
+    let minTemp = null;
+    let maxTemp = null;
+    let sumCapMW = 0;
+    let capCount = 0;
+    let daysByAsset = {}; // {assetKey: Set(dates)}
+    let latestDate = null;
+    let capacitiesByDate = {}; // {date: {asset: capacity}}
+
+    const dateSetGlobal = new Set();
+
+    // Arrays to collect actual and budget CUF and Cycles from CSV
+    let allActualCUF = [];
+    let allActualCycles = [];
+    let allBudgetCycles = [];
+    let allActualRTE = [];
+    let allBudgetRTE = [];
+
+    rows.forEach(r => {
+      // Convert kWh to MWh by dividing by 1000
+      const pv = toNumber(r[colMap.pvActual]) / 1000;
+      const ch = toNumber(r[colMap.chargeActual]) / 1000;
+      const dis = toNumber(r[colMap.dischargeActual]) / 1000;
+      const ex = toNumber(r[colMap.exportActual]) / 1000;
+      const pvGrid = toNumber(r[colMap.pvGridActual]) / 1000;
+      const sysLoss = toNumber(r[colMap.sysLossActual]) / 1000;
+      const socMin = toNumberOrNull(r[colMap.minSOC]);
+      const socMax = toNumberOrNull(r[colMap.maxSOC]);
+      const tMin = toNumberOrNull(r[colMap.minTemp]);
+      const tMax = toNumberOrNull(r[colMap.maxTemp]);
+      const capMWh = toNumber(r[colMap.capacityMWh]);
+
+      totalPV += pv;
+      totalCharge += ch;
+      totalDischarge += dis;
+      totalExport += ex;
+      totalPVtoGrid += pvGrid;
+      totalSysLoss += sysLoss;
+
+      if (socMin !== null) {
+        if (minSOC === null || socMin < minSOC) minSOC = socMin;
+      }
+      if (socMax !== null) {
+        if (maxSOC === null || socMax > maxSOC) maxSOC = socMax;
+      }
+
+      if (tMin !== null) {
+        if (minTemp === null || tMin < minTemp) minTemp = tMin;
+      }
+      if (tMax !== null) {
+        if (maxTemp === null || tMax > maxTemp) maxTemp = tMax;
+      }
+
+      if (capMWh > 0) {
+        sumCapMW += capMWh;
+        capCount += 1;
+      }
+
+      // Track battery capacity by date and asset for latest month calculation
+      const assetName = r[colMap.asset];
+      const d = r[colMap.date] ? new Date(r[colMap.date]) : null;
+      if (d && !isNaN(d.getTime()) && capMWh > 0) {
+        const dateStr = d.toISOString().slice(0, 10);
+        if (!latestDate || d > latestDate) {
+          latestDate = d;
+        }
+        if (!capacitiesByDate[dateStr]) {
+          capacitiesByDate[dateStr] = {};
+        }
+        capacitiesByDate[dateStr][assetName] = capMWh;
+      }
+
+      // Collect actual CUF and Cycles from CSV if available
+      if (colMap.actual_cuf && r[colMap.actual_cuf] !== undefined) {
+        const cufVal = toNumber(r[colMap.actual_cuf]);
+        if (cufVal > 0) allActualCUF.push(cufVal);
+      }
+      if (colMap.actual_cycles && r[colMap.actual_cycles] !== undefined) {
+        const cycVal = toNumber(r[colMap.actual_cycles]);
+        if (cycVal > 0) allActualCycles.push(cycVal);
+      }
+      
+      // Collect budget Cycles from CSV if available
+      if (colMap.bud_cycles && r[colMap.bud_cycles] !== undefined) {
+        const budCycVal = toNumber(r[colMap.bud_cycles]);
+        if (budCycVal > 0) allBudgetCycles.push(budCycVal);
+      }
+
+      // Collect actual and budget RTE from CSV if available
+      if (colMap.actualRTE && r[colMap.actualRTE] !== undefined && r[colMap.actualRTE] !== null && r[colMap.actualRTE] !== '') {
+        const actualRTEval = toNumber(r[colMap.actualRTE]);
+        if (actualRTEval > 0) allActualRTE.push(actualRTEval);
+      }
+      if (colMap.budgetRTE && r[colMap.budgetRTE] !== undefined && r[colMap.budgetRTE] !== null && r[colMap.budgetRTE] !== '') {
+        const budgetRTEval = toNumber(r[colMap.budgetRTE]);
+        if (budgetRTEval > 0) allBudgetRTE.push(budgetRTEval);
+      }
+
+      // Collect Grid Import for waterfall chart
+      const gridImport = toNumber(r[colMap.gridImportActual]) / 1000;
+      totalGridImport += gridImport;
+
+      // track days per asset for CUF calc
+      if (!daysByAsset[assetName]) daysByAsset[assetName] = new Set();
+      if (d && !isNaN(d.getTime())) {
+        const dKey = d.toISOString().slice(0,10);
+        daysByAsset[assetName].add(dKey);
+        dateSetGlobal.add(dKey);
+      }
+    });
+
+    // Calculate total capacity from latest month (sum of all assets in latest date)
+    let totalCapMWh = 0;
+    if (latestDate) {
+      const latestDateStr = latestDate.toISOString().slice(0, 10);
+      const latestCapacities = capacitiesByDate[latestDateStr] || {};
+      totalCapMWh = Object.values(latestCapacities).reduce((sum, cap) => sum + cap, 0);
+    }
+
+    // average capacity across selected assets (for calculations that need it)
+    const avgCapMWh = capCount > 0 ? (sumCapMW / capCount) : 0;
+
+    // Actual RTE% - use from CSV if available, otherwise calculate: Discharge / Charge
+    let avgRTEpct = null;
+    if (allActualRTE.length > 0) {
+      // Use average of actual RTE from CSV
+      avgRTEpct = allActualRTE.reduce((a,b)=>a+b,0) / allActualRTE.length;
+    } else if (totalCharge > 0) {
+      // Calculate if not in CSV
+      avgRTEpct = (totalDischarge / totalCharge) * 100;
+    }
+
+    // Budget RTE% - use from CSV if available
+    let budgetRTEpct = null;
+    if (allBudgetRTE.length > 0) {
+      // Use average of budget RTE from CSV
+      budgetRTEpct = allBudgetRTE.reduce((a,b)=>a+b,0) / allBudgetRTE.length;
+    }
+
+    // Actual cycles for the selection - use from CSV if available, otherwise calculate
+    let actualCycles = null;
+    if (allActualCycles.length > 0) {
+      // Sum of actual cycles from CSV (aggregate across all assets)
+      actualCycles = allActualCycles.reduce((a,b)=>a+b,0);
+    } else if (avgCapMWh > 0) {
+      // Calculate if not in CSV (charge is already in MWh)
+      actualCycles = totalCharge / avgCapMWh;
+    }
+
+    // Budget cycles for the selection - aggregate from CSV
+    let budgetCycles = null;
+    if (allBudgetCycles.length > 0) {
+      // Sum of budget cycles from CSV (aggregate across all assets)
+      budgetCycles = allBudgetCycles.reduce((a,b)=>a+b,0);
+    }
+
+    // CUF% overall for entire filtered range - use from CSV if available, otherwise calculate
+    const numDays = dateSetGlobal.size;
+    let cufPctOverall = null;
+    if (allActualCUF.length > 0) {
+      // Use average of actual CUF from CSV
+      cufPctOverall = allActualCUF.reduce((a,b)=>a+b,0) / allActualCUF.length;
+    } else if (avgCapMWh > 0 && numDays > 0) {
+      // Calculate if not in CSV (discharge is already in MWh)
+      cufPctOverall = (totalDischarge / (avgCapMWh * 24 * numDays) * 100);
+    }
+
+    // Budget CUF - aggregate from CSV
+    let allBudgetCUF = [];
+    rows.forEach(r => {
+      if (colMap.bud_cuf && r[colMap.bud_cuf] !== undefined) {
+        const budCufVal = toNumber(r[colMap.bud_cuf]);
+        if (budCufVal > 0) allBudgetCUF.push(budCufVal);
+      }
+    });
+    let budgetCUF = null;
+    if (allBudgetCUF.length > 0) {
+      // Use average of budget CUF from CSV
+      budgetCUF = allBudgetCUF.reduce((a,b)=>a+b,0) / allBudgetCUF.length;
+    }
+
+    // 5.2 Energy Flow Budget vs Actual Aggregation
+    // We sum budgets across rows. Assumes the budget columns are provided per row (daily or monthly targets).
+    let budPVGen = 0, budPVtoBESS = 0, budPVtoGrid = 0,
+        budSysLoss = 0, budBESStoGrid = 0, budExport = 0;
+
+    rows.forEach(r => {
+      // Convert budget values from kWh to MWh
+      budPVGen     += toNumber(r[colMap.bud_pvGen]) / 1000;
+      budPVtoBESS  += toNumber(r[colMap.bud_pvBess]) / 1000;
+      budPVtoGrid  += toNumber(r[colMap.bud_pvGrid]) / 1000;
+      budSysLoss   += toNumber(r[colMap.bud_sysLoss]) / 1000;
+      budBESStoGrid+= toNumber(r[colMap.bud_bessGrid]) / 1000;
+      budExport    += toNumber(r[colMap.bud_export]) / 1000;
+    });
+
+    // Actual flow metrics (aggregated totals)
+    // PV Gen actual = totalPV
+    // PV→BESS actual = totalCharge (PV to BESS)
+    // PV→Grid actual = totalPVtoGrid (Direct PV to Grid from new column)
+    // System Loss actual = Use direct value from CSV (sum of actual_system_losses column)
+    // BESS→Grid actual = totalDischarge (BESS to Grid)
+    // Total Export actual = totalExport (Total export including PV direct + Battery discharge)
+    const actPVGen       = totalPV;
+    const actPVtoBESS    = totalCharge;
+    const actPVtoGrid    = totalPVtoGrid;
+    const actSysLoss     = totalSysLoss;
+    const actBESStoGrid  = totalDischarge;
+    const actExportFinal = totalExport;
+
+    // 5.3 Monthwise CUF and Cycles for trend charts
+    // Group by month (YYYY-MM)
+    const monthBuckets = {}; // month -> array of rows
+    rows.forEach(r => {
+      const d = r[colMap.date] ? new Date(r[colMap.date]) : null;
+      if (!d || isNaN(d.getTime())) return;
+      const mKey = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+      if (!monthBuckets[mKey]) monthBuckets[mKey] = [];
+      monthBuckets[mKey].push(r);
+    });
+
+    const monthCUFData = [];    // {month, cufActual, cufBudget}
+    const monthCycleData = [];  // {month, cyclesActual, cyclesBudget}
+
+    Object.keys(monthBuckets).sort().forEach(monthKey => {
+      const bucket = monthBuckets[monthKey];
+
+      // sums for this month
+      let mCharge = 0;
+      let mDischarge = 0;
+      let mCapMWsum = 0;
+      let mCapCount = 0;
+      let mBudgetCUF = 0;
+      let mBudgetCycles = 0;
+
+      const daySet = new Set();
+
+      // Arrays to collect actual CUF and Cycles from CSV data
+      let actualCUFvalues = [];
+      let actualCycleValues = [];
+
+      bucket.forEach(r => {
+        // Convert kWh to MWh
+        mCharge    += toNumber(r[colMap.chargeActual]) / 1000;
+        mDischarge += toNumber(r[colMap.dischargeActual]) / 1000;
+
+        const cMWh = toNumber(r[colMap.capacityMWh]);
+        if (cMWh > 0) { mCapMWsum += cMWh; mCapCount += 1; }
+
+        // Collect unique days in this month for CUF denominator
+        const dd = r[colMap.date] ? new Date(r[colMap.date]) : null;
+        if (dd && !isNaN(dd.getTime())) {
+          daySet.add(dd.toISOString().slice(0,10));
+        }
+
+        // Collect actual CUF and Cycles from CSV if available
+        if (colMap.actual_cuf && r[colMap.actual_cuf] !== undefined) {
+          const cufVal = toNumber(r[colMap.actual_cuf]);
+          if (cufVal > 0) actualCUFvalues.push(cufVal);
+        }
+        if (colMap.actual_cycles && r[colMap.actual_cycles] !== undefined) {
+          const cycVal = toNumber(r[colMap.actual_cycles]);
+          if (cycVal > 0) actualCycleValues.push(cycVal);
+        }
+
+        // Budgets for CUF and Cycles per row (if present)
+        if (colMap.bud_cuf && r[colMap.bud_cuf] !== undefined) {
+          mBudgetCUF += toNumber(r[colMap.bud_cuf]);
+        }
+        if (colMap.bud_cycles && r[colMap.bud_cycles] !== undefined) {
+          mBudgetCycles += toNumber(r[colMap.bud_cycles]);
+        }
+      });
+
+      const mDays = daySet.size;
+      const mCapMWhavg = mCapCount > 0 ? (mCapMWsum / mCapCount) : 0;
+
+      // CUF actual for that month - use from CSV if available, otherwise calculate
+      let mCUFact = null;
+      if (actualCUFvalues.length > 0) {
+        // Use average of actual CUF values from CSV
+        mCUFact = actualCUFvalues.reduce((a,b)=>a+b,0) / actualCUFvalues.length;
+      } else if (mCapMWhavg>0 && mDays>0) {
+        // Calculate if not in CSV (discharge is already in MWh)
+        mCUFact = (mDischarge / (mCapMWhavg*24*mDays)) * 100;
+      }
+
+      // Cycles actual for that month - use from CSV if available, otherwise calculate
+      let mCyclesAct = null;
+      if (actualCycleValues.length > 0) {
+        // Sum of actual cycle values from CSV (aggregate across all assets)
+        mCyclesAct = actualCycleValues.reduce((a,b)=>a+b,0);
+      } else if (mCapMWhavg>0) {
+        // Calculate if not in CSV (charge is already in MWh)
+        mCyclesAct = mCharge / mCapMWhavg;
+      }
+
+      // Budget CUF for that month:
+      // If multiple rows have budget CUF, we'll average them
+      let mBudCUFval = null;
+      if (colMap.bud_cuf) {
+        const nonZeroBudCUF = bucket
+          .map(r => toNumber(r[colMap.bud_cuf]))
+          .filter(v => v>0);
+        if (nonZeroBudCUF.length>0) {
+          mBudCUFval = nonZeroBudCUF.reduce((a,b)=>a+b,0)/nonZeroBudCUF.length;
+        }
+      }
+
+      // Budget Cycles for that month:
+      // Sum budget cycles across all assets (days × number of sites)
+      let mBudCyclesVal = null;
+      if (colMap.bud_cycles) {
+        const nonZeroBudCycl = bucket
+          .map(r => toNumber(r[colMap.bud_cycles]))
+          .filter(v => v>0);
+        if (nonZeroBudCycl.length>0) {
+          mBudCyclesVal = nonZeroBudCycl.reduce((a,b)=>a+b,0);
+        }
+      }
+
+      monthCUFData.push({
+        month: monthKey,
+        cufActual: mCUFact,
+        cufBudget: mBudCUFval
+      });
+
+      monthCycleData.push({
+        month: monthKey,
+        cyclesActual: mCyclesAct,
+        cyclesBudget: mBudCyclesVal
+      });
+    });
+
+    return {
+      avgCapMWh,
+      totalCapMWh,
+      minSOC,
+      maxSOC,
+      minTemp,
+      maxTemp,
+      avgRTEpct,
+      budgetRTEpct,
+      actualCycles,
+      budgetCycles,
+      cufPctOverall,
+      budgetCUF,
+
+      energyFlow: {
+        labels: [
+          "PV Generation",
+          "PV to BESS",
+          "PV to Grid",
+          "System Losses",
+          "BESS to Grid",
+          "Total Export"
+        ],
+        budget: [
+          budPVGen,
+          budPVtoBESS,
+          budPVtoGrid,
+          budSysLoss,
+          budBESStoGrid,
+          budExport
+        ],
+        actual: [
+          actPVGen,
+          actPVtoBESS,
+          actPVtoGrid,
+          actSysLoss,
+          actBESStoGrid,
+          actExportFinal
+        ]
+      },
+
+      // Waterfall chart data
+      waterfall: {
+        pvGeneration: totalPV,
+        gridImport: totalGridImport,
+        systemLosses: totalSysLoss,
+        bessToGrid: totalDischarge,
+        pvToGrid: totalPVtoGrid,
+        totalExport: actExportFinal
+      },
+
+      monthCUFData,
+      monthCycleData
+    };
+  }
+
+  /* -------------------------------------------------------
+     6. RENDER KPI CARDS
+  ------------------------------------------------------- */
+
+  function renderKPIs(agg) {
+    const kpiRow = document.getElementById("kpi-row");
+    kpiRow.innerHTML = "";
+
+    // First three KPIs with Actual vs Budget format
+    const budgetVsActualMetrics = [
+      {
+        label: "CUF (%) Actual Vs Budget", 
+        actualValue: agg.cufPctOverall, 
+        budgetValue: agg.budgetCUF,
+        threshold: 2.5, 
+        target: 3.0, 
+        unit: "%", 
+        decimals: 1, 
+        icon: "fa-bolt"
+      },
+      {
+        label: "Cycles Actual Vs Budget", 
+        actualValue: agg.actualCycles, 
+        budgetValue: agg.budgetCycles,
+        threshold: 15, 
+        target: 20, 
+        unit: "", 
+        decimals: 0, 
+        icon: "fa-sync-alt"
+      },
+      {
+        label: "Average RTE (%) Actual Vs Budget", 
+        actualValue: agg.avgRTEpct, 
+        budgetValue: agg.budgetRTEpct,
+        threshold: 90, 
+        target: 95, 
+        unit: "%", 
+        decimals: 1, 
+        icon: "fa-battery-half"
+      }
+    ];
+
+    // Remaining KPI metrics
+    const standardMetrics = [
+      {label:"Battery Capacity (MWh)", value: agg.totalCapMWh, unit: " MWh", decimals: 1, icon: "fa-battery-full"},
+      {label:"Min SOC (%)", value: agg.minSOC, unit: "%", decimals: 1, icon: "fa-level-down-alt"},
+      {label:"Max SOC (%)", value: agg.maxSOC, unit: "%", decimals: 1, icon: "fa-level-up-alt"},
+      {label:"Min ESS Temp (°C)", value: agg.minTemp, unit: "°C", decimals: 1, icon: "fa-thermometer-empty"},
+      {label:"Max ESS Temp (°C)", value: agg.maxTemp, unit: "°C", decimals: 1, icon: "fa-thermometer-full"}
+    ];
+
+    // Render Budget vs Actual KPIs (first 3)
+    budgetVsActualMetrics.forEach(k => {
+      const actualVal = k.actualValue != null ? k.actualValue.toFixed(k.decimals) : null;
+      const budgetVal = k.budgetValue != null ? k.budgetValue.toFixed(k.decimals) : null;
+      
+      // Determine color class based on actual value
+      let cls = "";
+      if (actualVal !== null && k.threshold) {
+        if (actualVal >= k.target) cls = "good";
+        else if (actualVal >= k.threshold) cls = "warn";
+        else cls = "bad";
+      }
+      
+      // Format the display value as "Actual / Budget"
+      let displayValue = "—";
+      if (actualVal !== null && budgetVal !== null) {
+        displayValue = `${actualVal}${k.unit} / ${budgetVal}${k.unit}`;
+      } else if (actualVal !== null) {
+        displayValue = `${actualVal}${k.unit} / —`;
+      } else if (budgetVal !== null) {
+        displayValue = `— / ${budgetVal}${k.unit}`;
+      }
+      
+      const div = document.createElement("div");
+      div.className = "kpi-card " + cls;
+      div.innerHTML = `
+        <div class="kpi-info">
+          <div class="kpi-label">${k.label}</div>
+          <div class="kpi-value">${displayValue}</div>
+        </div>
+        <i class="kpi-icon fas ${k.icon}"></i>
+      `;
+      kpiRow.appendChild(div);
+    });
+
+    // Render standard KPIs (remaining 5)
+    standardMetrics.forEach(k => {
+      const val = k.value != null ? k.value.toFixed(k.decimals) : null;
+      let cls = "";
+      if (val !== null && k.threshold) {
+        if (val >= k.target) cls = "good";
+        else if (val >= k.threshold) cls = "warn";
+        else cls = "bad";
+      }
+      const div = document.createElement("div");
+      div.className = "kpi-card " + cls;
+      div.innerHTML = `
+        <div class="kpi-info">
+          <div class="kpi-label">${k.label}</div>
+          <div class="kpi-value">${val !== null ? val + k.unit : "—"}</div>
+        </div>
+        <i class="kpi-icon fas ${k.icon}"></i>
+      `;
+      kpiRow.appendChild(div);
+    });
+  }
+
+  /* -------------------------------------------------------
+     7. RENDER CHARTS
+  ------------------------------------------------------- */
+
+  // Helper function to generate dynamic chart title suffix based on filters
+  function getFilterTitleSuffix() {
+    const parts = [];
+    
+    // Country filter
+    if (state.countries.length > 0) {
+      if (state.countries.length === 1) {
+        parts.push(state.countries[0]);
+      } else if (state.countries.length <= 3) {
+        parts.push(state.countries.join(', '));
+      } else {
+        parts.push(`${state.countries.length} Countries`);
+      }
+    } else {
+      parts.push('All Countries');
+    }
+    
+    // Portfolio filter
+    if (state.portfolios.length > 0) {
+      if (state.portfolios.length === 1) {
+        parts.push(state.portfolios[0]);
+      } else if (state.portfolios.length <= 3) {
+        parts.push(state.portfolios.join(', '));
+      } else {
+        parts.push(`${state.portfolios.length} Portfolios`);
+      }
+    } else {
+      parts.push('All Portfolios');
+    }
+    
+    // Asset filter
+    if (state.assets.length > 0) {
+      if (state.assets.length === 1) {
+        parts.push(state.assets[0]);
+      } else if (state.assets.length <= 3) {
+        parts.push(state.assets.join(', '));
+      } else {
+        parts.push(`${state.assets.length} Assets`);
+      }
+    } else {
+      parts.push('All Assets');
+    }
+    
+    // Period filter
+    if (window.currentBestCalendar && window.currentBestCalendar.selectedRange && 
+        window.currentBestCalendar.selectedRange.start && 
+        window.currentBestCalendar.selectedRange.end) {
+      parts.push(`${formatMonth(window.currentBestCalendar.selectedRange.start)} to ${formatMonth(window.currentBestCalendar.selectedRange.end)}`);
+    } else if (state.selectedMonth) {
+      parts.push(formatMonth(state.selectedMonth));
+    } else {
+      parts.push('All Periods');
+    }
+    
+    return parts.length > 0 ? ' - ' + parts.join(' | ') : '';
+  }
+
+  function renderEnergyFlowChart(agg) {
+    const labels = agg.energyFlow.labels;
+    const filterSuffix = getFilterTitleSuffix();
+    
+    // Color scheme for each energy flow category
+    const colors = [
+      {budget: "#FFD966", actual: "#E6B800"}, // PV Generation
+      {budget: "#A7E3E3", actual: "#00A6A6"}, // PV to BESS
+      {budget: "#A7C7FF", actual: "#1F77B4"}, // PV to Grid
+      {budget: "#F4CCCC", actual: "#CC0000"}, // System Losses
+      {budget: "#F9CB9C", actual: "#E69138"}, // BESS to Grid
+      {budget: "#B6D7A8", actual: "#38761D"}  // Total Export
+    ];
+
+    // Get PV Generation values for percentage calculations
+    const pvGenBudget = agg.energyFlow.budget[0]; // PV Generation is first
+    const pvGenActual = agg.energyFlow.actual[0];
+
+    // Calculate variance and PV percentage for each category
+    const varianceData = labels.map((label, i) => {
+      const budget = agg.energyFlow.budget[i];
+      const actual = agg.energyFlow.actual[i];
+      const variance = budget !== 0 ? (((actual - budget) / budget) * 100).toFixed(1) : "N/A";
+      
+      // Calculate percentage of PV Generation (for all categories except PV Generation itself)
+      let pvPercentageBudget = null;
+      let pvPercentageActual = null;
+      
+      if (i >= 1 && i <= 5) { // All categories except PV Generation (index 0)
+        pvPercentageBudget = pvGenBudget > 0 ? Math.round((Math.abs(budget) / pvGenBudget) * 100) : 0;
+        pvPercentageActual = pvGenActual > 0 ? Math.round((Math.abs(actual) / pvGenActual) * 100) : 0;
+      }
+      
+      return {
+        label: label,
+        budget: budget,
+        actual: actual,
+        variance: variance,
+        pvPercentageBudget: pvPercentageBudget,
+        pvPercentageActual: pvPercentageActual
+      };
+    });
+
+    const budgetTrace = {
+      x: labels,
+      y: agg.energyFlow.budget.map(v => Math.abs(v)), // Use absolute values for bar height
+      name: "Budget",
+      type: "bar",
+      marker: {
+        color: colors.map(c => c.budget),
+        line: { width: 0.8, color: "#999" }
+      },
+      text: agg.energyFlow.budget.map((v, i) => {
+        const rounded = Math.round(v);
+        // Add percentage for all categories except PV Generation
+        if (i >= 1 && i <= 5 && varianceData[i].pvPercentageBudget !== null) {
+          return `${rounded}<br>(${varianceData[i].pvPercentageBudget}%)`;
+        }
+        return rounded;
+      }),
+      textposition: "outside",
+      textfont: { 
+        size: 11,
+        color: "#000",
+        family: "Arial, sans-serif",
+        weight: "bold"
+      },
+      cliponaxis: false,
+      customdata: varianceData.map(v => [v.budget, v.actual, v.variance, v.pvPercentageBudget]),
+      hovertemplate: labels.map((label, i) => {
+        if (i >= 1 && i <= 5) { // All categories except PV Generation
+          return "<b>%{x}</b><br>" +
+                 "Budget: %{customdata[0]:,.0f} MWh<br>" +
+                 "Actual: %{customdata[1]:,.0f} MWh<br>" +
+                 "Variance: %{customdata[2]}%<br>" +
+                 "<i>(%{customdata[3]}% of PV Generation)</i><extra></extra>";
+        } else {
+          return "<b>%{x}</b><br>" +
+                 "Budget: %{customdata[0]:,.0f} MWh<br>" +
+                 "Actual: %{customdata[1]:,.0f} MWh<br>" +
+                 "Variance: %{customdata[2]}%<extra></extra>";
+        }
+      })
+    };
+
+    const actualTrace = {
+      x: labels,
+      y: agg.energyFlow.actual.map(v => Math.abs(v)), // Use absolute values for bar height
+      name: "Actual",
+      type: "bar",
+      marker: {
+        color: colors.map(c => c.actual),
+        line: { width: 0.8, color: "#444" }
+      },
+      text: agg.energyFlow.actual.map((v, i) => {
+        const rounded = Math.round(v);
+        // Add percentage for all categories except PV Generation
+        if (i >= 1 && i <= 5 && varianceData[i].pvPercentageActual !== null) {
+          return `${rounded}<br>(${varianceData[i].pvPercentageActual}%)`;
+        }
+        return rounded;
+      }),
+      textposition: "outside",
+      textfont: { 
+        size: 11,
+        color: "#000",
+        family: "Arial, sans-serif",
+        weight: "bold"
+      },
+      cliponaxis: false,
+      customdata: varianceData.map(v => [v.budget, v.actual, v.variance, v.pvPercentageActual]),
+      hovertemplate: labels.map((label, i) => {
+        if (i >= 1 && i <= 5) { // All categories except PV Generation
+          return "<b>%{x}</b><br>" +
+                 "Budget: %{customdata[0]:,.0f} MWh<br>" +
+                 "Actual: %{customdata[1]:,.0f} MWh<br>" +
+                 "Variance: %{customdata[2]}%<br>" +
+                 "<i>(%{customdata[3]}% of PV Generation)</i><extra></extra>";
+        } else {
+          return "<b>%{x}</b><br>" +
+                 "Budget: %{customdata[0]:,.0f} MWh<br>" +
+                 "Actual: %{customdata[1]:,.0f} MWh<br>" +
+                 "Variance: %{customdata[2]}%<extra></extra>";
+        }
+      })
+    };
+
+    const layout = {
+      barmode: "group",
+      bargap: 0.25,
+      bargroupgap: 0.12,
+      margin: {t:50,r:15,b:70,l:50},
+      yaxis: {
+        title: "Energy (MWh)",
+        titlefont: { size: 13, color: "#000", family: "Arial, sans-serif" },
+        tickfont: { size: 11, color: "#000", family: "Arial, sans-serif" },
+        gridcolor: "#eaeaea",
+        automargin: true
+      },
+      xaxis: {
+        tickfont: { size: 10, color: "#000", family: "Arial, sans-serif" },
+        automargin: true,
+        tickangle: 0,
+        tickmode: "linear"
+      },
+      legend: {
+        orientation: "h",
+        x: 0.5,
+        xanchor: "center",
+        y: -0.2,
+        yanchor: "top",
+        font: { size: 11, color: "#000", family: "Arial, sans-serif" }
+      },
+      plot_bgcolor: "#fff",
+      paper_bgcolor: "#fff",
+      autosize: true
+    };
+
+    // Update chart title
+    document.getElementById("chart-title-energyflow").textContent = `Energy Distribution (MWh)${filterSuffix}`;
+
+    Plotly.react("chart-energyflow", [budgetTrace, actualTrace], layout, {responsive:true});
+  }
+
+  function renderCUFChart(agg) {
+    // month-wise CUF Budget vs Actual
+    const months = agg.monthCUFData.map(d => formatMonth(d.month));
+    const cufActual = agg.monthCUFData.map(d => d.cufActual);
+    const cufBudget = agg.monthCUFData.map(d => d.cufBudget);
+    const filterSuffix = getFilterTitleSuffix();
+
+    // Calculate max value for y-axis range with extra space for top labels
+    const allValues = [...cufActual.filter(v => v !== null), ...cufBudget.filter(v => v !== null)];
+    const maxValue = allValues.length > 0 ? Math.max(...allValues) : 10;
+    const yAxisMax = Math.ceil(maxValue) + 5;
+
+    const traces = [
+      {
+        x: months,
+        y: cufBudget,
+        name: "Budget CUF (%)",
+        type: "scatter",
+        mode: "lines+markers+text",
+        line: {dash: "dot", color: "#FF9800", width: 2.5},
+        marker: {symbol:"circle", size: 9, color: "#FF9800", line: {color: "#fff", width: 1.5}},
+        text: cufBudget.map(v => v !== null ? Math.round(v) : ""),
+        textposition: "top center",
+        textfont: { 
+          size: 13, 
+          color: "#000", 
+          family: "Arial, sans-serif",
+          weight: "bold"
+        },
+        cliponaxis: false
+      },
+      {
+        x: months,
+        y: cufActual,
+        name: "Actual CUF (%)",
+        type: "scatter",
+        mode: "lines+markers+text",
+        line: {color: "#00B050", width: 3.5},
+        marker: {symbol:"square", size: 10, color: "#00B050", line: {color: "#fff", width: 1.5}},
+        text: cufActual.map(v => v !== null ? Math.round(v) : ""),
+        textposition: "bottom center",
+        textfont: { 
+          size: 13, 
+          color: "#000", 
+          family: "Arial, sans-serif",
+          weight: "bold"
+        },
+        cliponaxis: false
+      }
+    ];
+
+    const layout = {
+      margin: {t:60,r:10,b:55,l:50},
+      yaxis: {
+        title: "CUF (%)",
+        titlefont: { size: 13, color: "#000", family: "Arial, sans-serif" },
+        tickfont: { size: 11, color: "#000", family: "Arial, sans-serif" },
+        gridcolor: "#eaeaea",
+        range: [0, yAxisMax]
+      },
+      xaxis: {
+        type: "category",
+        tickfont: { size: 10, color: "#000", family: "Arial, sans-serif" },
+        tickmode: "linear"
+      },
+      legend: {
+        orientation: "h",
+        x: 0.5,
+        xanchor: "center",
+        y: -0.15,
+        yanchor: "top",
+        font: { size: 11, color: "#000", family: "Arial, sans-serif" }
+      },
+      plot_bgcolor: "#fff",
+      paper_bgcolor: "#fff",
+      autosize: true
+    };
+
+    // Update chart title
+    document.getElementById("chart-title-cuf").textContent = `Capacity Utilization Factor (%)${filterSuffix}`;
+
+    Plotly.react("chart-cuf", traces, layout, {responsive:true});
+  }
+
+  function renderCyclesChart(agg) {
+    // month-wise Cycles Budget vs Actual
+    const months = agg.monthCycleData.map(d => formatMonth(d.month));
+    const cycActual = agg.monthCycleData.map(d => d.cyclesActual);
+    const cycBudget = agg.monthCycleData.map(d => d.cyclesBudget);
+    const filterSuffix = getFilterTitleSuffix();
+
+    // Calculate max value for y-axis range with extra space for top labels
+    const allValues = [...cycActual.filter(v => v !== null), ...cycBudget.filter(v => v !== null)];
+    const maxValue = allValues.length > 0 ? Math.max(...allValues) : 35;
+    const yAxisMax = Math.ceil(maxValue) + 5;
+
+    const traces = [
+      {
+        x: months,
+        y: cycBudget,
+        name: "Budget Cycles",
+        type: "scatter",
+        mode: "lines+markers+text",
+        line: {dash: "dot", color: "#FF9800", width: 2.5},
+        marker: {symbol:"circle", size: 9, color: "#FF9800", line: {color: "#fff", width: 1.5}},
+        text: cycBudget.map(v => v !== null ? Math.round(v) : ""),
+        textposition: "top center",
+        textfont: { 
+          size: 13, 
+          color: "#000", 
+          family: "Arial, sans-serif",
+          weight: "bold"
+        },
+        cliponaxis: false
+      },
+      {
+        x: months,
+        y: cycActual,
+        name: "Actual Cycles",
+        type: "scatter",
+        mode: "lines+markers+text",
+        line: {color: "#00B050", width: 3.5},
+        marker: {symbol:"square", size: 10, color: "#00B050", line: {color: "#fff", width: 1.5}},
+        text: cycActual.map(v => v !== null ? Math.round(v) : ""),
+        textposition: "bottom center",
+        textfont: { 
+          size: 13, 
+          color: "#000", 
+          family: "Arial, sans-serif",
+          weight: "bold"
+        },
+        cliponaxis: false
+      }
+    ];
+
+    const layout = {
+      margin: {t:60,r:10,b:55,l:50},
+      yaxis: {
+        title: "Cycles",
+        titlefont: { size: 13, color: "#000", family: "Arial, sans-serif" },
+        tickfont: { size: 11, color: "#000", family: "Arial, sans-serif" },
+        gridcolor: "#eaeaea",
+        range: [0, yAxisMax]
+      },
+      xaxis: {
+        type: "category",
+        tickfont: { size: 10, color: "#000", family: "Arial, sans-serif" },
+        tickmode: "linear"
+      },
+      legend: {
+        orientation: "h",
+        x: 0.5,
+        xanchor: "center",
+        y: -0.15,
+        yanchor: "top",
+        font: { size: 11, color: "#000", family: "Arial, sans-serif" }
+      },
+      plot_bgcolor: "#fff",
+      paper_bgcolor: "#fff",
+      autosize: true
+    };
+
+    // Update chart title
+    document.getElementById("chart-title-cycles").textContent = `Battery Cycles${filterSuffix}`;
+
+    Plotly.react("chart-cycles", traces, layout, {responsive:true});
+  }
+
+  function renderWaterfallChart(agg) {
+    const filterSuffix = getFilterTitleSuffix();
+    const wf = agg.waterfall;
+    
+    // Waterfall structure:
+    // 1. PV Generation (starting point)
+    // 2. Grid Import (adds to total)
+    // 3. System Losses (subtracts from total - shown as negative)
+    // 4. Total Export (final bar - stacked with BESS to Grid + PV to Grid)
+    
+    const pvGen = wf.pvGeneration;
+    const gridImport = wf.gridImport;
+    const sysLoss = Math.abs(wf.systemLosses); // Make positive for display
+    const bessToGrid = wf.bessToGrid;
+    const pvToGrid = wf.pvToGrid;
+    const totalExport = bessToGrid + pvToGrid;
+    
+    // Create manual waterfall using stacked bars
+    // Base trace (invisible) to position bars correctly
+    const baseTrace = {
+      type: "bar",
+      x: ["PV Generation", "Grid Import", "System Losses", "Export to Grid"],
+      y: [0, pvGen, pvGen + gridImport, 0],
+      marker: {
+        color: "rgba(0,0,0,0)"
+      },
+      showlegend: false,
+      hoverinfo: "skip"
+    };
+    
+    // PV Generation bar - matches Energy Distribution chart color
+    const pvGenTrace = {
+      type: "bar",
+      x: ["PV Generation"],
+      y: [pvGen],
+      name: "PV Generation",
+      marker: {
+        color: "#E6B800",
+        line: { width: 0.8, color: "#C79E00" }
+      },
+      text: [Math.round(pvGen)],
+      textposition: "outside",
+      textfont: {
+        size: 12,
+        color: "#000",
+        family: "Arial, sans-serif",
+        weight: "bold"
+      },
+      hovertemplate: "<b>PV Generation</b><br>%{y:,.0f} MWh<extra></extra>"
+    };
+    
+    // Grid Import bar (stacked on PV Gen base) - neutral gray color
+    const gridImportTrace = {
+      type: "bar",
+      x: ["Grid Import"],
+      y: [gridImport],
+      name: "Grid Import",
+      marker: {
+        color: "#9E9E9E",
+        line: { width: 0.8, color: "#757575" }
+      },
+      text: [Math.round(gridImport)],
+      textposition: "outside",
+      textfont: {
+        size: 12,
+        color: "#000",
+        family: "Arial, sans-serif",
+        weight: "bold"
+      },
+      hovertemplate: "<b>Grid Import</b><br>%{y:,.0f} MWh<extra></extra>"
+    };
+    
+    // System Losses bar (negative, shown as subtraction) - matches Energy Distribution chart color
+    const sysLossTrace = {
+      type: "bar",
+      x: ["System Losses"],
+      y: [-sysLoss],
+      name: "System Losses",
+      marker: {
+        color: "#CC0000",
+        line: { width: 0.8, color: "#A00000" }
+      },
+      text: [Math.round(-sysLoss)],
+      textposition: "outside",
+      textfont: {
+        size: 12,
+        color: "#000",
+        family: "Arial, sans-serif",
+        weight: "bold"
+      },
+      hovertemplate: "<b>System Losses</b><br>%{y:,.0f} MWh<extra></extra>"
+    };
+    
+    // Export to Grid - BESS to Grid component (bottom of stack) - matches BESS to Grid color
+    const bessToGridTrace = {
+      type: "bar",
+      x: ["Export to Grid"],
+      y: [bessToGrid],
+      name: "BESS to Grid",
+      marker: {
+        color: "#E69138",
+        line: { width: 0.8, color: "#C77A2A" }
+      },
+      text: [Math.round(bessToGrid)],
+      textposition: "inside",
+      textfont: {
+        size: 11,
+        color: "#fff",
+        family: "Arial, sans-serif",
+        weight: "bold"
+      },
+      hovertemplate: "<b>BESS to Grid</b><br>%{y:,.0f} MWh<extra></extra>"
+    };
+    
+    // Export to Grid - PV to Grid component (top of stack) - matches PV to Grid color
+    const pvToGridTrace = {
+      type: "bar",
+      x: ["Export to Grid"],
+      y: [pvToGrid],
+      name: "PV to Grid",
+      marker: {
+        color: "#1F77B4",
+        line: { width: 0.8, color: "#155A8A" }
+      },
+      text: [Math.round(pvToGrid)],
+      textposition: "inside",
+      textfont: {
+        size: 11,
+        color: "#fff",
+        family: "Arial, sans-serif",
+        weight: "bold"
+      },
+      hovertemplate: "<b>PV to Grid</b><br>%{y:,.0f} MWh<extra></extra>"
+    };
+    
+    const layout = {
+      barmode: "stack",
+      margin: {t:35,r:15,b:70,l:50},
+      yaxis: {
+        title: "Energy (MWh)",
+        titlefont: { size: 13, color: "#000", family: "Arial, sans-serif" },
+        tickfont: { size: 11, color: "#000", family: "Arial, sans-serif" },
+        gridcolor: "#eaeaea"
+      },
+      xaxis: {
+        tickfont: { size: 10, color: "#000", family: "Arial, sans-serif" },
+        automargin: true,
+        tickangle: 0
+      },
+      legend: {
+        orientation: "h",
+        x: 0.5,
+        xanchor: "center",
+        y: -0.2,
+        yanchor: "top",
+        font: { size: 11, color: "#000", family: "Arial, sans-serif" }
+      },
+      plot_bgcolor: "#fff",
+      paper_bgcolor: "#fff",
+      autosize: true,
+      showlegend: true,
+      annotations: [
+        {
+          x: "Export to Grid",
+          y: totalExport,
+          text: Math.round(totalExport),
+          showarrow: false,
+          yanchor: "bottom",
+          font: {
+            size: 12,
+            color: "#000",
+            family: "Arial, sans-serif",
+            weight: "bold"
+          },
+          yshift: 10
+        }
+      ]
+    };
+    
+    // Update chart title
+    document.getElementById("chart-title-waterfall").textContent = `Actual Energy Flow (MWh)${filterSuffix}`;
+    
+    Plotly.react("chart-waterfall", [baseTrace, pvGenTrace, gridImportTrace, sysLossTrace, bessToGridTrace, pvToGridTrace], layout, {responsive:true});
+  }
+
+  /* -------------------------------------------------------
+     8. FILTER UI POPULATION & MULTI-SELECT
+  ------------------------------------------------------- */
+
+  // Helper to get unique values
+  function getUnique(data, key) {
+    return [...new Set(data.map(r => String(r[key] || '').trim()))].filter(Boolean).sort();
+  }
+
+  // Helper to populate multi-select
+  function populateMultiSelect(multiSelect, values) {
+    if (!multiSelect) return;
+    const options = values.map(val => ({ value: val, label: val }));
+    multiSelect.setOptions(options);
+  }
+
+  // Get selected values from multi-select
+  function getSelectedValues(multiSelect) {
+    if (!multiSelect) return [];
+    const selected = multiSelect.getSelectedValues();
+    return selected || [];
+  }
+
+  // Initialize multi-select components
+  function initializeMultiSelects() {
+    if (typeof MultiSelect === 'undefined') {
+      return;
+    }
+
+    // Country multi-select
+    countryMultiSelect = new MultiSelect(
+      'filterCountryTrigger',
+      'filterCountryDropdown',
+      'filterCountryPlaceholder',
+      'filterCountrySelectedItems',
+      function(selectedValues) {
+        state.countries = selectedValues;
+        cascadeFilters('country');
+        updateAll();
+      }
+    );
+
+    // Portfolio multi-select
+    portfolioMultiSelect = new MultiSelect(
+      'filterPortfolioTrigger',
+      'filterPortfolioDropdown',
+      'filterPortfolioPlaceholder',
+      'filterPortfolioSelectedItems',
+      function(selectedValues) {
+        state.portfolios = selectedValues;
+        cascadeFilters('portfolio');
+        updateAll();
+      }
+    );
+
+    // Asset multi-select
+    assetMultiSelect = new MultiSelect(
+      'filterAssetTrigger',
+      'filterAssetDropdown',
+      'filterAssetPlaceholder',
+      'filterAssetSelectedItems',
+      function(selectedValues) {
+        state.assets = selectedValues;
+        updateAll();
+      }
+    );
+  }
+
+  function populateFilters() {
+    // Build unique lists
+    const allCountries = getUnique(rawData, colMap.country);
+    const allPortfolios = getUnique(rawData, colMap.portfolio);
+    const allAssets = getUnique(rawData, colMap.asset);
+
+    // Populate multi-selects
+    populateMultiSelect(countryMultiSelect, allCountries);
+    populateMultiSelect(portfolioMultiSelect, allPortfolios);
+    populateMultiSelect(assetMultiSelect, allAssets);
+  }
+
+  function cascadeFilters(changedFilter) {
+    // When Country/Portfolio changes, update downstream filters
+    let subset = rawData;
+
+    // Filter by selected countries
+    if (state.countries.length > 0) {
+      subset = subset.filter(r => state.countries.includes(String(r[colMap.country] || '').trim()));
+      
+      // Update portfolio selections if country changed
+      if (changedFilter === 'country' && portfolioMultiSelect) {
+        const validPortfolios = getUnique(subset, colMap.portfolio);
+        const currentSelections = state.portfolios.filter(p => validPortfolios.includes(p));
+        if (currentSelections.length !== state.portfolios.length) {
+          portfolioMultiSelect.setSelectedValues(currentSelections);
+          state.portfolios = currentSelections;
+        }
+      }
+    }
+
+    // Filter by selected portfolios
+    if (state.portfolios.length > 0) {
+      subset = subset.filter(r => state.portfolios.includes(String(r[colMap.portfolio] || '').trim()));
+    }
+
+    // Update asset options based on country + portfolio selections
+    if (changedFilter === 'country' || changedFilter === 'portfolio') {
+      const validAssets = getUnique(subset, colMap.asset);
+      populateMultiSelect(assetMultiSelect, validAssets);
+      
+      // Clear asset selections that are no longer valid
+      if (assetMultiSelect) {
+        const currentAssetSelections = state.assets.filter(a => validAssets.includes(a));
+        if (currentAssetSelections.length !== state.assets.length) {
+          assetMultiSelect.setSelectedValues(currentAssetSelections);
+          state.assets = currentAssetSelections;
+        }
+      }
+    }
+  }
+
+  /* -------------------------------------------------------
+     9. UPDATE DASHBOARD
+  ------------------------------------------------------- */
+  function updateAll() {
+    if (!rawData.length) return;
+    const rows = getFilteredRows();
+    const agg = computeAggregates(rows);
+    renderKPIs(agg);
+    renderEnergyFlowChart(agg);
+    renderCUFChart(agg);
+    renderCyclesChart(agg);
+    renderWaterfallChart(agg);
+  }
+
+  /* -------------------------------------------------------
+     10. BESTCALENDAR & RESET FUNCTIONALITY
+  ------------------------------------------------------- */
+
+  // Initialize BestCalendar
+  function initializeBestCalendar() {
+    if (typeof BestCalendar === 'undefined') {
+      return false;
+    }
+    
+    // Get unique months from data
+    const availableMonths = [...new Set(rawData.map(r => r[colMap.date]))].filter(Boolean).sort();
+    
+    bessCalendar = new BestCalendar({
+      triggerId: 'monthMatrixTrigger',
+      pickerId: 'monthMatrixPicker',
+      labelId: 'selectedMonthLabel',
+      data: availableMonths.map(m => ({ month: m })),
+      options: {
+        range: true,
+        onPeriodChange: function (period) {
+          // Clear quick range button active states when manually selecting
+          document.querySelectorAll('.quick-range-btn').forEach(btn => btn.classList.remove('active'));
+          
+          // Check if this is a range selection in the period object
+          if (period.range && period.range.start && period.range.end) {
+            // Range selected - set up window.currentBestCalendar
+            if (!window.currentBestCalendar) {
+              window.currentBestCalendar = {};
+            }
+            window.currentBestCalendar.selectedRange = period.range;
+            
+            // Update label to show range
+            document.getElementById('selectedMonthLabel').textContent = `${formatMonth(period.range.start)} – ${formatMonth(period.range.end)}`;
+            
+            // Set selectedMonth to trigger filtering
+            state.selectedMonth = period.range.start;
+            state.selectedYear = null;
+          } else if (period.month) {
+            // Single month selected
+            state.selectedMonth = period.month;
+            state.selectedYear = period.year;
+            
+            // Clear range
+            if (window.currentBestCalendar) {
+              window.currentBestCalendar.selectedRange = null;
+            }
+            
+            // Update label
+            document.getElementById('selectedMonthLabel').textContent = formatMonth(period.month);
+          }
+          
+          updateAll();
+        },
+        onRangeChange: function (range) {
+          // Clear quick range button active states when manually selecting
+          document.querySelectorAll('.quick-range-btn').forEach(btn => btn.classList.remove('active'));
+          
+          if (!window.currentBestCalendar) {
+            window.currentBestCalendar = {};
+          }
+          window.currentBestCalendar.selectedRange = range;
+          
+          if (range && range.start && range.end) {
+            // Update label to show range
+            document.getElementById('selectedMonthLabel').textContent = `${formatMonth(range.start)} – ${formatMonth(range.end)}`;
+            state.selectedMonth = range.start; // Set to trigger filtering
+            state.selectedYear = null;
+          }
+          
+          updateAll();
+        }
+      }
+    });
+    
+    window.currentBestCalendar = bessCalendar;
+    return true;
+  }
+
+  /* -------------------------------------------------------
+     11. QUICK DATE RANGE BUTTONS
+  ------------------------------------------------------- */
+
+  // Helper function to get available months from data
+  function getAvailableMonths() {
+    if (!rawData || rawData.length === 0) return [];
+    const months = [...new Set(rawData.map(r => r[colMap.date]))].filter(Boolean).sort();
+    return months;
+  }
+
+  // Helper function to format date as YYYY-MM
+  function formatDateToYYYYMM(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  // Get the closest available month to a target date
+  function getClosestAvailableMonth(targetMonth, availableMonths) {
+    if (availableMonths.includes(targetMonth)) return targetMonth;
+    
+    // Find the closest month that exists in data
+    const sorted = availableMonths.sort();
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (sorted[i] <= targetMonth) return sorted[i];
+    }
+    return sorted[0]; // Return earliest if nothing found
+  }
+
+  // Set quick date range
+  function setQuickDateRange(rangeType) {
+    const availableMonths = getAvailableMonths();
+    if (availableMonths.length === 0) return;
+    
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-based
+    
+    let startMonth, endMonth;
+    
+    if (rangeType === 'lastMonth') {
+      // Last complete month
+      const lastMonth = new Date(currentYear, currentMonth - 1, 1);
+      startMonth = formatDateToYYYYMM(lastMonth);
+      endMonth = startMonth;
+      
+      // Find closest available month
+      startMonth = getClosestAvailableMonth(startMonth, availableMonths);
+      endMonth = startMonth;
+      
+    } else if (rangeType === 'lastQuarter') {
+      // Last complete quarter
+      const currentQuarter = Math.floor(currentMonth / 3);
+      const lastQuarterStart = new Date(currentYear, (currentQuarter - 1) * 3, 1);
+      const lastQuarterEnd = new Date(currentYear, currentQuarter * 3 - 1, 1);
+      
+      // If we're in Q1, go back to previous year Q4
+      if (currentQuarter === 0) {
+        lastQuarterStart.setFullYear(currentYear - 1);
+        lastQuarterStart.setMonth(9); // October
+        lastQuarterEnd.setFullYear(currentYear - 1);
+        lastQuarterEnd.setMonth(11); // December
+      }
+      
+      startMonth = formatDateToYYYYMM(lastQuarterStart);
+      endMonth = formatDateToYYYYMM(lastQuarterEnd);
+      
+      // Find closest available months
+      startMonth = getClosestAvailableMonth(startMonth, availableMonths);
+      endMonth = getClosestAvailableMonth(endMonth, availableMonths);
+      
+    } else if (rangeType === 'ytd') {
+      // Year to Date - from January to last available month of current year
+      startMonth = `${currentYear}-01`;
+      
+      // Get the latest month available in current year
+      const currentYearMonths = availableMonths.filter(m => m.startsWith(String(currentYear)));
+      if (currentYearMonths.length > 0) {
+        endMonth = currentYearMonths[currentYearMonths.length - 1];
+      } else {
+        // If no data for current year, use last available month
+        endMonth = availableMonths[availableMonths.length - 1];
+      }
+      
+      startMonth = getClosestAvailableMonth(startMonth, availableMonths);
+    }
+    
+    // Apply the range
+    if (startMonth && endMonth) {
+      // Set state
+      state.selectedMonth = startMonth;
+      state.selectedYear = null;
+      
+      // Update calendar range
+      if (window.currentBestCalendar) {
+        window.currentBestCalendar.selectedRange = {
+          start: startMonth,
+          end: endMonth
+        };
+      }
+      
+      // Update label
+      if (startMonth === endMonth) {
+        document.getElementById('selectedMonthLabel').textContent = formatMonth(startMonth);
+      } else {
+        document.getElementById('selectedMonthLabel').textContent = `${formatMonth(startMonth)} – ${formatMonth(endMonth)}`;
+      }
+      
+      // Update active button states
+      document.querySelectorAll('.quick-range-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(rangeType === 'lastMonth' ? 'lastMonthBtn' : 
+                             rangeType === 'lastQuarter' ? 'lastQuarterBtn' : 
+                             'ytdBtn').classList.add('active');
+      
+      // Refresh dashboard
+      updateAll();
+    }
+  }
+
+  // Attach event listeners to quick range buttons
+  document.getElementById('lastMonthBtn').addEventListener('click', function() {
+    setQuickDateRange('lastMonth');
+  });
+
+  document.getElementById('lastQuarterBtn').addEventListener('click', function() {
+    setQuickDateRange('lastQuarter');
+  });
+
+  document.getElementById('ytdBtn').addEventListener('click', function() {
+    setQuickDateRange('ytd');
+  });
+
+  // Reset filters button
+  document.getElementById('resetFiltersBtn').addEventListener('click', function() {
+    // Reset state
+    state.countries = [];
+    state.portfolios = [];
+    state.assets = [];
+    state.selectedMonth = null;
+    state.selectedYear = null;
+    
+    // Reset multi-select dropdowns
+    if (countryMultiSelect) countryMultiSelect.clearSelection();
+    if (portfolioMultiSelect) portfolioMultiSelect.clearSelection();
+    if (assetMultiSelect) assetMultiSelect.clearSelection();
+    
+    // Reset BestCalendar
+    if (bessCalendar && typeof bessCalendar.reset === 'function') {
+      bessCalendar.reset();
+    }
+    if (window.currentBestCalendar && window.currentBestCalendar.selectedRange) {
+      window.currentBestCalendar.selectedRange = { start: null, end: null };
+    }
+    document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+    
+    // Reset quick range button states
+    document.querySelectorAll('.quick-range-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Re-populate all filters
+    const allCountries = getUnique(rawData, colMap.country);
+    const allPortfolios = getUnique(rawData, colMap.portfolio);
+    const allAssets = getUnique(rawData, colMap.asset);
+    
+    populateMultiSelect(countryMultiSelect, allCountries);
+    populateMultiSelect(portfolioMultiSelect, allPortfolios);
+    populateMultiSelect(assetMultiSelect, allAssets);
+    
+    updateAll();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const dataElement = document.getElementById('bessV1DataJSON');
+    let initialData = [];
+    if (dataElement) {
+      try {
+        initialData = JSON.parse(dataElement.textContent);
+      } catch (error) {
+        console.error('Failed to parse embedded BESS data:', error);
+      }
+    }
+
+    if (initialData && initialData.length > 0) {
+      rawData = initialData.map(row => normalizeRowKeys(row));
+      const headers = Object.keys(rawData[0] || {}).map(h => h.trim());
+      buildColumnMap(headers);
+      initializeMultiSelects();
+      populateFilters();
+      setTimeout(() => {
+        initializeBestCalendar();
+        updateAll();
+        setHeaderPageTitle('BESS Dashboard');
+      }, 0);
+    } else {
+      setHeaderPageTitle('BESS Dashboard');
+      const contentArea = document.querySelector('.content-area');
+      if (contentArea) {
+        contentArea.innerHTML = '<div class="alert alert-info">No BESS dashboard data available yet.</div>';
+      }
+      const resetBtn = document.getElementById('resetFiltersBtn');
+      if (resetBtn) {
+        resetBtn.disabled = true;
+      }
+    }
+  });
+
+  function setHeaderPageTitle(title) {
+    try {
+      document.title = title || 'BESS Dashboard';
+      if (window.parent && window.parent !== window && typeof window.parent.postMessage === 'function') {
+        window.parent.postMessage({ type: 'SET_TOPBAR_TITLE', title: document.title }, '*');
+      }
+    } catch (error) {
+      console.warn('Unable to set parent header title:', error);
+    }
+  }
+  window.setHeaderPageTitle = setHeaderPageTitle;
+
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load django_vite %}
+{% load waffle_tags %}
+
+{% block title %}Ticket Detail{% endblock %}
+
+{% block extra_head %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% if DJANGO_VITE_DEV_MODE %}
+    {% vite_hmr_client %}
+  {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+  {% vite_asset 'src/main.tsx' app='default' %}
+{% endblock %}
+
+{% block content %}
+  <div
+    id="react-root"
+    data-app="ticketing-detail"
+    data-ticket-id="{{ ticket.id }}"
+    class="min-h-[400px] js-react-ticket-detail"
+  ></div>
+{% endblock %}
+

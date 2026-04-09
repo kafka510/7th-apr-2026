@@ -1,0 +1,1472 @@
+<!--
+  IC Budget Vs Expected Generation Dashboard
+  --------------------------------------------------
+  This HTML file renders a dashboard comparing Budget IC Approved vs Expected Generation.
+  - Loads data from a CSV file (ICE.csv) via fetch and PapaParse
+  - Renders two tables: main data and summary
+  - Uses Bootstrap for styling and responsive layout
+  - Custom CSS for dashboard look and feel
+  - Notes and explanations are provided for users
+  - Responsive resizing for charts/maps (if present)
+-->
+  {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Make pages responsive on all devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    Custom CSS for dashboard layout and style
+    - Ensures full height/width for main containers
+    - Responsive tweaks for smaller screens
+    - Table and card styling for clarity and aesthetics
+  -->
+  <style>
+    /* Modern styling inspired by KPI.html */
+    :root {
+      --bg-color: #f5f7fa;
+      --card-bg: #ffffff;
+      --accent: #4e89ae;
+      --accent-light: #a8dadc;
+      --text-color: #333;
+      --border-color: #e0e0e0;
+      --primary-blue: #2563eb;
+      --primary-green: #16a34a;
+      --kpi-accent: #0072CE;
+    }
+
+    html, body { 
+      width:100%; 
+      height:100%; 
+      margin:0; 
+      padding:0; 
+      background: var(--bg-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      overflow-x: hidden;
+    }
+    
+    body {
+      overflow-y: auto !important;
+      overflow-x: hidden;
+    }
+    
+    .main-content {
+      width: 100vw;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: clamp(10px, 2vw, 20px);
+      box-sizing: border-box;
+    }
+    
+    /* Modern glass effect */
+    .glass {
+      background: var(--card-bg);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .container-fluid, .main-container, .dashboard-content, .main-content, .card-content {
+      display: flex; flex-direction: column; width: 100%; height: 100%;
+    }
+    /* Fluid charts and map containers (if used) */
+    [id$="Chart"], [id$="Line"], #mapid, .plotly-graph-div {
+      width: 100% !important; height: 100% !important; flex: 1;
+    }
+    /* Media-query tweaks for responsiveness */
+    @media (max-width: 1200px) {
+      /* adjust font-sizes or layout as needed */
+    }
+  </style>
+  <style>
+    /* Force compact filter container */
+    .filter-container {
+      background: #f8fbff;
+      border: 1px solid #b3d7f2;
+      border-radius: 8px;
+      padding: 0.3rem 0.5rem !important; /* Reduce padding */
+      margin-bottom: 0.5rem !important;
+      height: auto !important;            /* Override any fixed height */
+      min-height: unset !important;       /* Remove unwanted min-height */
+      max-height: 50px !important;        /* Force a maximum height */
+      display: flex;
+      align-items: center;                /* Vertically center content */
+      position: relative;                 /* Ensure proper stacking context */
+      z-index: 1;                         /* Lower than picker */
+    }
+
+    /* Reduce Bootstrap row spacing */
+    .filter-container .row {
+      --bs-gutter-x: 0.25rem !important;
+      --bs-gutter-y: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Compact labels */
+    .filter-container .form-label {
+      font-size: 0.7rem !important;
+      margin: 0 !important;
+      line-height: 1rem !important;
+      display: none !important; /* Hide label text to save height */
+    }
+
+    /* Reduce height of dropdowns */
+    .filter-container .form-select {
+      border: 1px solid #b3d7f2;
+      border-radius: 5px;
+      padding: 0.2rem 0.3rem !important;
+      font-size: 0.75rem !important;
+      height: 1.8rem !important;
+      margin: 0 !important;
+    }
+
+    /* Make month trigger button compact */
+    .month-trigger-btn {
+      padding: 0.2rem 0.4rem !important;
+      font-size: 0.75rem !important;
+      height: 1.8rem !important;
+      line-height: 1rem !important;
+      margin: 0 !important;
+      position: relative;                 /* Ensure proper stacking context */
+      z-index: 2;                         /* Higher than container, lower than picker */
+    }
+    
+    /* Tab Navigation Styles - Matching Page Title Design */
+    .tab-navigation {
+      display: flex;
+      background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+      border: 1px solid #b3d7f2;
+      border-radius: 8px 8px 0 0;
+      margin-top: 0.3rem;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 0.4rem 0.6rem;
+      background: rgba(230, 241, 252, 0.8);
+      border: none;
+      color: #6c757d !important;
+      font-size: 1.1rem !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-right: 1px solid #b3d7f2;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .tab-btn:last-child {
+      border-right: none;
+    }
+    
+    .tab-btn:hover {
+      background: rgba(209, 231, 255, 0.9);
+      color: #0072CE !important;
+      transform: translateY(-1px);
+    }
+    
+    .tab-btn.active {
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      color: white !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 8px rgba(10, 115, 209, 0.3);
+    }
+    
+    /* Tab Content Styles */
+    .tab-content {
+      background: white;
+      border: 1px solid #b3d7f2;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      min-height: 250px;
+    }
+    
+    .tab-pane {
+      display: none;
+      padding: 0.75rem;
+    }
+    
+    .tab-pane.active {
+      display: block;
+    }
+    
+    /* Responsive adjustments for laptop screens */
+    @media (max-width: 1220px) {
+      .main-container {
+        padding: 0.5rem 0.6rem 0.5rem 0.6rem !important;
+        margin-bottom: 0.3rem !important;
+      }
+      
+      .filter-container {
+        padding: 0.15rem 0.25rem !important;
+        margin-bottom: 0.15rem !important;
+        max-height: 30px !important;
+      }
+      
+      .filter-container .form-select,
+      .filter-container .btn,
+      .month-trigger-btn {
+        font-size: 0.75rem !important;
+        padding: 0.15rem 0.3rem !important;
+        height: 1.6rem !important;
+        line-height: 1rem !important;
+      }
+      
+      .tab-navigation {
+        margin-top: 0.2rem;
+      }
+      
+      .tab-btn {
+        padding: 0.3rem 0.5rem;
+        font-size: 1rem !important;
+      }
+      
+      .tab-content {
+        min-height: 200px;
+      }
+      
+      .tab-pane {
+        padding: 0.5rem;
+      }
+      
+      .custom-table th, .custom-table td {
+        font-size: 0.8rem !important;
+        padding: 0.15rem 0.3rem !important;
+        height: 1.4rem !important;
+        width: 10% !important; /* Maintain uniform width on smaller screens */
+        table-layout: fixed !important;
+      }
+      
+      .summary-table th, .summary-table td {
+        font-size: 0.8rem !important;
+        padding: 0.15rem 0.3rem !important;
+        height: 1.4rem !important;
+      }
+      
+      .note-box {
+        padding: 0.5rem 0.7rem;
+        margin-top: 0.2rem;
+        font-size: 0.7rem;
+        min-height: 45px;
+      }
+      
+      .dashboard-header {
+        padding: 4px 10px 2px 10px;
+        margin-bottom: 1px;
+      }
+      
+      .dashboard-header .title {
+        font-size: 1.2rem;
+      }
+    }
+
+    /* Reduce reset button height */
+    .filter-container .btn {
+      font-size: 0.75rem !important;
+      padding: 0.2rem 0.4rem !important;
+      height: 1.8rem !important;
+      line-height: 1rem !important;
+      margin: 0 !important;
+    }
+  </style>
+
+  <meta charset="UTF-8">
+  <title>Budget IC Approved Vs Expected Generation</title>
+  <!--
+    Bootstrap 5 for layout and components
+    - Provides grid, cards, tables, etc.
+  -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  
+  <!-- BestCalendar Component -->
+  <script src="{% static 'bestcalendar.js' %}"></script>
+  <style>
+/* BestCalendar Component Styles */
+.month-trigger-btn {
+  width: 100%;
+  background: #f8fbff;
+  border: 1px solid #b3d7f2;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  color: #0072CE;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.month-trigger-btn:hover {
+  background: #e6f1fc;
+  border-color: #0072CE;
+}
+
+    .month-matrix-picker {
+      position: absolute;
+      z-index: 9999;
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      margin-top: 4px;
+      border-radius: 10px;
+      top: 100%;
+      left: 0;
+      right: 0;
+      min-width: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      border: none;
+    }
+
+/* Tab interface styles */
+.picker-tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+  width: 100%;
+}
+
+.tab-btn {
+  border: none;
+  background: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.tab-btn.active {
+  color: #0072CE;
+  font-weight: bold;
+  border-bottom: 2px solid #0072CE;
+}
+
+.tab-btn:hover {
+  color: #0072CE;
+}
+
+/* View switching */
+.picker-view {
+  display: none;
+  width: 100%;
+}
+
+.picker-view.active {
+  display: block;
+}
+
+/* Month grid styles */
+.month-matrix-year-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.month-matrix-year-row button {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 10px;
+  color: #0072CE;
+  transition: color 0.2s;
+  font-weight: bold;
+}
+
+.month-matrix-year-row button:hover {
+  color: #6a00ff;
+}
+
+.month-matrix-year-label {
+  font-weight: 600;
+  color: #0072CE;
+  font-size: 16px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.month-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.month-matrix-cell {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  transition: background 0.2s, color 0.2s;
+  min-width: 60px;
+  font-weight: 500;
+}
+
+.month-matrix-cell.selected,
+.month-matrix-cell:hover {
+  background: #0072CE;
+  color: white;
+  font-weight: bold;
+}
+
+.month-matrix-cell.disabled {
+  color: #bbb;
+  background: #f0f0f0;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Year grid styles */
+.year-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.year-cell {
+  background: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: #333;
+  transition: background 0.2s, color 0.2s;
+  font-weight: 500;
+}
+
+.year-cell.selected,
+.year-cell:hover {
+  background: #0072CE;
+  color: white;
+  font-weight: bold;
+}
+
+/* Container positioning */
+.filter-pill {
+  position: relative;
+  display: inline-block;
+}
+
+.filter-pill label {
+  display: block;
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .month-matrix-picker {
+    min-width: 250px;
+    padding: 15px;
+  }
+  
+  .month-matrix-grid,
+  .year-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .month-matrix-cell,
+  .year-cell {
+    font-size: 12px;
+    padding: 8px;
+  }
+}
+</style>
+  <style>
+    /*
+      Dashboard-specific styles
+      - Large font sizes for readability on big screens
+      - Card and table styling for a clean, modern look
+      - Note box for important user information
+    */
+    body { background: #e6f1fc; color: #222; font-size: 1rem; }
+    .dashboard-header {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
+    /* Enhanced Dashboard Header */
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px 4px 12px;
+      background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 2px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+    .dashboard-header .title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 0;
+      display: block;
+      text-align: center;
+      width: 100%;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .dashboard-header .subtitle {
+      font-size: 0.9rem;
+      color: #7a8799;
+      font-weight: 400;
+      margin-top: 4px;
+      display: block;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+      border: 1.5px solid #87ceeb;
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      height: 100%;
+    }
+    .main-container {
+      background: #fff;
+      border-radius: 0 0 16px 16px;
+      border: 1.5px solid #b2d8fc;
+      box-shadow: 0 2px 10px rgba(99,171,221,0.10);
+      margin-bottom: 0.3rem;
+      padding: 0.5rem 0.75rem 0.5rem 0.75rem;
+      min-height: fit-content;
+    }
+    .custom-table th, .custom-table td {
+      text-align: center;
+      vertical-align: middle;
+      font-size: 0.85rem !important;
+      padding: 0.2rem 0.4rem !important;
+      height: 1.5rem !important;
+      word-break: break-word;
+      width: 10% !important; /* Uniform column width - 10 columns = 10% each */
+      table-layout: fixed !important;
+    }
+    /* Uniform column widths for all table columns */
+    .custom-table th, .custom-table td {
+      width: 10% !important; /* Force uniform width - 10 columns = 10% each */
+      min-width: 10% !important;
+      max-width: 10% !important;
+      table-layout: fixed !important;
+    }
+    
+    /* Summary table specific styling */
+    .summary-table th:nth-child(1), .summary-table td:nth-child(1) {
+      width: 20% !important; /* Portfolio column wider */
+    }
+    .summary-table th:nth-child(2), .summary-table td:nth-child(2),
+    .summary-table th:nth-child(3), .summary-table td:nth-child(3),
+    .summary-table th:nth-child(4), .summary-table td:nth-child(4) {
+      width: 20% !important; /* Other columns equal width */
+    }
+    .summary-table th:nth-child(5), .summary-table td:nth-child(5) {
+      width: 20% !important; /* Reasons column wider */
+    }
+    .custom-table th {
+      background: #225184;
+      color: #fff;
+      font-weight: 600;
+      border-bottom: 2px solid #b2d8fc;
+    }
+    .custom-table tr:nth-child(even) td {
+      background: #f0f8ff;
+    }
+    .custom-table td {
+      background: #fff;
+    }
+    .custom-table thead tr th[colspan] {
+      background: #b2d8fc !important;
+      color: #225184 !important;
+      font-size: 1rem;
+      border-bottom: 2px solid #2177cc !important;
+      font-weight: 600;
+    }
+    .summary-table {
+      margin-top: 1.2rem; /* Reduced from 4.5rem */
+      margin-bottom: 0.8rem; /* Reduced from 2.4rem */
+    }
+    .summary-table th, .summary-table td {
+      text-align: left;
+      font-size: 0.85rem !important;
+      padding: 0.2rem 0.4rem !important;
+      white-space: normal !important;
+      word-break: break-word;
+      max-width: 1050px;
+      height: 1.5rem !important;
+    }
+    .summary-table th {
+      background: #225184;
+      color: #fff;
+      font-weight: 600;
+      border-bottom: 2px solid #b2d8fc;
+    }
+    .note-box {
+      background: #b2d8fc;
+      border-radius: 12px;
+      color: #123155;
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.3rem;
+      font-size: 0.8rem;
+      min-height: 50px;
+    }
+    .upload-box {
+      display: none; /* Hide the upload */
+    }
+    .table th, .table td { vertical-align: middle !important; }
+    .table-hover tbody tr:hover td { background: #e6f1fc; }
+    .custom-table td, .summary-table td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    /* Ensure table takes full width and has uniform columns */
+    .custom-table, .summary-table {
+      width: 100% !important;
+      table-layout: fixed !important;
+    }
+    
+    /* Override any Bootstrap table width constraints */
+    .table {
+      width: 100% !important;
+    }
+    
+    /* Force uniform column widths with higher specificity */
+    .custom-table th, .custom-table td,
+    .summary-table th, .summary-table td {
+      box-sizing: border-box !important;
+    }
+    
+    /* Additional specificity to override Bootstrap */
+    .table.custom-table th,
+    .table.custom-table td,
+    .table.summary-table th,
+    .table.summary-table td {
+      width: 10% !important;
+      min-width: 10% !important;
+      max-width: 10% !important;
+    }
+    
+    /* Filter Container Styles */
+    .filter-container {
+      background: #f8fbff;
+      border: 1px solid #b3d7f2;
+      border-radius: 12px;
+      padding: 0.3rem 0.5rem !important;
+      margin-bottom: 0.3rem !important;
+    }
+    /* Remove any internal vertical gutter from Bootstrap rows inside the filter bar */
+    .filter-container .row { 
+      --bs-gutter-y: 0 !important; 
+    }
+    
+    .filter-container .form-label {
+      font-size: 0.82rem !important;
+      color: #6c757d;
+      margin-bottom: 0.15rem !important;
+      font-weight: 500;
+    }
+    
+    .filter-container .form-select {
+      border: 1px solid #b3d7f2;
+      border-radius: 6px;
+      padding: 0.3rem 0.5rem !important;
+      font-size: 0.82rem !important;
+      line-height: 1.1 !important;
+      background-color: #fff;
+      transition: border-color 0.2s;
+    }
+    
+    .filter-container .form-select:focus {
+      border-color: #0072CE;
+      box-shadow: 0 0 0 0.2rem rgba(0, 114, 206, 0.25);
+    }
+    
+    .filter-container .btn {
+      border-radius: 6px;
+      font-size: 0.82rem !important;
+      font-weight: 500;
+      padding: 0.35rem 0.6rem !important;
+      transition: all 0.2s;
+    }
+    
+    .filter-container .btn-secondary {
+      background-color: #6c757d;
+      border-color: #6c757d;
+      color: #fff;
+    }
+    
+    .filter-container .btn-secondary:hover {
+      background-color: #5a6268;
+      border-color: #545b62;
+      color: #fff;
+    }
+    
+    .filter-container .btn-secondary:active {
+      background-color: #545b62;
+      border-color: #4e555b;
+    }
+  </style>
+</head>
+<body>
+  <!--
+    Main dashboard container
+    - Header: Dashboard title
+    - Main content: Data tables and notes
+  -->
+  <div class="container-fluid py-2">
+    <div class="main-container">
+      <!-- Filter Container -->
+      <div class="filter-container">
+        <div class="row gx-1 gy-0 align-items-center w-100">
+          <div class="col-md-2 col-sm-6">
+            <label class="form-label">Month</label>
+            <button id="monthMatrixTrigger" type="button" class="month-trigger-btn btn btn-outline-primary w-100">
+              <span id="selectedMonthLabel">Select Period</span>
+            </button>
+            <div id="monthMatrixPicker" class="month-matrix-picker" style="display:none;"></div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <label for="countryFilter" class="form-label">Country</label>
+            <select id="countryFilter" class="form-select">
+              <option value="All">All Country</option>
+            </select>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <label for="portfolioFilter" class="form-label">Portfolio</label>
+            <select id="portfolioFilter" class="form-select">
+              <option value="All">All Portfolio</option>
+            </select>
+          </div>
+          <div class="col-md-2 col-sm-6 d-flex align-items-end">
+            <button id="resetFilters" type="button" class="btn btn-danger w-100">Reset</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button class="tab-btn active" data-tab="main-table">Main Table</button>
+        <button class="tab-btn" data-tab="summary-table">Summary Table & Notes</button>
+      </div>
+      
+      <!-- Tab Content -->
+      <div class="tab-content">
+        <!-- Main Table Tab -->
+        <div id="main-table" class="tab-pane active">
+          <div id="mainTableBox"></div>
+        </div>
+        
+        <!-- Summary Table Tab -->
+        <div id="summary-table" class="tab-pane">
+          <div id="summaryTableBox" class="summary-table"></div>
+          <div class="note-box" style="margin-top: 2rem;">
+            <b>Note:</b><br>
+            1. Site wise data <a href="https://peakenergyasia.sharepoint.com/:x:/s/PeakEnergy-All/Eedf1mcnW4JPhythaFIGRF4B3I_ODUIrj5xOVcx2O0L8fw?e=Br943V" target="_blank">IC Budget Vs Expected MTD.xlsx</a>.<br>
+            2. Asset No: 2,18,27,40 & 48 expected budgets are revised due to as built PV-syst is received in April-25.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--
+    PapaParse library for CSV parsing
+    - Used to load and process ICE.csv data
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  
+  <script>
+let allDataRows = [];
+let allHeaders = [];
+let calendarInstance;
+
+// Map database field names to display names
+const columnMapping = {
+  'month': 'Month',
+  'month_sort': 'month_sort', // Keep this for sorting
+  'country': 'Country',
+  'portfolio': 'Portfolio', 
+  'dc_capacity_mwp': 'DC Capacity (Mwp)',
+  'ic_approved_budget_mwh': 'IC Approved Budget (MWh)',
+  'expected_budget_mwh': 'Expected Budget (MWh)',
+  'actual_generation_mwh': 'Actual Generation (MWh)',
+  'grid_curtailment_budget_mwh': 'Grid Curtailment Budget (MWh)',
+  'actual_curtailment_mwh': 'Actual Curtailment (MWh)',
+  'budget_irradiation_kwh_m2': 'Budget Irradiation (kWh/M2)',
+  'actual_irradiation_kwh_m2': 'Actual Irradiation (kWh/M2)',
+  'expected_pr_percent': 'Expected PR (%)',
+  'actual_pr_percent': 'Actual PR (%)'
+};
+
+// Load data from Django view or CSV fallback
+{% if icvsexvscur_data_json %}
+  
+  const icvsexvscurDataRaw = {{ icvsexvscur_data_json|safe }};
+  
+  
+  // Map database field names to display names
+  allDataRows = icvsexvscurDataRaw.map(row => {
+    const mappedRow = {};
+    Object.keys(row).forEach(key => {
+      const displayName = columnMapping[key] || key;
+      mappedRow[displayName] = row[key];
+    });
+    return mappedRow;
+  });
+  allHeaders = Object.keys(allDataRows[0] || {});
+  
+
+  
+  
+  // Check if any rows have non-empty PR values
+  const rowsWithPR = allDataRows.filter(row => {
+    const expectedPR = row['Expected PR (%)'];
+    const actualPR = row['Actual PR (%)'];
+    return (expectedPR && expectedPR.toString().trim() !== '') || 
+           (actualPR && actualPR.toString().trim() !== '');
+  });
+  
+
+  setupFilters();
+  renderFilteredTable();
+  renderSummaryTable();
+{% else %}
+  // Fallback to CSV loading
+  fetch("/data/ICVSEXVSCUR.csv")
+    .then(response => response.text())
+    .then(csv => {
+      Papa.parse(csv, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          allHeaders = results.meta.fields;
+          allDataRows = results.data;
+
+          setupFilters();
+          renderFilteredTable();
+          renderSummaryTable();
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error loading CSV data:', error);
+    });
+{% endif %}
+
+function setupFilters() {
+  // Extract unique values for filters (trim spaces for robustness)
+  const months = [...new Set(allDataRows.map(row => row['Month'] && row['Month'].trim()).filter(Boolean))];
+  const countries = [...new Set(allDataRows.map(row => row['Country'] && row['Country'].trim()).filter(Boolean))];
+  const portfolios = [...new Set(allDataRows.map(row => row['Portfolio'] && row['Portfolio'].trim()).filter(Boolean))];
+
+  // Setup BestCalendar with data - convert month format from "Jan 2025" to "2025-01"
+  const calendarData = months.map(month => {
+    // Handle space-separated format: "Jan 2025"
+    const parts = month.split(' ');
+    const monthName = parts[0];
+    const year = parts[1];
+    const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(monthName);
+    const fullYear = year; // Already full year format
+    const monthNum = String(monthIndex + 1).padStart(2, '0');
+    const result = { 
+      month: `${fullYear}-${monthNum}`,
+      originalMonth: month 
+    };
+    return result;
+  });
+  
+
+  
+  // Check if BestCalendar is available
+  if (typeof BestCalendar === 'undefined') {
+    return;
+  }
+  
+
+  
+  calendarInstance = new BestCalendar({
+    triggerId: 'monthMatrixTrigger',
+    pickerId: 'monthMatrixPicker',
+    labelId: 'selectedMonthLabel',
+    options: {
+      rangeMode: true, // Enable range selection mode
+          onPeriodChange: function(period) {
+      // Always use renderFilteredTable since it now handles all period types
+      renderFilteredTable();
+    }
+    }
+  });
+  calendarInstance.setData(calendarData);
+  
+
+
+  // Setup other dropdowns
+  renderDropdown('countryFilter', countries, 'Country');
+  renderDropdown('portfolioFilter', portfolios, 'Portfolio');
+  
+  // Setup reset button
+  setupResetButton();
+  
+
+}
+
+// Helper function to convert month string to Date object
+function convertMonthToDate(monthStr) {
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const parts = monthStr.split(' ');
+  
+  if (parts.length >= 2) {
+    const monthPart = parts[0];
+    const yearPart = parts[1];
+    
+    const monthIndex = monthNames.indexOf(monthPart);
+    if (monthIndex !== -1 && yearPart) {
+      const year = parseInt(yearPart);
+      const month = monthIndex + 1;
+      return new Date(year, month - 1, 1); // month is 0-indexed in Date constructor
+    }
+  }
+  return null;
+}
+
+function renderDropdown(id, options, label) {
+  const select = document.getElementById(id);
+  select.innerHTML = `<option value="All">All ${label}</option>` +
+    options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+  select.onchange = renderFilteredTable;
+}
+
+function setupResetButton() {
+  const resetBtn = document.getElementById('resetFilters');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      // Reset calendar
+      if (calendarInstance) {
+        calendarInstance.reset();
+      }
+      
+      // Reset dropdowns
+      const countryFilter = document.getElementById('countryFilter');
+      const portfolioFilter = document.getElementById('portfolioFilter');
+      
+      if (countryFilter) countryFilter.value = 'All';
+      if (portfolioFilter) portfolioFilter.value = 'All';
+      
+      // Re-render table with reset filters
+      renderFilteredTable();
+      
+  
+    });
+  }
+}
+
+function renderFilteredTable() {
+  const period = calendarInstance ? calendarInstance.getSelectedPeriod() : null;
+  const country = document.getElementById('countryFilter').value;
+  const portfolio = document.getElementById('portfolioFilter').value;
+
+
+
+  // Filter data (trim spaces for robustness)
+  let filteredRows = allDataRows.filter(row => {
+    let monthMatch = true;
+    let rowMonth = row['Month'] && row['Month'].trim();
+    let rowCountry = row['Country'] && row['Country'].trim();
+    let rowPortfolio = row['Portfolio'] && row['Portfolio'].trim();
+
+    // Handle period filtering with proper null checks
+    if (period) {
+      if (period.range && period.range.start && period.range.end) {
+        // Range selection - use month_sort field for more reliable date comparison
+        const rowMonthSort = row['month_sort'];
+        if (rowMonthSort) {
+          // month_sort is in YYYY-MM-DD format, range.start/end are in YYYY-MM format
+          const startDateStr = period.range.start + '-01'; // Add day to make it YYYY-MM-DD
+          const endDateStr = period.range.end + '-01';     // Add day to make it YYYY-MM-DD
+          monthMatch = rowMonthSort >= startDateStr && rowMonthSort <= endDateStr;
+        } else {
+          // Fallback to convertMonthToDate if month_sort is not available
+          const rowDate = convertMonthToDate(rowMonth);
+          if (rowDate) {
+            const startDate = new Date(period.range.start + '-01');
+            const endDate = new Date(period.range.end + '-01');
+            monthMatch = rowDate >= startDate && rowDate <= endDate;
+          } else {
+                      monthMatch = false;
+          }
+        }
+      } else if (period.month) {
+        // Single month selection - convert calendar format to match data format
+        const calendarData = calendarInstance.data;
+        const selectedData = calendarData.find(item => item.month === period.month);
+        if (selectedData && selectedData.originalMonth) {
+          monthMatch = rowMonth === selectedData.originalMonth;
+        } else {
+          // Fallback: try to match the month directly
+          const [year, month] = period.month.split('-');
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const monthName = monthNames[parseInt(month) - 1];
+          const expectedFormat = `${monthName} ${year}`;
+          monthMatch = rowMonth === expectedFormat;
+        }
+      } else if (period.year) {
+        // Year only selection
+        const rowYear = rowMonth ? rowMonth.split(' ')[1] : null; // Extract year from "Jan 2025" format
+        monthMatch = rowYear === period.year.toString();
+      }
+    }
+    // If period is null, show all data (monthMatch remains true)
+
+    const countryMatch = country === 'All' || rowCountry === country;
+    const portfolioMatch = portfolio === 'All' || rowPortfolio === portfolio;
+
+    return monthMatch && countryMatch && portfolioMatch;
+  });
+  
+
+  
+  // Check if we have any filtered data
+  if (filteredRows.length === 0) {
+    document.getElementById('mainTableBox').innerHTML = '<div class="alert alert-info">No data available for the selected filters.</div>';
+    return;
+  }
+
+  // Columns to display (remove 'Country', 'Portfolio', 'DC Capacity (Mwp)')
+  const displayHeaders = [
+    'Month',
+    'IC Approved Budget (MWh)',
+    'Expected Budget (MWh)',
+    'Actual Generation (MWh)',
+    'Grid Curtailment Budget (MWh)',
+    'Actual Curtailment (MWh)',
+    'Budget Irradiation (kWh/M2)',
+    'Actual Irradiation (kWh/M2)',
+    'Expected PR (%)',
+    'Actual PR (%)'
+  ];
+
+  // Group by month
+  let monthMap = {};
+  filteredRows.forEach(row => {
+    const m = row['Month'];
+    if (!monthMap[m]) monthMap[m] = [];
+    monthMap[m].push(row);
+  });
+
+  // Dynamically determine months to show, sorted in calendar order
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // Get unique months from filtered data
+  let monthsInData = Object.keys(monthMap);
+  
+  // Sort months using the month_sort field for proper chronological order
+  monthsInData.sort((a, b) => {
+    // Find the first row for each month to get the month_sort value
+    const aRow = filteredRows.find(row => row['Month'] === a);
+    const bRow = filteredRows.find(row => row['Month'] === b);
+    
+    const aSort = aRow && aRow['month_sort'] ? aRow['month_sort'] : a;
+    const bSort = bRow && bRow['month_sort'] ? bRow['month_sort'] : b;
+    
+
+    
+    // Compare using ISO date strings for proper chronological sorting
+    return aSort.localeCompare(bSort);
+  });
+  
+
+  // Determine the cutoff month (N-1)
+  const today = new Date();
+  const cutoffDate = new Date(today.getFullYear(), today.getMonth() - 1, 1); // Previous month, 1st day
+  const cutoffISOString = cutoffDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+
+  
+  // Helper to check if a month is <= cutoff using month_sort field
+  function isUpToCutoff(monthStr) {
+    // Find the row with this month to get the month_sort value
+    const row = filteredRows.find(r => r['Month'] === monthStr);
+    if (row && row['month_sort']) {
+      const result = row['month_sort'] <= cutoffISOString;
+      return result;
+    }
+    
+    // Fallback: parse month string directly if month_sort is not available
+    // Handle format like "Jul 2025" or "July 2025"
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fullMonthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    // Extract month and year from monthStr
+    const parts = monthStr.split(' ');
+    if (parts.length >= 2) {
+      const monthPart = parts[0];
+      const yearPart = parts[1];
+      
+      // Find month index
+      let monthIndex = monthNames.indexOf(monthPart);
+      if (monthIndex === -1) {
+        monthIndex = fullMonthNames.indexOf(monthPart);
+      }
+      
+      if (monthIndex !== -1 && yearPart) {
+        const year = parseInt(yearPart);
+        const month = monthIndex + 1;
+        
+        // Create date string for comparison (YYYY-MM-DD format)
+        const monthDateStr = `${year}-${month.toString().padStart(2, '0')}-01`;
+        const result = monthDateStr <= cutoffISOString;
+        return result;
+      }
+    }
+    
+    // If we can't parse, assume it's not up to cutoff
+    return false;
+  }
+
+  // Show all months in the table
+  const monthsToShow = monthsInData;
+
+  // Prepare aggregated rows
+  let aggregatedRows = [];
+  let totalSums = {};
+  let totalCounts = {};
+  displayHeaders.forEach(h => { totalSums[h] = 0; totalCounts[h] = 0; });
+
+  monthsToShow.forEach(m => {
+    const rows = monthMap[m];
+    let agg = { 'Month': m };
+    // Sum numeric columns
+    [
+      'IC Approved Budget (MWh)',
+      'Expected Budget (MWh)',
+      'Actual Generation (MWh)',
+      'Grid Curtailment Budget (MWh)',
+      'Actual Curtailment (MWh)',
+      'Budget Irradiation (kWh/M2)',
+      'Actual Irradiation (kWh/M2)'
+    ].forEach(h => {
+      agg[h] = rows.reduce((sum, r) => {
+        const value = r[h];
+        const numValue = Number(String(value || '0').replace(/,/g,''));
+        return sum + (isNaN(numValue) ? 0 : numValue);
+      }, 0);
+      // Only sum for totals if up to cutoff
+      if (isUpToCutoff(m)) totalSums[h] += agg[h];
+    });
+    // Average for PR%: get all valid PR values for each column separately
+    ['Expected PR (%)','Actual PR (%)'].forEach(h => {
+      let vals = rows.map(r => {
+        const value = r[h];
+
+        
+        // Handle different possible formats: number, string with %, etc.
+        let numValue;
+        if (typeof value === 'number') {
+          numValue = value;
+        } else if (typeof value === 'string') {
+          // Handle empty strings, null, undefined
+          if (!value || value.trim() === '' || value.trim() === 'null' || value.trim() === 'undefined') {
+
+            return null;
+          }
+          numValue = parseFloat(value.replace('%','').trim());
+        } else {
+          // Handle null, undefined, or other falsy values
+          if (!value || value === null || value === undefined) {
+
+            return null;
+          }
+          numValue = parseFloat(String(value).replace('%','').trim());
+        }
+        
+        
+        return !isNaN(numValue) && numValue > 0 ? numValue : null;
+      }).filter(v => v !== null);
+      
+      
+      agg[h] = vals.length ? (vals.reduce((a,b) => a+b,0)/vals.length) : 0;
+      
+
+      
+      // Only count for totals if up to cutoff
+      if (isUpToCutoff(m)) {
+        totalSums[h] += agg[h];
+        totalCounts[h] += vals.length;
+      }
+    });
+    aggregatedRows.push(agg);
+  });
+
+  // Build table HTML
+  let tableHtml = `<table class="table custom-table table-bordered table-hover" style="table-layout: fixed !important; width: 100% !important;"><thead><tr>`;
+  displayHeaders.forEach(h => tableHtml += `<th>${h}</th>`);
+  tableHtml += `</tr></thead><tbody>`;
+  aggregatedRows.forEach(row => {
+    tableHtml += "<tr>";
+    displayHeaders.forEach(h => {
+      let cell = row[h];
+      if (h === 'Month') {
+        tableHtml += `<td>${cell}</td>`;
+      } else if (h.includes('PR (%)')) {
+        cell = (isNaN(cell) || cell === 0) ? '' : cell.toFixed(2) + '%';
+        tableHtml += `<td>${cell}</td>`;
+      } else {
+        cell = isNaN(cell) ? '' : Number(Math.round(cell)).toLocaleString('en-IN');
+        tableHtml += `<td>${cell}</td>`;
+      }
+    });
+    tableHtml += "</tr>";
+  });
+  // Calculate totals for full year (2025)
+  let fullYearSums = {};
+  let fullYearCounts = {};
+  displayHeaders.forEach(h => { fullYearSums[h] = 0; fullYearCounts[h] = 0; });
+
+  aggregatedRows.forEach(row => {
+    const m = row['Month'];
+    // Sum numeric columns for full year
+    [
+      'IC Approved Budget (MWh)',
+      'Expected Budget (MWh)',
+      'Actual Generation (MWh)',
+      'Grid Curtailment Budget (MWh)',
+      'Actual Curtailment (MWh)',
+      'Budget Irradiation (kWh/M2)',
+      'Actual Irradiation (kWh/M2)'
+    ].forEach(h => {
+      fullYearSums[h] += row[h] || 0;
+    });
+    
+    // Count for PR averages for full year
+    ['Expected PR (%)','Actual PR (%)'].forEach(h => {
+      let value = row[h];
+      if (value && !isNaN(value) && value > 0) {
+        fullYearSums[h] += value;
+        fullYearCounts[h] += 1;
+      }
+    });
+  });
+
+  // Add full year totals row
+  tableHtml += `<tr style="font-weight:bold;background:#e6f1fc;"><td>Total (2025)</td>`;
+  displayHeaders.slice(1).forEach(h => {
+    if (h.includes('PR (%)')) {
+      // Average over all months where this specific PR column has valid values
+      let validMonths = aggregatedRows.filter(row => {
+        let value = row[h];
+        return value && !isNaN(value) && value > 0;
+      });
+      let avg = 0;
+      if (validMonths.length > 0) {
+        avg = validMonths.reduce((sum, row) => sum + (row[h] || 0), 0) / validMonths.length;
+      }
+      tableHtml += `<td>${avg === 0 ? '' : avg.toFixed(2) + '%'}</td>`;
+    } else {
+      let val = fullYearSums[h];
+      tableHtml += `<td>${isNaN(val) ? '' : Number(Math.round(val)).toLocaleString('en-IN')}</td>`;
+    }
+  });
+  tableHtml += `</tr>`;
+
+  // Add "Till Month-25" totals row (up to cutoff month)
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth(); // 0-based
+  const currentYear = currentDate.getFullYear();
+  const tillMonthName = monthNames[currentMonth - 1]; // Previous month
+  const tillMonthLabel = `Total (Till ${tillMonthName}-${currentYear.toString().slice(-2)})`;
+  
+  tableHtml += `<tr style="font-weight:bold;background:#e6f1fc;"><td>${tillMonthLabel}</td>`;
+  displayHeaders.slice(1).forEach(h => {
+    if (h.includes('PR (%)')) {
+      // Average over months up to cutoff where this specific PR column has valid values
+      let validMonths = aggregatedRows.filter(row => {
+        let value = row[h];
+        return value && !isNaN(value) && value > 0 && isUpToCutoff(row['Month']);
+      });
+      let avg = 0;
+      if (validMonths.length > 0) {
+        avg = validMonths.reduce((sum, row) => sum + (row[h] || 0), 0) / validMonths.length;
+      }
+      tableHtml += `<td>${avg === 0 ? '' : avg.toFixed(2) + '%'}</td>`;
+    } else {
+      let val = totalSums[h];
+      tableHtml += `<td>${isNaN(val) ? '' : Number(Math.round(val)).toLocaleString('en-IN')}</td>`;
+    }
+  });
+  tableHtml += `</tr>`;
+
+  tableHtml += "</tbody></table>";
+  document.getElementById('mainTableBox').innerHTML = tableHtml;
+}
+
+// Add summary table rendering using the data from Django view
+function renderSummaryTable() {
+  // Use the data that's already loaded from Django view
+  if (allDataRows.length === 0) {
+    return;
+  }
+  
+  // Create summary by portfolio
+  const portfolioSummary = {};
+  allDataRows.forEach(row => {
+    const portfolio = row['Portfolio'];
+    if (!portfolioSummary[portfolio]) {
+      portfolioSummary[portfolio] = {
+        'IC Approved Budget (MWh)': 0,
+        'Expected Budget (MWh)': 0,
+        'Actual Generation (MWh)': 0,
+        'count': 0
+      };
+    }
+    portfolioSummary[portfolio]['IC Approved Budget (MWh)'] += Number(row['IC Approved Budget (MWh)'] || 0);
+    portfolioSummary[portfolio]['Expected Budget (MWh)'] += Number(row['Expected Budget (MWh)'] || 0);
+    portfolioSummary[portfolio]['Actual Generation (MWh)'] += Number(row['Actual Generation (MWh)'] || 0);
+    portfolioSummary[portfolio]['count'] += 1;
+  });
+  
+  // Define reasons for each portfolio
+  const portfolioReasons = {
+    'Korea-Blackwood': 'Backup data for IC approved budget is not available to find actual reasons for the difference.',
+    'Korea-Iceberg': 'Backup data for IC approved budget is not available to find actual reasons for the difference.',
+    'Singapore': 'NIL',
+    'SG Matco Asia': 'NIL',
+    'TW-Yunlin': 'NIL',
+    'JP Minamata': 'Updated : Degradation Loss, IAM factor,Albedo.',
+    'Korea-Sroof': 'Updated : Tilt Angle as per as built diagram.'
+  };
+  
+  // Build summary table
+  let tableHtml = `<table class="table summary-table table-bordered table-hover" style="table-layout: fixed !important; width: 100% !important;"><thead><tr>`;
+  tableHtml += `<th>Portfolio</th>`;
+  tableHtml += `<th>IC Approved Budget (MWh)</th>`;
+  tableHtml += `<th>Expected Budget (MWh)</th>`;
+  tableHtml += `<th>Difference (%)</th>`;
+  tableHtml += `<th>Reasons</th>`;
+  tableHtml += `</tr></thead><tbody>`;
+  
+  Object.keys(portfolioSummary).forEach(portfolio => {
+    const data = portfolioSummary[portfolio];
+    const difference = data['Expected Budget (MWh)'] > 0 ? 
+      ((data['IC Approved Budget (MWh)'] - data['Expected Budget (MWh)']) / data['Expected Budget (MWh)'] * 100).toFixed(2) : '';
+    
+    // Get reason for this portfolio, or default message
+    const reason = portfolioReasons[portfolio] || 'Backup data for IC approved budget is not available to find actual reasons for the difference.';
+    
+    tableHtml += '<tr>';
+    tableHtml += `<td>${portfolio}</td>`;
+    tableHtml += `<td>${Math.round(Number(data['IC Approved Budget (MWh)'])).toLocaleString('en-IN')}</td>`;
+    tableHtml += `<td>${Math.round(Number(data['Expected Budget (MWh)'])).toLocaleString('en-IN')}</td>`;
+    tableHtml += `<td>${difference}%</td>`;
+    tableHtml += `<td>${reason}</td>`;
+    tableHtml += '</tr>';
+  });
+  
+  tableHtml += '</tbody></table>';
+  document.getElementById('summaryTableBox').innerHTML = tableHtml;
+}
+// Data loading and rendering is handled in the data loading section above
+  </script>
+
+  <script>
+    // Responsive resizing for charts/maps (if present)
+    // - Ensures charts and maps resize with window
+    function onResizeAll() {
+      if (window.barChart) barChart.resize();
+      if (window.cdChart) cdChart.resize();
+      if (window.socChart) socChart.resize();
+      if (window.rteChart) rteChart.resize();
+      if (window.Plotly) {
+        ['waterfall','breakdown'].forEach(id => {
+          const gd = document.getElementById(id);
+          if (gd && gd.data) Plotly.Plots.resize(gd);
+        });
+      }
+      if (window.map) map.invalidateSize();
+    }
+    window.addEventListener('resize', onResizeAll);
+    window.addEventListener('load', onResizeAll);
+  </script>
+  <script>
+function getBigFont(base = 16, max = 26, min = 10) {
+  const width = window.innerWidth;
+  return Math.max(min, Math.min(max, Math.round(base * (width / 1920))));
+}
+function applyDynamicFontSizes() {
+  const headerTitle = document.querySelector('.dashboard-title, .dashboard-header .title');
+  if (headerTitle) {
+    headerTitle.style.fontSize = getBigFont(16, 26, 10) + 'px';
+  }
+  document.querySelectorAll('.custom-table th').forEach(el => el.style.fontSize = getBigFont(12, 18, 9) + 'px');
+  document.querySelectorAll('.custom-table td').forEach(el => el.style.fontSize = getBigFont(12, 18, 9) + 'px');
+  document.querySelectorAll('.summary-table th').forEach(el => el.style.fontSize = getBigFont(12, 18, 9) + 'px');
+  document.querySelectorAll('.summary-table td').forEach(el => el.style.fontSize = getBigFont(12, 18, 9) + 'px');
+  document.querySelectorAll('.note-box').forEach(el => el.style.fontSize = getBigFont(12, 18, 9) + 'px');
+  
+  // BestCalendar component font sizing
+  document.querySelectorAll('.month-trigger-btn').forEach(el => el.style.fontSize = getBigFont(12, 18, 9) + 'px');
+  document.querySelectorAll('.filter-pill label').forEach(el => el.style.fontSize = getBigFont(10, 16, 8) + 'px');
+  document.querySelectorAll('.month-matrix-cell').forEach(el => el.style.fontSize = getBigFont(10, 16, 8) + 'px');
+  document.querySelectorAll('.year-cell').forEach(el => el.style.fontSize = getBigFont(10, 16, 8) + 'px');
+  document.querySelectorAll('.tab-btn').forEach(el => el.style.fontSize = getBigFont(10, 16, 8) + 'px');
+}
+document.addEventListener('DOMContentLoaded', applyDynamicFontSizes);
+window.addEventListener('resize', applyDynamicFontSizes);
+
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabPanes = document.querySelectorAll('.tab-pane');
+  
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetTab = this.getAttribute('data-tab');
+      
+      // Remove active class from all buttons and panes
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabPanes.forEach(p => p.classList.remove('active'));
+      
+      // Add active class to clicked button and corresponding pane
+      this.classList.add('active');
+      document.getElementById(targetTab).classList.add('active');
+    });
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,798 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Feedback Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            {% csrf_token %}
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        User Feedback Management
+                    </h4>
+                    <div class="text-muted">
+                        <small>
+                            {% if current_status or current_search %}
+                                Showing {{ filtered_count }} of {{ total_count }} feedback entries
+                            {% else %}
+                                Total: {{ total_count }} feedback entries
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+                
+                <!-- Filter and Search Section -->
+                <div class="card-body border-bottom">
+                    <form method="get" id="filterForm" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="statusFilter" class="form-label">
+                                <i class="fas fa-filter me-1"></i>
+                                Filter by Status
+                            </label>
+                            <select class="form-select" id="statusFilter" name="status">
+                                <option value="">All Status</option>
+                                <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="attended" {% if request.GET.status == 'attended' %}selected{% endif %}>Attended</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="searchQuery" class="form-label">
+                                <i class="fas fa-search me-1"></i>
+                                Search Feedback
+                            </label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="searchQuery" 
+                                   name="search" 
+                                   placeholder="Search by subject, message, username, or email..."
+                                   value="{{ request.GET.search|default:'' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>
+                                    Search
+                                </button>
+                            </div>
+                        </div>
+                        {% if request.GET.status or request.GET.search %}
+                        <div class="col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">Active filters:</span>
+                                {% if request.GET.status %}
+                                <span class="badge bg-info">
+                                    Status: {{ request.GET.status|title }}
+                                    <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.page %}page={{ request.GET.page }}{% endif %}" 
+                                       class="text-white text-decoration-none ms-1">×</a>
+                                </span>
+                                {% endif %}
+                                {% if request.GET.search %}
+                                <span class="badge bg-info">
+                                    Search: "{{ request.GET.search }}"
+                                    <a href="?{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.page %}page={{ request.GET.page }}{% endif %}" 
+                                       class="text-white text-decoration-none ms-1">×</a>
+                                </span>
+                                {% endif %}
+                                <a href="{% url 'main:feedback_list' %}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>
+                                    Clear All
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+                <div class="card-body">
+                    {% if feedback_list %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>User</th>
+                                        <th>Email</th>
+                                        <th>Subject</th>
+                                        <th>Message</th>
+                                        <th>Status</th>
+                                        <th>Image</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for feedback in feedback_list %}
+                                    <tr>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ feedback.created_at|date:"M d, Y" }}<br>
+                                                {{ feedback.created_at|time:"H:i" }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <strong>{{ feedback.user.username }}</strong>
+                                            {% if feedback.user.first_name or feedback.user.last_name %}
+                                                <br><small class="text-muted">{{ feedback.user.get_full_name }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="mailto:{{ feedback.user_email }}" class="text-decoration-none">
+                                                {{ feedback.user_email }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <strong>{{ feedback.subject }}</strong>
+                                        </td>
+                                        <td>
+                                            <div class="message-preview">
+                                                {% if feedback.message|length > 100 %}
+                                                    <span class="short-message">
+                                                        {{ feedback.message|truncatechars:100 }}
+                                                        <a href="#" class="text-primary show-more" data-bs-toggle="modal" data-bs-target="#messageModal{{ feedback.id }}">
+                                                            Read more
+                                                        </a>
+                                                    </span>
+                                                {% else %}
+                                                    {{ feedback.message }}
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if feedback.attended_status == 'attended' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    Attended
+                                                </span>
+                                                {% if feedback.attended_at %}
+                                                    <br><small class="text-muted">
+                                                        {{ feedback.attended_at|date:"M d, Y H:i" }}
+                                                    </small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    Pending
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if feedback.images.exists %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-image me-1"></i>
+                                                    Has {{ feedback.images.count }} Image{{ feedback.images.count|pluralize }}
+                                                </span>
+                                                <br>
+                                                <button class="btn btn-sm btn-outline-primary mt-1" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#imageModal{{ feedback.id }}">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    View
+                                                </button>
+                                            {% else %}
+                                                <span class="badge bg-secondary">No Image</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                            <div class="btn-group-vertical" role="group">
+                                {% if feedback.attended_status == 'pending' %}
+                                    <button class="btn btn-sm btn-success mb-1 mark-attended-btn" 
+                                            data-feedback-id="{{ feedback.id }}"
+                                            title="Mark as Attended and Send Thank You Email">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Mark Attended
+                                    </button>
+                                {% endif %}
+                                
+                                {% if feedback.images.exists %}
+                                    <button class="btn btn-sm btn-outline-primary mb-1" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#imageModal{{ feedback.id }}"
+                                            title="View Images">
+                                        <i class="fas fa-images"></i>
+                                    </button>
+                                {% endif %}
+                                
+                                <button class="btn btn-sm btn-info mb-1" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#messageModal{{ feedback.id }}"
+                                        title="View Full Message">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                
+                                <!-- Add delete button for attended feedback - superusers only -->
+                                {% if feedback.attended_status == 'attended' and user.is_superuser %}
+                                    <button class="btn btn-sm btn-danger delete-feedback-btn" 
+                                            data-feedback-id="{{ feedback.id }}"
+                                            data-feedback-subject="{{ feedback.subject }}"
+                                            title="Delete Feedback (Superuser Only)">
+                                        <i class="fas fa-trash me-1"></i>
+                                        Delete
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                            <nav aria-label="Feedback pagination">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link pagination-link" href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}page=1" data-page="1" data-skip-iframe-nav="true">First</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link pagination-link" href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}page={{ page_obj.previous_page_number }}" data-page="{{ page_obj.previous_page_number }}" data-skip-iframe-nav="true">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                            <li class="page-item">
+                                                <a class="page-link pagination-link" href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}page={{ num }}" data-page="{{ num }}" data-skip-iframe-nav="true">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link pagination-link" href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}page={{ page_obj.next_page_number }}" data-page="{{ page_obj.next_page_number }}" data-skip-iframe-nav="true">Next</a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link pagination-link" href="?{% if current_status %}status={{ current_status }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}page={{ page_obj.paginator.num_pages }}" data-page="{{ page_obj.paginator.num_pages }}" data-skip-iframe-nav="true">Last</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            {% if current_status or current_search %}
+                                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No feedback found</h5>
+                                <p class="text-muted">
+                                    No feedback entries match your current filters.
+                                    {% if current_status or current_search %}
+                                        <a href="{% url 'main:feedback_list' %}" class="btn btn-outline-primary btn-sm ms-2">
+                                            <i class="fas fa-times me-1"></i>
+                                            Clear Filters
+                                        </a>
+                                    {% endif %}
+                                </p>
+                            {% else %}
+                                <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">No feedback submitted yet</h5>
+                                <p class="text-muted">When users submit feedback, it will appear here.</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for viewing full messages and images -->
+{% for feedback in feedback_list %}
+    <!-- Message Modal -->
+    <div class="modal fade" id="messageModal{{ feedback.id }}" tabindex="-1" aria-labelledby="messageModalLabel{{ feedback.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="messageModalLabel{{ feedback.id }}">
+                        Feedback from {{ feedback.user.username }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>Subject:</strong> {{ feedback.subject }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>From:</strong> {{ feedback.user.username }} ({{ feedback.user_email }})
+                    </div>
+                    <div class="mb-3">
+                        <strong>Date:</strong> {{ feedback.created_at|date:"F d, Y H:i" }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Message:</strong>
+                        <div class="border rounded p-3 mt-2 bg-light">
+                            {{ feedback.message|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    {% if feedback.images.exists %}
+                        <button class="btn btn-outline-primary" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#imageModal{{ feedback.id }}"
+                                data-bs-dismiss="modal">
+                            <i class="fas fa-images me-1"></i>
+                            View Images ({{ feedback.images.count }})
+                        </button>
+                    {% endif %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Optimized Image Modal with Lazy Loading -->
+    {% if feedback.images.exists %}
+        <div class="modal fade" id="imageModal{{ feedback.id }}" tabindex="-1" aria-labelledby="imageModalLabel{{ feedback.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="imageModalLabel{{ feedback.id }}">
+                            Images from {{ feedback.user.username }} ({{ feedback.images.count }} image{{ feedback.images.count|pluralize }})
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Loading spinner -->
+                        <div id="imageLoading{{ feedback.id }}" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading images...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading images...</p>
+                        </div>
+                        
+                        <!-- Images container (initially hidden) -->
+                        <div id="imagesContainer{{ feedback.id }}" class="row" style="display: none;">
+                            <!-- Images will be loaded here via AJAX -->
+                        </div>
+                        
+                        <!-- Error message (initially hidden) -->
+                        <div id="imageError{{ feedback.id }}" class="alert alert-danger" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Failed to load images. Please try again.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endfor %}
+
+<!-- Mark Attended Modal with Admin Text Input -->
+<div class="modal fade" id="markAttendedModal" tabindex="-1" aria-labelledby="markAttendedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="markAttendedModalLabel">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Mark Feedback as Attended
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="adminResponseText" class="form-label">
+                        <strong>Additional Message (Optional)</strong>
+                    </label>
+                    <textarea class="form-control" 
+                              id="adminResponseText" 
+                              rows="4" 
+                              placeholder="Enter any additional message or response to include in the thank you email..."></textarea>
+                    <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>
+                        This message will be included in the thank you email sent to the user. Leave blank for a standard response.
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-envelope me-2"></i>
+                    <strong>Note:</strong> A thank you email will be sent to the user once you confirm this action.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-success" id="confirmMarkAttendedBtn">
+                    <i class="fas fa-check-circle me-1"></i>
+                    Mark as Attended & Send Email
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function handlePaginationClick(event, pageNumber) {
+    event.preventDefault();
+    event.stopPropagation(); // Prevent event bubbling
+    
+    // Navigate to the new page
+    const currentUrl = new URL(window.location);
+    currentUrl.searchParams.set('page', pageNumber);
+    window.location.href = currentUrl.toString();
+}
+
+// Handle pagination clicks using event delegation
+document.addEventListener('DOMContentLoaded', function() {
+    // Use event delegation to handle all pagination links
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('pagination-link')) {
+            event.preventDefault();
+            event.stopPropagation(); // Prevent event bubbling
+            const pageNumber = event.target.getAttribute('data-page');
+            if (pageNumber) {
+                handlePaginationClick(event, pageNumber);
+            }
+        }
+        
+        // Handle mark as attended button clicks
+        if (event.target.classList.contains('mark-attended-btn') || event.target.closest('.mark-attended-btn')) {
+            event.preventDefault();
+            event.stopPropagation();
+            const button = event.target.classList.contains('mark-attended-btn') ? event.target : event.target.closest('.mark-attended-btn');
+            const feedbackId = button.getAttribute('data-feedback-id');
+            if (feedbackId) {
+                showMarkAttendedModal(feedbackId, button);
+            }
+        }
+        
+        // Handle delete feedback button clicks
+        if (event.target.classList.contains('delete-feedback-btn') || event.target.closest('.delete-feedback-btn')) {
+            event.preventDefault();
+            event.stopPropagation();
+            const button = event.target.classList.contains('delete-feedback-btn') ? event.target : event.target.closest('.delete-feedback-btn');
+            const feedbackId = button.getAttribute('data-feedback-id');
+            const feedbackSubject = button.getAttribute('data-feedback-subject');
+            if (feedbackId) {
+                deleteFeedback(feedbackId, feedbackSubject, button);
+            }
+        }
+    });
+});
+
+// Global variables for mark attended functionality
+let currentFeedbackId = null;
+let currentButton = null;
+
+// Function to show mark attended modal
+function showMarkAttendedModal(feedbackId, button) {
+    currentFeedbackId = feedbackId;
+    currentButton = button;
+    
+    // Clear the textarea
+    document.getElementById('adminResponseText').value = '';
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('markAttendedModal'));
+    modal.show();
+}
+
+// Function to mark feedback as attended (updated to handle admin text)
+function markAsAttended(feedbackId, adminText = '') {
+    // Show loading state
+    const originalText = currentButton.innerHTML;
+    currentButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    currentButton.disabled = true;
+    
+    // Make AJAX request with admin text
+    fetch(`{% url 'main:mark_feedback_attended' 0 %}`.replace('0', feedbackId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            admin_response: adminText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showAlert('success', data.message);
+            
+            // Update the UI
+            const row = currentButton.closest('tr');
+            const statusCell = row.querySelector('td:nth-child(6)'); // Status column
+            const actionsCell = row.querySelector('td:nth-child(8)'); // Actions column
+            
+            // Update status
+            statusCell.innerHTML = `
+                <span class="badge bg-success">
+                    <i class="fas fa-check-circle me-1"></i>
+                    Attended
+                </span>
+                <br><small class="text-muted">
+                    ${data.attended_at}
+                </small>
+            `;
+            
+            // Remove the mark as attended button and add delete button
+            const markAttendedBtn = actionsCell.querySelector('.mark-attended-btn');
+            if (markAttendedBtn) {
+                markAttendedBtn.remove();
+            }
+            
+            // Add delete button for superusers
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'btn btn-sm btn-danger delete-feedback-btn';
+            deleteButton.setAttribute('data-feedback-id', feedbackId);
+            deleteButton.setAttribute('data-feedback-subject', data.subject || '');
+            deleteButton.setAttribute('title', 'Delete Feedback (Superuser Only)');
+            deleteButton.innerHTML = '<i class="fas fa-trash me-1"></i>Delete';
+            
+            actionsCell.querySelector('.btn-group-vertical').appendChild(deleteButton);
+            
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('markAttendedModal'));
+            if (modal) {
+                modal.hide();
+            }
+        } else {
+            showAlert('error', data.message || 'An error occurred while marking feedback as attended.');
+            currentButton.innerHTML = originalText;
+            currentButton.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while marking feedback as attended.');
+        currentButton.innerHTML = originalText;
+        currentButton.disabled = false;
+    });
+}
+
+// Function to delete feedback
+function deleteFeedback(feedbackId, feedbackSubject, button) {
+    const confirmMessage = `Are you sure you want to DELETE this feedback?\n\n` +
+                          `Subject: "${feedbackSubject}"\n\n` +
+                          `This action cannot be undone and will permanently remove:\n` +
+                          `• The feedback message\n` +
+                          `• All associated images\n` +
+                          `• All related data\n\n` +
+                          `Type "DELETE" to confirm:`;
+    
+    const userInput = prompt(confirmMessage);
+    
+    if (userInput !== 'DELETE') {
+        return; // User cancelled or didn't type DELETE
+    }
+    
+    // Show loading state
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Deleting...';
+    button.disabled = true;
+    
+    // Make AJAX request
+    fetch(`{% url 'main:delete_feedback' 0 %}`.replace('0', feedbackId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showAlert('success', data.message);
+            
+            // Remove the entire row from the table
+            const row = button.closest('tr');
+            row.style.transition = 'opacity 0.5s ease-out';
+            row.style.opacity = '0';
+            
+            setTimeout(() => {
+                row.remove();
+                
+                // Check if we need to refresh the page (if no more feedback on current page)
+                const remainingRows = document.querySelectorAll('tbody tr');
+                if (remainingRows.length === 0) {
+                    // No more feedback on this page, reload to show previous page or empty state
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                }
+            }, 500);
+        } else {
+            showAlert('error', data.message || 'An error occurred while deleting the feedback.');
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'An error occurred while deleting the feedback.');
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// Function to show alerts
+function showAlert(type, message) {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Create new alert
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Insert at the top of the card body
+    const cardBody = document.querySelector('.card-body');
+    cardBody.insertBefore(alertDiv, cardBody.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+// Add lazy loading functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle image modal show events
+    document.querySelectorAll('[data-bs-target^="#imageModal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-bs-target');
+            const feedbackId = modalId.replace('#imageModal', '');
+            loadFeedbackImages(feedbackId);
+        });
+    });
+    
+    // Handle modal show events directly
+    document.querySelectorAll('[id^="imageModal"]').forEach(modal => {
+        modal.addEventListener('show.bs.modal', function() {
+            const feedbackId = this.id.replace('imageModal', '');
+            loadFeedbackImages(feedbackId);
+        });
+    });
+    
+    // Handle confirm mark attended button click
+    document.getElementById('confirmMarkAttendedBtn').addEventListener('click', function() {
+        const adminText = document.getElementById('adminResponseText').value.trim();
+        if (currentFeedbackId) {
+            markAsAttended(currentFeedbackId, adminText);
+        }
+    });
+    
+    // Handle filter form auto-submit on status change
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+    
+    // Handle search input with debouncing
+    let searchTimeout;
+    document.getElementById('searchQuery').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            // Auto-submit after 1 second of no typing
+            document.getElementById('filterForm').submit();
+        }, 1000);
+    });
+    
+    // Handle Enter key in search input
+    document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(searchTimeout);
+            document.getElementById('filterForm').submit();
+        }
+    });
+    
+    // Add loading state to search button
+    document.getElementById('filterForm').addEventListener('submit', function() {
+        const searchBtn = this.querySelector('button[type="submit"]');
+        const originalText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Searching...';
+        searchBtn.disabled = true;
+        
+        // Re-enable after 3 seconds as fallback
+        setTimeout(() => {
+            searchBtn.innerHTML = originalText;
+            searchBtn.disabled = false;
+        }, 3000);
+    });
+});
+
+function loadFeedbackImages(feedbackId) {
+    const loadingDiv = document.getElementById(`imageLoading${feedbackId}`);
+    const containerDiv = document.getElementById(`imagesContainer${feedbackId}`);
+    const errorDiv = document.getElementById(`imageError${feedbackId}`);
+    
+    // Reset display states
+    loadingDiv.style.display = 'block';
+    containerDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    
+    // Make AJAX request to load images
+    fetch(`{% url 'main:feedback_images_ajax' 0 %}`.replace('0', feedbackId), {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Hide loading spinner
+            loadingDiv.style.display = 'none';
+            
+            // Populate images container
+            containerDiv.innerHTML = '';
+            
+            data.images.forEach((image, index) => {
+                const imageCard = createImageCard(image, index + 1);
+                containerDiv.appendChild(imageCard);
+            });
+            
+            // Show images container
+            containerDiv.style.display = 'block';
+        } else {
+            throw new Error(data.message || 'Failed to load images');
+        }
+    })
+    .catch(error => {
+        console.error('Error loading images:', error);
+        
+        // Hide loading spinner and show error
+        loadingDiv.style.display = 'none';
+        errorDiv.style.display = 'block';
+    });
+}
+
+function createImageCard(image, index) {
+    const colDiv = document.createElement('div');
+    colDiv.className = 'col-md-6 col-lg-4 mb-3';
+    
+    colDiv.innerHTML = `
+        <div class="card">
+            <img src="${image.url}" 
+                 class="card-img-top" 
+                 alt="Feedback Image ${index}" 
+                 style="height: 200px; object-fit: cover;"
+                 loading="lazy">
+            <div class="card-body p-2">
+                <div class="d-grid gap-2">
+                    <a href="${image.url}" 
+                       class="btn btn-sm btn-outline-primary" 
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        <i class="fas fa-external-link-alt me-1"></i>
+                        View Full Size
+                    </a>
+                    <a href="${image.url}" 
+                       class="btn btn-sm btn-success" 
+                       download
+                       title="Download Image">
+                        <i class="fas fa-download me-1"></i>
+                        Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return colDiv;
+}
+</script>
+{% endblock %}
+

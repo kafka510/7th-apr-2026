@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ticketing Admin - Ticketing System{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'ticketing/css/tickets.css' %}">
+
+<!-- Header -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body py-3 d-flex flex-column flex-md-row justify-content-end align-items-md-center">
+        <a href="{% url 'ticketing:ticket_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Tickets
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-tags"></i> Ticket Categories</h5>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <p class="mb-0 text-muted">Manage maintenance categories for tickets</p>
+            <a href="{% url 'ticketing:create_ticket_category' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create Category
+            </a>
+        </div>
+        
+        {% if ticket_categories %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Display Order</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in ticket_categories %}
+                        <tr>
+                            <td><strong>{{ category.name }}</strong></td>
+                            <td>{{ category.description|default:"—" }}</td>
+                            <td>{{ category.display_order }}</td>
+                            <td>
+                                {% if category.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'ticketing:edit_ticket_category' category.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    {% if user.is_superuser %}
+                                    <form method="post" action="{% url 'ticketing:delete_ticket_category' category.pk %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this category? This action cannot be undone.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No ticket categories found. <a href="{% url 'ticketing:create_ticket_category' %}">Create one now</a>.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Loss Categories</h5>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <p class="mb-0 text-muted">Manage loss categorization for tickets</p>
+            <a href="{% url 'ticketing:create_loss_category' %}" class="btn btn-info">
+                <i class="fas fa-plus"></i> Create Category
+            </a>
+        </div>
+        
+        {% if loss_categories %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Display Order</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in loss_categories %}
+                        <tr>
+                            <td><strong>{{ category.name }}</strong></td>
+                            <td>{{ category.description|default:"—" }}</td>
+                            <td>{{ category.display_order }}</td>
+                            <td>
+                                {% if category.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'ticketing:edit_loss_category' category.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    {% if user.is_superuser %}
+                                    <form method="post" action="{% url 'ticketing:delete_loss_category' category.pk %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this category? This action cannot be undone.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No loss categories found. <a href="{% url 'ticketing:create_loss_category' %}">Create one now</a>.
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- Preventive Maintenance Rules Section -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">⚙️ Preventive Maintenance Rules</h5>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'ticketing:create_pm_rule' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Create PM Rule
+                </a>
+                {% if is_superuser %}
+                <form method="post" action="{% url 'ticketing:trigger_pm_processing' %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-play"></i> Run PM Processing
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            {% if last_pm_trigger_task_id %}
+            <div class="alert alert-info d-flex justify-content-between align-items-center" role="alert">
+                <span><i class="fas fa-info-circle me-2"></i>Manual PM processing request submitted. Task ID: <strong>{{ last_pm_trigger_task_id }}</strong></span>
+                <small class="text-muted">Refresh later to review new tickets or check Celery worker logs.</small>
+            </div>
+            {% endif %}
+            {% if pm_rules %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Rule Name</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in pm_rules %}
+                        <tr>
+                            <td>
+                                <strong>{{ rule.name }}</strong>
+                                {% if rule.description %}
+                                <br><small class="text-muted">{{ rule.description|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rule.rule_type == 'date_based' %}
+                                    <span class="badge bg-info">Date Based</span>
+                                    <br><small>{{ rule.date_field_name }}</small>
+                                {% else %}
+                                    <span class="badge bg-success">Frequency Based</span>
+                                    <br><small>{{ rule.frequency_field }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ rule.category.name }}</td>
+                            <td>
+                                <span class="priority-badge priority-{{ rule.priority }}">
+                                    {{ rule.get_priority_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if rule.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ rule.created_by.username }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'ticketing:edit_pm_rule' rule.pk %}" 
+                                       class="btn btn-outline-primary" 
+                                       title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'ticketing:toggle_pm_rule' rule.pk %}" 
+                                       class="btn btn-outline-warning" 
+                                       title="Toggle Active Status"
+                                       onclick="return confirm('Toggle active status for this rule?');">
+                                        <i class="fas fa-power-off"></i>
+                                    </a>
+                                    {% if is_superuser %}
+                                    <a href="{% url 'ticketing:delete_pm_rule' rule.pk %}" 
+                                       class="btn btn-outline-danger" 
+                                       title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">No preventive maintenance rules defined yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+

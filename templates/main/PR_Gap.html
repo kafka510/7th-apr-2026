@@ -1,0 +1,1734 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ALL SITES PR GAP (%) </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- ECharts for charting -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <!-- AOS animation library -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <!-- Tailwind for modern style (optional for utilities) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- BestCalendar component -->
+  <script src="{% static 'bestcalendar.js' %}"></script>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color: #222;
+      font-size: 1.16rem;
+      overflow: hidden;
+    }
+    .dashboard-main-wrapper {
+      width: 100vw;
+      padding: 0;
+      box-sizing: border-box;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Enhanced Dashboard Header */
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 6px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+    .dashboard-header .title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 0;
+      display: block;
+      text-align: center;
+      width: 100%;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .filter-section {
+      min-height: 36px;
+      height: auto;
+      align-items: flex-start;
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+      padding: 8px 16px;
+      box-sizing: border-box;
+      margin: 0;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+      flex-shrink: 0;
+    }
+    .filter-section .flex {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 1rem;
+      width: 100%;
+      align-items: flex-end;
+    }
+    .filter-section .flex > div {
+      min-width: 130px;
+      max-width: 200px;
+      flex: 1 1 150px;
+    }
+    .filter-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #0072CE;
+      letter-spacing: 0.2px;
+    }
+        .filter-select {
+      background: rgba(255,255,255,0.95);
+      color: #222;
+      border-radius: 0.75rem;
+      border: none;
+      width: 100%;
+      height: 2.2rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      transition: border 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    
+    /* BestCalendar component styling */
+    .month-trigger-btn {
+      width: 100%;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #0072CE;
+      border-radius: 0.75rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      color: #0072CE;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s, border-color 0.2s;
+      height: 2.2rem;
+      font-weight: 600;
+    }
+    
+    .month-trigger-btn:hover {
+      background: #e6f1fc;
+      border-color: #005a9e;
+    }
+    
+    /* Reset button styling */
+    .reset-btn {
+      background: #e60000;
+      border: 1px solid #e60000;
+      border-radius: 0.75rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      color: #ffffff;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      height: 2.2rem;
+      font-weight: 600;
+      min-width: 80px;
+    }
+    
+    .reset-btn:hover {
+      background: #cc0000;
+      border-color: #cc0000;
+      color: #ffffff;
+    }
+    
+    /* Ensure BestCalendar picker positioning works correctly */
+    .month-matrix-picker {
+      position: absolute !important;
+      z-index: 999999 !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      margin-top: 4px !important;
+    }
+    
+    /* BestCalendar component specific overrides for PR_Gap dashboard */
+    .bc-picker {
+      min-width: 280px !important;
+      max-width: 400px !important;
+      background: white !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 10px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+    }
+    
+    .bc-trigger {
+      background: rgba(255,255,255,0.95) !important;
+      border: 1px solid #0072CE !important;
+      border-radius: 0.75rem !important;
+      color: #0072CE !important;
+      font-weight: 600 !important;
+    }
+    
+    .bc-trigger:hover {
+      background: #e6f1fc !important;
+      border-color: #005a9e !important;
+    }
+    .filter-select:focus {
+      border: 2px solid #0072CE;
+      box-shadow: 0 0 0 2px #0072CE;
+    }
+    @media (max-width: 950px) {
+      .filter-section .flex {
+        flex-direction: column !important;
+        gap: 0.7rem !important;
+      }
+      .filter-section .flex > div {
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        flex: unset !important;
+      }
+    }
+    .dashboard-charts-area {
+      display: flex;
+      flex-direction: row;
+      gap: 1vw;
+      width: 100%;
+      padding: 0;
+      flex: 1;
+      min-height: 0;
+      max-height: none;
+    }
+    .flex-chart {
+      flex: 1 1 0;
+      width: 0;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      max-height: none;
+      background: #ffffff;
+      margin: 0;
+      border: 1px solid rgba(0,114,206,0.1);
+    }
+    /* Responsive: stack filters/charts only on small screens */
+    @media (max-width: 900px) {
+      .dashboard-title { font-size: 2.2rem !important; padding: 8px 0 !important; border-radius: 5px !important; }
+      .filter-section .flex {
+        flex-direction: column !important;
+        gap: 2vh !important;
+      }
+      .filter-section .flex > div {
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+      .filter-label, .filter-select {
+        font-size: 1rem !important;
+      }
+      .dashboard-charts-area {
+        flex-direction: column !important;
+        gap: 2vh !important;
+      }
+      .flex-chart {
+        height: 50vh !important;
+        min-height: 180px !important;
+        width: 100% !important;
+      }
+    }
+    body, html, .dashboard-main-wrapper {
+      min-width: 0 !important;
+      overflow-x: hidden !important;
+    }
+    .flicker-btn {
+      background: #fff;
+      border: 1.5px solid #0072CE;
+      color: #0072CE;
+      border-radius: 50%;
+      width: 2.2rem;
+      height: 2.2rem;
+      font-size: 1.3rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,114,206,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flicker-btn:hover, .flicker-btn:focus {
+      background: #e6f1fc;
+      outline: none;
+      box-shadow: 0 0 0 2px #0072CE;
+    }
+    
+    /* Custom tooltip styles */
+    #custom-tooltip {
+      pointer-events: auto;
+      cursor: default;
+      position: fixed !important;
+      z-index: 10000 !important;
+      background: white !important;
+      border: 2px solid #0072CE !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      padding: 0 !important;
+      max-width: 90vw !important; /* Use viewport width instead of fixed width */
+      max-height: 70vh !important; /* Use viewport height instead of fixed height */
+      overflow-y: auto !important;
+      font-family: 'Segoe UI', Arial, sans-serif !important;
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      color: #333 !important;
+      /* Ensure tooltip is always visible and responsive */
+      min-width: 300px !important;
+      min-height: 200px !important;
+      /* Add backdrop blur effect for better visibility */
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+      /* Ensure tooltip never goes above header */
+      top: auto !important;
+      left: auto !important;
+    }
+    
+    #custom-tooltip div {
+      margin-bottom: 8px;
+    }
+    
+    #custom-tooltip b {
+      color: #0072CE;
+      font-weight: 600;
+    }
+    
+    /* Ensure tooltip table is responsive */
+    #custom-tooltip table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      font-size: 13px !important;
+    }
+    
+    #custom-tooltip th,
+    #custom-tooltip td {
+      padding: 8px !important;
+      border: 1px solid #ddd !important;
+      text-align: left !important;
+    }
+    
+    #custom-tooltip th {
+      background: #0072CE !important;
+      color: white !important;
+      font-weight: bold !important;
+    }
+    
+    /* Tooltip scrollbar styling */
+    #custom-tooltip::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #custom-tooltip::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    #custom-tooltip::-webkit-scrollbar-thumb {
+      background: #0072CE;
+      border-radius: 4px;
+    }
+    
+    #custom-tooltip::-webkit-scrollbar-thumb:hover {
+      background: #005a9e;
+    }
+    
+    /* Close button styling */
+    #tooltip-close-btn {
+      position: absolute !important;
+      top: 8px !important;
+      right: 8px !important;
+      background: #e60000 !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 50% !important;
+      width: 24px !important;
+      height: 24px !important;
+      font-size: 14px !important;
+      font-weight: bold !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 10001 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+      transition: all 0.2s ease !important;
+      line-height: 1 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    
+    #tooltip-close-btn:hover {
+      background: #cc0000 !important;
+      transform: scale(1.1) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    }
+    
+    #tooltip-close-btn:active {
+      transform: scale(0.95) !important;
+    }
+    
+    /* Gradient title styling for chart titles */
+    .gradient-title {
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent !important;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-main-wrapper">
+    <!-- Filter controls for year, month, country, and portfolio -->
+    <div class="filter-section">
+      <div class="flex flex-wrap gap-4 md:gap-8 items-end justify-start w-full">
+        <div class="flex flex-col" style="position: relative;">
+          <label class="filter-label mb-1" for="monthMatrixTrigger">Month</label>
+          <button id="monthMatrixTrigger" type="button" class="month-trigger-btn">
+            <span id="selectedMonthLabel">Select Period</span>
+          </button>
+          <div id="monthMatrixPicker" class="month-matrix-picker" style="display:none;"></div>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="countrySelect">Country</label>
+          <select id="countrySelect" class="filter-select"><option value="">All</option></select>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="portfolioSelect">Portfolio</label>
+          <select id="portfolioSelect" class="filter-select"><option value="">All</option></select>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="resetBtn">&nbsp;</label>
+          <button id="resetBtn" type="button" class="reset-btn">Reset</button>
+        </div>
+      </div>
+    </div>
+    <!-- Main content area with two charts side by side -->
+    <div class="dashboard-charts-area">
+      <div id="prGapCapacityChartDiv" class="flex-chart"></div>
+      <div id="prChartDiv" class="flex-chart"></div>
+    </div>
+  </div>
+
+<script>
+AOS.init({ duration: 900, once: true });
+// ----------------------
+// GLOBAL VARIABLES
+// ----------------------
+let prData = [];
+let lossData = []; // New variable for Loss Calculation data
+let chartInstance = null;
+let chartInstance2 = null;
+let selectedMonth = null;
+let selectedYear = null;
+let prCalendar = null;
+
+function getBigFont(base = 32, max = 66, min = 16) {
+  const width = window.innerWidth;
+  return Math.max(min, Math.min(max, Math.round(base * (width / 1920))));
+}
+
+function getAvailableMonths() {
+  // Get current date for comparison
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based
+  
+  // Returns sorted array of unique YYYY-MM strings in prData that have actual data
+  const months = Array.from(new Set(
+    prData
+      .filter(r => {
+        // Only include rows that have actual data (non-null pr_gap values)
+        const prGap = parseFloat(r.pr_gap);
+        if (isNaN(prGap) || !r.month) return false;
+        
+        // Parse the month from data
+        const monthStr = (r.month || '').slice(0,7);
+        if (!monthStr || monthStr.length !== 7) return false;
+        
+        const [year, month] = monthStr.split('-');
+        const dataYear = parseInt(year);
+        const dataMonth = parseInt(month);
+        
+        // Only include months that are not in the future
+        if (dataYear > currentYear) return false;
+        if (dataYear === currentYear && dataMonth > currentMonth) return false;
+        
+        return true;
+      })
+      .map(r => (r.month || '').slice(0,7))
+      .filter(Boolean)
+  ));
+  
+  months.sort((a, b) => {
+    // Sort months chronologically
+    const [aYear, aMonth] = a.split('-');
+    const [bYear, bMonth] = b.split('-');
+    if (aYear !== bYear) return parseInt(aYear) - parseInt(bYear);
+    return parseInt(aMonth) - parseInt(bMonth);
+  });
+  
+  return months;
+}
+
+function isInSelectedMonth(rowMonth) {
+  if (!rowMonth) return false;
+  
+  if (selectedMonth) {
+    // Specific month selected (format: YYYY-MM)
+    const m = rowMonth.toString().slice(0,7);
+    return m === selectedMonth;
+  } else if (selectedYear) {
+    // Year selected - include all months of that year
+    const m = rowMonth.toString().slice(0,4);
+    return m === selectedYear.toString();
+  }
+  
+  return false;
+}
+
+// Function to aggregate data by year when year is selected
+function aggregateDataByYear(data) {
+  if (!selectedYear) return data;
+  
+  const yearData = {};
+  
+  data.forEach(row => {
+    const rowMonth = row.month?.toString().slice(0,4);
+    if (rowMonth === selectedYear.toString()) {
+      const asset = row.asset_no || row.assetno || row.asset || 'Unknown';
+      const gap = parseFloat(row.pr_gap);
+      const dcCapacity = parseFloat(row.dc_capacity_mw);
+      
+      if (!yearData[asset]) {
+        yearData[asset] = { 
+          totalGap: 0, 
+          count: 0, 
+          totalDc: 0, 
+          dcCount: 0,
+          months: new Set()
+        };
+      }
+      
+      if (!isNaN(gap)) {
+        yearData[asset].totalGap += gap;
+        yearData[asset].count += 1;
+      }
+      
+      if (!isNaN(dcCapacity)) {
+        yearData[asset].totalDc += dcCapacity;
+        yearData[asset].dcCount += 1;
+      }
+      
+      // Track unique months for this asset
+      const month = row.month?.toString().slice(5,7);
+      if (month) yearData[asset].months.add(month);
+    }
+  });
+  
+  // Convert aggregated data back to array format
+  return Object.keys(yearData).map(asset => {
+    const data = yearData[asset];
+    const avgGap = data.count ? data.totalGap / data.count : 0;
+    const avgDc = data.dcCount ? data.totalDc / data.dcCount : 0;
+    const monthCount = data.months.size;
+    
+    return {
+      asset_no: asset,
+      pr_gap: avgGap,
+      dc_capacity_mw: avgDc,
+      month: `${selectedYear}-AVG`, // Mark as averaged data
+      month_count: monthCount // Number of months included in average
+    };
+  });
+}
+
+const countrySelect = document.getElementById('countrySelect');
+const portfolioSelect = document.getElementById('portfolioSelect');
+
+function getUnique(data, key) {
+  return [...new Set(data.map(row => row[key]).filter(Boolean))];
+}
+
+
+
+// Function to get breakdown details for a specific asset and month
+function getBreakdownDetails(assetNo, month) {
+  if (!lossData || lossData.length === 0) {
+    return [];
+  }
+  
+  // Convert month format if needed (e.g., "2025-01" to "Jan-25")
+  let searchMonth = month;
+  if (month && month.includes('-')) {
+    const [year, monthNum] = month.split('-');
+    if (year && monthNum) {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      searchMonth = `${monthNames[parseInt(monthNum) - 1]}-${year.slice(-2)}`;
+    }
+  }
+  
+  const results = lossData.filter(row => {
+    const rowAsset = row.asset_no || row.asset || 'Unknown';
+    const rowMonth = row.month || row.l || 'Unknown';
+    
+    // Match asset number (case insensitive and handle partial matches)
+    const assetMatch = String(rowAsset).toLowerCase().includes(String(assetNo).toLowerCase()) || 
+                      String(assetNo).toLowerCase().includes(String(rowAsset).toLowerCase());
+    
+    // Match month - handle different formats
+    let monthMatch = false;
+    const rowMonthStr = String(rowMonth).toLowerCase();
+    const searchMonthStr = String(searchMonth).toLowerCase();
+    
+    // Direct match
+    if (rowMonthStr === searchMonthStr) {
+      monthMatch = true;
+    }
+    // Handle "25-Jan" vs "Jan-25" format
+    else if (rowMonthStr.includes('-') && searchMonthStr.includes('-')) {
+      const rowParts = rowMonthStr.split('-');
+      const searchParts = searchMonthStr.split('-');
+      
+      // Check if month names match (e.g., "jan" in both)
+      if (rowParts.length >= 2 && searchParts.length >= 2) {
+        const rowMonthName = rowParts[1]; // "jan" from "25-jan"
+        const searchMonthName = searchParts[0]; // "jan" from "jan-25"
+        
+        if (rowMonthName === searchMonthName) {
+          monthMatch = true;
+        }
+      }
+    }
+    
+    // Additional check for "25-Jan" format specifically
+    if (!monthMatch && rowMonthStr.includes('-')) {
+      const rowParts = rowMonthStr.split('-');
+      if (rowParts.length >= 2) {
+        const rowMonthName = rowParts[1]; // "jan" from "25-jan"
+        const searchMonthName = searchMonthStr.split('-')[0]; // "jan" from "jan-25"
+        
+        if (rowMonthName === searchMonthName) {
+          monthMatch = true;
+        }
+      }
+    }
+    
+    return assetMatch && monthMatch;
+  });
+  
+  return results;
+}
+
+// Function to create detailed tooltip content
+function createDetailedTooltip(assetNo, month) {
+  const breakdowns = getBreakdownDetails(assetNo, month);
+  
+  if (breakdowns.length === 0) {
+    return `<div style="padding: 15px; text-align: center;">
+      <h3 style="margin: 0 0 10px 0;" class="gradient-title">No Data Available</h3>
+      <p style="margin: 5px 0;"><b>Asset:</b> ${assetNo}</p>
+      <p style="margin: 5px 0;"><b>Month:</b> ${month}</p>
+      <p style="margin: 5px 0; color: #666;">No breakdown data available for this period</p>
+    </div>`;
+  }
+  
+  // Filter breakdowns to only include those with actual generation loss data
+  const filteredBreakdowns = breakdowns.filter(breakdown => {
+    const hasGenerationLoss = (breakdown['generation_loss_kwh'] !== null && breakdown['generation_loss_kwh'] !== undefined) ||
+                             (breakdown['generation_loss_(kwh)'] !== null && breakdown['generation_loss_(kwh)'] !== undefined);
+    return hasGenerationLoss;
+  });
+  
+  // If no breakdowns have generation loss data, show a message
+  if (filteredBreakdowns.length === 0) {
+    return `<div style="padding: 15px; text-align: center;">
+      <h3 style="margin: 0 0 10px 0;" class="gradient-title">No Generation Loss Data</h3>
+      <p style="margin: 5px 0;"><b>Asset:</b> ${assetNo}</p>
+      <p style="margin: 5px 0;"><b>Month:</b> ${month}</p>
+      <p style="margin: 5px 0; color: #666;">Found ${breakdowns.length} breakdown records, but none have generation loss data</p>
+    </div>`;
+  }
+  
+  let tooltipContent = `
+    <div style="padding: 15px; max-width: 900px; font-family: 'Segoe UI', Arial, sans-serif;">
+      <div style="margin-bottom: 15px; border-bottom: 2px solid #0072CE; padding-bottom: 10px;">
+        <h3 style="margin: 0 0 5px 0;" class="gradient-title">Breakdown Details</h3>
+        <p style="margin: 3px 0;"><b>Asset:</b> ${assetNo}</p>
+        <p style="margin: 3px 0;"><b>Month:</b> ${month}</p>
+        <p style="margin: 3px 0;"><b>Total Instances with Gen Loss:</b> ${filteredBreakdowns.length} (of ${breakdowns.length} total)</p>
+      </div>
+      
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #0072CE; color: white;">
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 5%;">#</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 12%;">DC Capacity</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 35%;">BD Description</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 30%;">Action</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 8%;">Status</th>
+              <th style="padding: 10px; text-align: left; border: 1px solid #ddd; width: 10%;">Gen Loss (kWh)</th>
+            </tr>
+          </thead>
+          <tbody>`;
+  
+  filteredBreakdowns.forEach((breakdown, index) => {
+    // Try multiple possible column names for DC capacity
+    const dcCapacity = breakdown['breakdown_dc_capacity_(kw)'] || 
+                      breakdown['breakdown_dc_capacity_kw'] || 
+                      breakdown['breakdown_dc_capacity'] ||
+                      breakdown.dc_capacity || 'N/A';
+    
+    const bdDescription = breakdown.bd_description || 'N/A';
+    const actionToBeTaken = breakdown.action_to_be_taken || 'N/A';
+    const bdStatus = breakdown.status_of_bd || 'N/A';
+    // Fix: Use proper null/undefined checking instead of || operator
+    let generationLoss = 'N/A';
+    if (breakdown['generation_loss_kwh'] !== null && breakdown['generation_loss_kwh'] !== undefined) {
+        generationLoss = breakdown['generation_loss_kwh'];
+    } else if (breakdown['generation_loss_(kwh)'] !== null && breakdown['generation_loss_(kwh)'] !== undefined) {
+        generationLoss = breakdown['generation_loss_(kwh)'];
+    }
+    
+    // Generation loss value processed correctly
+    
+    // Format generation loss as integer if it's a number
+    if (typeof generationLoss === 'number' && !isNaN(generationLoss)) {
+      generationLoss = Math.round(generationLoss);
+    }
+    
+    // Format DC capacity with units if it's a number
+    let formattedDcCapacity = dcCapacity;
+    if (typeof dcCapacity === 'number' && !isNaN(dcCapacity)) {
+      formattedDcCapacity = `${dcCapacity} kW`;
+    }
+    
+    // Truncate long descriptions for better table display
+    const shortDescription = bdDescription.length > 80 ? bdDescription.substring(0, 80) + '...' : bdDescription;
+    const shortAction = actionToBeTaken.length > 70 ? actionToBeTaken.substring(0, 70) + '...' : actionToBeTaken;
+    
+    // Status color coding
+    const statusColor = bdStatus.toLowerCase() === 'closed' ? '#28a745' : 
+                       bdStatus.toLowerCase() === 'open' ? '#dc3545' : '#ffc107';
+    
+    tooltipContent += `
+      <tr style="background: ${index % 2 === 0 ? '#f8f9fa' : 'white'};">
+        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; text-align: center;">${index + 1}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${formattedDcCapacity}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;" title="${bdDescription}">${shortDescription}</td>
+        <td style="padding: 8px; border: 1px solid #ddd;" title="${actionToBeTaken}">${shortAction}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; color: ${statusColor}; font-weight: bold; text-align: center;">${bdStatus}</td>
+        <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; text-align: center;">${generationLoss}</td>
+      </tr>`;
+  });
+  
+  tooltipContent += `
+        </tbody>
+      </table>
+    </div>
+    
+  </div>`;
+  
+  return tooltipContent;
+}
+
+// Function to show custom tooltip
+function showCustomTooltip(content, event) {
+  // Remove existing custom tooltip if any
+  const existingTooltip = document.getElementById('custom-tooltip');
+  if (existingTooltip) {
+    existingTooltip.remove();
+  }
+  
+  // Create tooltip element
+  const tooltip = document.createElement('div');
+  tooltip.id = 'custom-tooltip';
+  
+  // Add close button to the content
+  const contentWithCloseButton = `
+    <div style="position: relative;">
+      <button id="tooltip-close-btn" style="
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: #e60000;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        transition: background 0.2s;
+      " onmouseover="this.style.background='#cc0000'" onmouseout="this.style.background='#e60000'">×</button>
+      ${content}
+    </div>
+  `;
+  
+  tooltip.innerHTML = contentWithCloseButton;
+  tooltip.style.cssText = `
+    position: fixed;
+    z-index: 10000;
+    background: white;
+    border: 2px solid #0072CE;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    padding: 0;
+    max-width: 1000px;
+    max-height: 600px;
+    overflow-y: auto;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #333;
+  `;
+  
+  // Add to document first to get dimensions
+  document.body.appendChild(tooltip);
+  
+  // Get tooltip dimensions
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const tooltipWidth = tooltipRect.width;
+  const tooltipHeight = tooltipRect.height;
+  
+  // Get viewport dimensions
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  
+  // Get actual header height by measuring the header elements
+  const headerElement = document.querySelector('.dashboard-header');
+  const filterElement = document.querySelector('.filter-section');
+  const headerHeight = (headerElement ? headerElement.offsetHeight : 60) + 
+                      (filterElement ? filterElement.offsetHeight : 50) + 20; // Add 20px buffer
+  
+  // Calculate optimal position
+  let x, y;
+  
+  // Horizontal positioning - prefer right side of screen for better visibility
+  const rightSpace = viewportWidth - event.clientX;
+  const leftSpace = event.clientX;
+  
+  if (rightSpace >= tooltipWidth + 20) {
+    // Position to the right of cursor
+    x = event.clientX + 20;
+  } else if (leftSpace >= tooltipWidth + 20) {
+    // Position to the left of cursor
+    x = event.clientX - tooltipWidth - 20;
+  } else {
+    // Center horizontally if not enough space on either side
+    x = Math.max(10, (viewportWidth - tooltipWidth) / 2);
+  }
+  
+  // Vertical positioning - ALWAYS start below header and stay within viewport
+  const minY = headerHeight + 10; // Always start below header with 10px buffer
+  const maxY = viewportHeight - tooltipHeight - 10; // Leave 10px from bottom
+  
+  // Calculate available space below header
+  const availableSpaceBelowHeader = viewportHeight - headerHeight - 20;
+  
+  if (availableSpaceBelowHeader >= tooltipHeight) {
+    // Enough space below header - position in center of available space
+    y = Math.max(minY, Math.min(maxY, headerHeight + 50));
+  } else {
+    // Not enough space - position at minimum Y (just below header)
+    y = minY;
+  }
+  
+  // Ensure tooltip doesn't go off-screen horizontally
+  x = Math.max(10, Math.min(x, viewportWidth - tooltipWidth - 10));
+  
+  // Final boundary check - ensure tooltip is always within viewport
+  if (y + tooltipHeight > viewportHeight - 10) {
+    y = viewportHeight - tooltipHeight - 10;
+  }
+  if (y < minY) {
+    y = minY;
+  }
+  
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+  
+  // Function to close tooltip
+  const closeTooltip = () => {
+    tooltip.remove();
+    document.removeEventListener('click', closeTooltip);
+    window.removeEventListener('resize', repositionTooltip);
+  };
+  
+  // Add click outside to close
+  const handleOutsideClick = (e) => {
+    if (!tooltip.contains(e.target)) {
+      closeTooltip();
+    }
+  };
+  
+  // Function to reposition tooltip on window resize
+  const repositionTooltip = () => {
+    if (tooltip && tooltip.parentNode) {
+      // Recalculate header height
+      const headerElement = document.querySelector('.dashboard-header');
+      const filterElement = document.querySelector('.filter-section');
+      const newHeaderHeight = (headerElement ? headerElement.offsetHeight : 60) + 
+                             (filterElement ? filterElement.offsetHeight : 50) + 20;
+      
+      // Recalculate viewport dimensions
+      const newViewportWidth = window.innerWidth;
+      const newViewportHeight = window.innerHeight;
+      
+      // Get current tooltip dimensions
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const tooltipWidth = tooltipRect.width;
+      const tooltipHeight = tooltipRect.height;
+      
+      // Recalculate position
+      let newX = parseFloat(tooltip.style.left);
+      let newY = parseFloat(tooltip.style.top);
+      
+      // Ensure tooltip stays within new viewport bounds
+      newX = Math.max(10, Math.min(newX, newViewportWidth - tooltipWidth - 10));
+      newY = Math.max(newHeaderHeight + 10, Math.min(newY, newViewportHeight - tooltipHeight - 10));
+      
+      tooltip.style.left = newX + 'px';
+      tooltip.style.top = newY + 'px';
+    }
+  };
+  
+  // Add event listener for close button
+  setTimeout(() => {
+    const closeBtn = document.getElementById('tooltip-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeTooltip);
+    }
+    
+    // Add click outside to close
+    document.addEventListener('click', handleOutsideClick);
+    window.addEventListener('resize', repositionTooltip);
+  }, 100);
+}
+function populateDropdown(select, values) {
+  select.innerHTML = '<option value="">All</option>';
+  values.sort().forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    select.appendChild(opt);
+  });
+}
+function updatePortfolioOptions() {
+  let filtered = prData.slice();
+  filtered = filtered.filter(r => isInSelectedMonth(r.month));
+  const country = countrySelect.value;
+  if (country) filtered = filtered.filter(r => r.country == country);
+  populateDropdown(portfolioSelect, getUnique(filtered, 'portfolio'));
+}
+function updateCountryOptions() {
+  let filtered = prData.slice();
+  filtered = filtered.filter(r => isInSelectedMonth(r.month));
+  populateDropdown(countrySelect, getUnique(filtered, 'country'));
+}
+
+// Main function to update both charts based on filters
+function updatePrChart() {
+  let filtered = prData.slice();
+  const country = countrySelect.value;
+  const portfolio = portfolioSelect.value;
+
+  filtered = filtered.filter(r => isInSelectedMonth(r.month));
+  if (country) filtered = filtered.filter(r => r.country == country);
+  if (portfolio) filtered = filtered.filter(r => r.portfolio == portfolio);
+  
+  // If year is selected, aggregate the data
+  if (selectedYear && !selectedMonth) {
+    filtered = aggregateDataByYear(filtered);
+  }
+
+  // Aggregate data by asset
+  const assetMap = {};
+  filtered.forEach(r => {
+    const asset = r.asset_no || r.assetno || r.asset || 'Unknown';
+    const gap = parseFloat(r.pr_gap);
+    const dcCapacity = parseFloat(r.dc_capacity_mw);
+    
+    if (!assetMap[asset]) {
+      assetMap[asset] = { 
+        totalGap: 0, 
+        count: 0, 
+        totalDc: 0, 
+        dcCount: 0,
+        rawData: [] // Store raw data points
+      };
+    }
+    
+    if (!isNaN(gap)) {
+      assetMap[asset].totalGap += gap;
+      assetMap[asset].count += 1;
+      assetMap[asset].rawData.push({ gap, dcCapacity: dcCapacity || 0 });
+    }
+    
+    if (!isNaN(dcCapacity)) {
+      assetMap[asset].totalDc += dcCapacity;
+      assetMap[asset].dcCount += 1;
+    }
+  });
+
+  // Prepare data points for charting
+  const dataPoints = Object.keys(assetMap).map(asset => {
+    const data = assetMap[asset];
+    
+    if (selectedYear && !selectedMonth) {
+      // Year selected - calculate average
+      const avgGap = data.count ? data.totalGap / data.count : 0;
+      const avgDc = data.dcCount ? data.totalDc / data.dcCount : 0;
+      return {
+        asset,
+        gap: avgGap,
+        dc: avgDc,
+        gapDc: avgGap * avgDc,
+        gapDcDisplay: (avgGap * avgDc).toFixed(2),
+        displayGap: (avgGap * 100).toFixed(2),
+        color: avgGap >= 0 ? '#1aaa55' : '#e73323'
+      };
+    } else {
+      // Month selected or no selection - use raw data (first entry or sum)
+      const rawData = data.rawData;
+      if (rawData.length === 1) {
+        // Single data point - use as-is
+        const gap = rawData[0].gap;
+        const dc = rawData[0].dcCapacity;
+        return {
+          asset,
+          gap: gap,
+          dc: dc,
+          gapDc: gap * dc,
+          gapDcDisplay: (gap * dc).toFixed(2),
+          displayGap: (gap * 100).toFixed(2),
+          color: gap >= 0 ? '#1aaa55' : '#e73323'
+        };
+      } else if (rawData.length > 1) {
+        // Multiple data points for same asset in same month - sum them
+        const totalGap = rawData.reduce((sum, d) => sum + d.gap, 0);
+        const totalDc = rawData.reduce((sum, d) => sum + d.dcCapacity, 0);
+        return {
+          asset,
+          gap: totalGap,
+          dc: totalDc,
+          gapDc: totalGap * totalDc,
+          gapDcDisplay: (totalGap * totalDc).toFixed(2),
+          displayGap: (totalGap * 100).toFixed(2),
+          color: totalGap >= 0 ? '#1aaa55' : '#e73323'
+        };
+      } else {
+        // No valid data
+        return {
+          asset,
+          gap: 0,
+          dc: 0,
+          gapDc: 0,
+          gapDcDisplay: '0.00',
+          displayGap: '0.00',
+          color: '#e73323'
+        };
+      }
+    }
+  });
+
+  dataPoints.sort((a, b) => b.gap - a.gap);
+
+  const x = dataPoints.map(d => d.asset);
+  const y = dataPoints.map(d => Math.abs(d.gap * 100));
+  const y2 = dataPoints.map(d => Math.abs(d.gapDc)); // No *100 here
+  const y2Display = dataPoints.map(d => d.gapDcDisplay);
+  const colors = dataPoints.map(d => d.color);
+  const labels = dataPoints.map(d => d.displayGap);
+
+  // PR Gap  (sort by gapDc ascending)
+  const dataPointsByGapDc = [...dataPoints].sort((a, b) => a.gapDc - b.gapDc);
+  let x2 = dataPointsByGapDc.map(d => d.asset);
+  let y2Sorted = dataPointsByGapDc.map(d => Math.abs(d.gapDc)); // No *100 here
+  let y2SortedDisplay = dataPointsByGapDc.map(d => d.gapDcDisplay);
+  let colors2 = dataPointsByGapDc.map(d => d.color);
+
+  // Reverse arrays to ensure lowest values (red) are at the top
+  x2 = x2.reverse();
+  y2Sorted = y2Sorted.reverse();
+  y2SortedDisplay = y2SortedDisplay.reverse();
+  colors2 = colors2.reverse();
+
+  // Chart title suffix for selected period
+  let suffix = '';
+  if (selectedMonth) {
+    // Format month display (e.g., "2025-01" to "Jan 2025")
+    const [year, month] = selectedMonth.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthName = monthNames[parseInt(month) - 1];
+    suffix = ` (${monthName} ${year})`;
+  } else if (selectedYear) {
+    suffix = ` (${selectedYear} - Yearly Average)`;
+  }
+
+  // Responsive tooltip font size
+  const tooltipFontSize = getBigFont(14, 22, 10);
+
+  if (chartInstance) { chartInstance.dispose(); }
+  chartInstance = echarts.init(document.getElementById('prChartDiv'));
+
+  if (x.length === 0) {
+    chartInstance.clear();
+    chartInstance.setOption({
+      title: { text: 'No data found for selected filters', left: 'center', top: 'middle', textStyle: { color: 'red', fontSize: 16 } }
+    });
+  } else {
+    // Add click event handler for Y-axis labels (asset names)
+    chartInstance.on('click', function(params) {
+      if (params.componentType === 'yAxis') {
+        const assetNo = params.value;
+        const currentMonth = selectedMonth || selectedYear || 'Current Period';
+        
+        const tooltipContent = createDetailedTooltip(assetNo, currentMonth);
+        
+        // Create and show custom tooltip
+        showCustomTooltip(tooltipContent, params.event.event);
+      } else if (params.componentType === 'series') {
+        // Fallback: also allow clicking on bars
+        const assetNo = params.name;
+        const currentMonth = selectedMonth || selectedYear || 'Current Period';
+        
+        const tooltipContent = createDetailedTooltip(assetNo, currentMonth);
+        
+        // Create and show custom tooltip
+        showCustomTooltip(tooltipContent, params.event.event);
+      }
+    });
+    
+    // Add custom click handler for Y-axis labels
+    chartInstance.getZr().on('click', function(params) {
+      const pointInPixel = [params.offsetX, params.offsetY];
+      const pointInGrid = chartInstance.convertFromPixel({seriesIndex: 0}, pointInPixel);
+      
+      // Check if click is in Y-axis area (left side of chart)
+      if (pointInGrid && pointInGrid[1] !== undefined && pointInGrid[1] >= 0 && pointInGrid[1] < x.length) {
+        const assetIndex = Math.floor(pointInGrid[1]);
+        const assetNo = x[assetIndex];
+        const currentMonth = selectedMonth || selectedYear || 'Current Period';
+        
+        const tooltipContent = createDetailedTooltip(assetNo, currentMonth);
+        showCustomTooltip(tooltipContent, params.event);
+      }
+    });
+    
+    const option = {
+      title: {
+        text: `PR Gap (%)${suffix}`,
+        left: 'center',
+        top: 8,
+        textStyle: {
+          fontSize: getBigFont(16, 36, 14),
+          fontWeight: 'bold',
+          fontFamily: 'Segoe UI, Arial, sans-serif',
+          color: '#0072CE',
+          textShadow: '0 3px 12px #2226'
+        }
+      },
+      // tooltip: {
+      //   trigger: 'axis',
+      //   axisPointer: { type: 'shadow' },
+      //   extraCssText: `
+      //     z-index: 9999 !important;
+      //     max-width: 400px !important;
+      //     min-width: 120px;
+      //     background: #fff !important;
+      //     color: #0072CE !important;
+      //     font-size: ${tooltipFontSize}px !important;
+      //     font-family: 'Segoe UI', Arial, sans-serif !important;
+      //     font-weight: 600 !important;
+      //     box-shadow: 0 8px 32px #0f2027aa !important;
+      //     border-radius: 16px !important;
+      //     padding: 9px 11px !important;
+      //     line-height: 1.7 !important;
+      //     white-space: pre-line !important;
+      //     word-break: break-word !important;
+      //     overflow-wrap: break-word !important;
+      //     overflow: hidden !important;
+      //   `,
+      //   formatter: function(params) {
+      //     const d = params[0];
+      //     const assetName = String(d.name).trim();
+      //     const matches = prData.filter(r => {
+      //       const asset = r.asset_no || r.assetno || r.asset || 'Unknown';
+      //       const matches = prData.filter(r => {
+      //         const asset = r.asset_no || r.assetno || r.asset || 'Unknown';
+      //         return String(asset).trim() === assetName && isInSelectedMonth(r.month);
+      //       });
+      //       const obsList = [...new Set(matches.map(m => m.pr_gap_observation).filter(Boolean))];
+      //       const actionList = [...new Set(matches.map(m => m.pr_gap_action_need_to_taken).filter(Boolean))];
+      //       return `<div>
+      //         <b>Asset:</b> ${assetName}<br>
+      //         <b>Avg PR Gap:</b> ${d.value.toFixed(0)}%<br>
+      //         <b>Observation:</b> ${obsList.length ? obsList.join('<br>') : '-'}<br>
+      //         <b>Action Needed:</b> ${actionList.length ? actionList.join('<br>') : '-'}
+      //       </div>`;
+      //     }
+      //   }
+      // },
+      grid: { left: 180, right: 100, bottom: 50, top: 28 },
+      xAxis: {
+        type: 'value',
+        axisLabel: { fontSize: getBigFont(12, 18, 9), color: "#0072CE" }
+      },
+      yAxis: {
+        type: 'category',
+        data: x,
+        axisLabel: {
+          fontSize: getBigFont(12, 18, 9),
+          fontWeight: 'bold',
+          color: '#0072CE',
+          interval: 'auto',
+          margin: 12,
+          rotate: 0
+        },
+      },
+      dataZoom: [{ 
+        type: 'slider', 
+        yAxisIndex: 0, 
+        start: 0, 
+        end: 100 
+      }],
+      series: [{
+        type: 'bar',
+        data: y.map(Math.abs),
+        barWidth: 12,
+        barCategoryGap: '15%',
+        itemStyle: {
+          color: function(params) { return colors[params.dataIndex]; },
+          borderRadius: 6,
+          shadowBlur: 5,
+          shadowColor: "#ffd43b55"
+        },
+        label: {
+          show: true,
+          position: 'right',
+          fontSize: getBigFont(12, 16, 10),
+          fontWeight: 'bold',
+          color: "#0072CE",
+          formatter: function(params) {
+            return labels[params.dataIndex];
+          },
+          distance: 8
+        }
+      }]
+    };
+    chartInstance.setOption(option);
+    chartInstance.resize();
+  }
+
+  // --- PR GAP * DC CAPACITY chart ---
+  if (chartInstance2) { chartInstance2.dispose(); }
+  chartInstance2 = echarts.init(document.getElementById('prGapCapacityChartDiv'));
+
+  if (x2.length === 0) {
+    chartInstance2.clear();
+    chartInstance2.setOption({
+      title: { text: 'No data found for selected filters', left: 'center', top: 'middle', textStyle: { color: 'red', fontSize: 16 } }
+    });
+  } else {
+    // Add click event handler for second chart Y-axis labels (asset names)
+    chartInstance2.on('click', function(params) {
+      if (params.componentType === 'yAxis') {
+        const assetNo = params.value;
+        const currentMonth = selectedMonth || selectedYear || 'Current Period';
+        
+        const tooltipContent = createDetailedTooltip(assetNo, currentMonth);
+        
+        // Create and show custom tooltip
+        showCustomTooltip(tooltipContent, params.event.event);
+      } else if (params.componentType === 'series') {
+        // Fallback: also allow clicking on bars
+        const assetNo = params.name;
+        const currentMonth = selectedMonth || selectedYear || 'Current Period';
+        
+        const tooltipContent = createDetailedTooltip(assetNo, currentMonth);
+        
+        // Create and show custom tooltip
+        showCustomTooltip(tooltipContent, params.event.event);
+      }
+    });
+    
+    // Add custom click handler for second chart Y-axis labels
+    chartInstance2.getZr().on('click', function(params) {
+      const pointInPixel = [params.offsetX, params.offsetY];
+      const pointInGrid = chartInstance2.convertFromPixel({seriesIndex: 0}, pointInPixel);
+      
+      // Check if click is in Y-axis area (left side of chart)
+      if (pointInGrid && pointInGrid[1] !== undefined && pointInGrid[1] >= 0 && pointInGrid[1] < x2.length) {
+        const assetIndex = Math.floor(pointInGrid[1]);
+        const assetNo = x2[assetIndex];
+        const currentMonth = selectedMonth || selectedYear || 'Current Period';
+        
+        const tooltipContent = createDetailedTooltip(assetNo, currentMonth);
+        showCustomTooltip(tooltipContent, params.event);
+      }
+    });
+    
+    const option2 = {
+      title: {
+        text: `PR Gap * DC Capacity${suffix}`,
+        left: 'center',
+        top: 8,
+        textStyle: {
+          fontSize: getBigFont(16, 30, 14),
+          fontWeight: 'bold',
+          fontFamily: 'Segoe UI, Arial, sans-serif',
+          color: '#0072CE'
+        }
+      },
+      // tooltip: {
+      //   trigger: 'axis',
+      //   axisPointer: { type: 'shadow' },
+      //   extraCssText: `
+      //     z-index: 9999 !important;
+      //     max-width: 500px !important;
+      //     min-width: 120px;
+      //     background: #fff !important;
+      //     color: #0072CE !important;
+      //     font-size: ${tooltipFontSize}px !important;
+      //     font-family: 'Segoe UI', Arial, sans-serif !important;
+      //     font-weight: 600 !important;
+      //     box-shadow: 0 8px 32px #0f2027aa !important;
+      //     border-radius: 16px !important;
+      //     padding: 9px 11px !important;
+      //     line-height: 1.7 !important;
+      //     white-space: pre-line !important;
+      //     word-break: break-word !important;
+      //     overflow-wrap: break-word !important;
+      //     overflow: hidden !important;
+      //   `,
+      //   formatter: function(params) {
+      //     const d = params[0];
+      //     return `<div><b>Asset:</b> ${d.name}<br><b>PR Gap * DC Capacity:</b> ${d.value.toFixed(2)}</div>`;
+      //   }
+      // },
+      grid: { left: 180, right: 100, bottom: 50, top: 28 },
+      xAxis: {
+        type: 'value',
+        axisLabel: { fontSize: getBigFont(12, 18, 9), color: "#0072CE" }
+      },
+      yAxis: {
+        type: 'category',
+        data: x2,
+        axisLabel: {
+          fontSize: getBigFont(12, 18, 9),
+          fontWeight: 'bold',
+          color: '#0072CE',
+          interval: 'auto',
+          margin: 12,
+          rotate: 0
+        },
+      },
+      dataZoom: [{ 
+        type: 'slider', 
+        yAxisIndex: 0, 
+        start: 0, 
+        end: 100 
+      }],
+      series: [{
+        type: 'bar',
+        data: y2Sorted.map(Math.abs),
+        barWidth: 12,
+        barCategoryGap: '15%',
+        itemStyle: {
+          color: function(params) { return colors2[params.dataIndex]; },
+          borderRadius: 6,
+          shadowBlur: 5,
+          shadowColor: "#ffd43b55"
+        },
+        label: {
+          show: true,
+          position: 'right',
+          fontSize: getBigFont(12, 16, 10),
+          fontWeight: 'bold',
+          color: "#0072CE",
+          formatter: function(params) {
+            return y2Sorted[params.dataIndex].toFixed(2);
+          },
+          distance: 8
+        }
+      }]
+    };
+    chartInstance2.setOption(option2);
+    chartInstance2.resize();
+  }
+}
+
+countrySelect.addEventListener('change', ()=>{ updatePortfolioOptions(); updatePrChart(); });
+portfolioSelect.addEventListener('change', updatePrChart);
+
+// Reset button functionality
+document.getElementById('resetBtn').addEventListener('click', function() {
+  // Reset month selection
+  selectedMonth = null;
+  selectedYear = null;
+  document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+  
+  // Reset select dropdowns
+  countrySelect.value = '';
+  portfolioSelect.value = '';
+  
+  // Update options and chart
+  updateCountryOptions();
+  updatePortfolioOptions();
+  updatePrChart();
+  
+  // Hide calendar picker if open
+  if (prCalendar && typeof prCalendar.hidePicker === 'function') {
+    prCalendar.hidePicker();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+  // Show loading indicator
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'loading-indicator';
+  loadingDiv.innerHTML = 'Loading data...';
+  loadingDiv.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    z-index: 10000;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #0072CE;
+    font-weight: 600;
+  `;
+  document.body.appendChild(loadingDiv);
+  
+      // Load data from API endpoints instead of Django template variables
+    Promise.allSettled([
+      // Load yield data from API
+      (() => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // Reduced timeout to 5 seconds
+        
+        return fetch("/api/yield-data/", { signal: controller.signal })
+          .then(response => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            return data;
+          })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          // Return sample data instead of throwing error
+          return [
+            { asset_no: 'SAMPLE-001', pr_gap: 0.05, dc_capacity_mw: 10, month: '2025-01', country: 'Sample', portfolio: 'Test' },
+            { asset_no: 'SAMPLE-002', pr_gap: -0.03, dc_capacity_mw: 15, month: '2025-01', country: 'Sample', portfolio: 'Test' }
+          ];
+        });
+    })(),
+    // Load loss calculation data from API
+    (() => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // Reduced timeout to 5 seconds
+      
+      return fetch("/api/loss-calculation-data/", { signal: controller.signal })
+        .then(response => {
+          clearTimeout(timeoutId);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          return data;
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          // Return empty array on error to continue without loss data
+          return [];
+        });
+    })()
+  ]).then((results) => {
+    // Handle results from Promise.allSettled
+    const yieldResult = results[0];
+    const lossResult = results[1];
+    
+    if (yieldResult.status === 'rejected') {
+      // Use sample data instead of throwing error
+      prData = [
+        { asset_no: 'SAMPLE-001', pr_gap: 0.05, dc_capacity_mw: 10, month: '2025-01', country: 'Sample', portfolio: 'Test' },
+        { asset_no: 'SAMPLE-002', pr_gap: -0.03, dc_capacity_mw: 15, month: '2025-01', country: 'Sample', portfolio: 'Test' }
+      ];
+    } else {
+      // Process yield data from API
+      const yieldData = yieldResult.value;
+      prData = yieldData.map(row => {
+        const cleaned = {};
+        for (let key in row) {
+          const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+          cleaned[normalizedKey] = typeof row[key] === 'string' ? row[key].trim() : row[key];
+        }
+        return cleaned;
+      });
+    }
+    
+    if (lossResult.status === 'rejected') {
+      // Continue without loss data
+      lossData = [];
+    }
+    
+
+    
+    // Process loss data from API
+    const lossDataFromApi = lossResult.value || [];
+    lossData = lossDataFromApi.map(row => {
+      const cleaned = {};
+      for (let key in row) {
+        const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '_');
+        cleaned[normalizedKey] = typeof row[key] === 'string' ? row[key].trim() : row[key];
+      }
+      return cleaned;
+    });
+    
+    // Function to set current month based on available data
+    function setCurrentMonth() {
+      // Get available months from the data
+      const availableMonths = getAvailableMonths();
+      
+      
+      if (availableMonths.length > 0) {
+        // Use the latest available month from the data
+        const latestMonth = availableMonths[availableMonths.length - 1];
+        const [year, month] = latestMonth.split('-');
+        selectedYear = parseInt(year);
+        selectedMonth = latestMonth;
+        
+        // Update the label to show the latest available month
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthName = monthNames[parseInt(month) - 1];
+        document.getElementById('selectedMonthLabel').textContent = `${monthName} ${year}`;
+        
+      } else {
+        // No data available, reset selections
+        selectedMonth = null;
+        selectedYear = null;
+        document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+      }
+      
+      // Update the label and trigger chart update
+      updateCountryOptions();
+      updatePortfolioOptions();
+      updatePrChart();
+    }
+    
+    // Initialize BestCalendar
+    if (typeof BestCalendar !== 'undefined') {
+      prCalendar = new BestCalendar({
+        triggerId: 'monthMatrixTrigger',
+        pickerId: 'monthMatrixPicker',
+        labelId: 'selectedMonthLabel',
+        data: prData, // Pass the actual data array directly
+        options: {
+          range: false, // Disable range selection for this dashboard
+          autoCloseDelay: 1000,
+          onPeriodChange: function(period) {
+            // Handle different period types
+            if (period.range && period.range.start && period.range.end) {
+              // Range selection
+              selectedMonth = null;
+              selectedYear = null;
+              // For range, we'll use the start month as the selected period
+              selectedMonth = period.range.start;
+            } else if (period.month) {
+              // Single month selection
+              selectedMonth = period.month;
+              selectedYear = period.year;
+            } else if (period.year) {
+              // Year selection
+              selectedYear = period.year;
+              selectedMonth = null;
+            } else {
+              // No selection
+              selectedMonth = null;
+              selectedYear = null;
+            }
+            
+            // Update filters and charts
+            updateCountryOptions();
+            updatePortfolioOptions();
+            updatePrChart();
+            
+            // Hide the picker after selection
+            if (typeof prCalendar.hidePicker === 'function') {
+              setTimeout(() => {
+                prCalendar.hidePicker();
+              }, 500);
+            }
+          }
+        }
+      });
+      
+      // Set global reference for onclick handlers
+      window.currentBestCalendar = prCalendar;
+      
+      // Add click outside handler to close picker
+      document.addEventListener('click', function(event) {
+        const picker = document.getElementById('monthMatrixPicker');
+        const trigger = document.getElementById('monthMatrixTrigger');
+        
+        if (picker && trigger && !picker.contains(event.target) && !trigger.contains(event.target)) {
+          if (typeof prCalendar.hidePicker === 'function') {
+            prCalendar.hidePicker();
+          }
+        }
+      });
+      
+      // Ensure calendar is hidden initially
+      prCalendar.hidePicker();
+      
+      // Set available months from the data for the calendar
+      const availableMonths = getAvailableMonths();
+      
+      // Update calendar data if needed
+      if (availableMonths.length > 0) {
+        prCalendar.setData(prData);
+        
+        // Set the latest available month in the calendar
+        const latestMonth = availableMonths[availableMonths.length - 1];
+        if (typeof prCalendar.setSelectedMonth === 'function') {
+          prCalendar.setSelectedMonth(latestMonth);
+        }
+      }
+    } else {
+      // Set current month even without BestCalendar
+      setCurrentMonth();
+    }
+    
+    // Set current month and update chart
+    setCurrentMonth();
+    
+    // Update calendar data if it was initialized
+    if (prCalendar && typeof prCalendar.setData === 'function') {
+      prCalendar.setData(prData);
+    }
+    
+    // Ensure charts are visible even if no data
+    setTimeout(() => {
+      if (prData.length === 0) {
+        // Force chart update with empty data
+        updatePrChart();
+      } else {
+        // Ensure current month is set and chart is updated
+        setCurrentMonth();
+      }
+      
+      // Ensure calendar is properly initialized
+      if (prCalendar && typeof prCalendar.hidePicker === 'function') {
+        prCalendar.hidePicker();
+      }
+    }, 1000);
+    
+    // Remove loading indicator
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) {
+      loadingIndicator.remove();
+    }
+  }).catch(error => {
+    // Remove loading indicator on error
+    const loadingIndicator = document.getElementById('loading-indicator');
+    if (loadingIndicator) {
+      loadingIndicator.remove();
+    }
+    
+    // Show error message to user
+    const errorDiv = document.createElement('div');
+    errorDiv.innerHTML = 'Error loading data. Please check if the data files are available.';
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffebee;
+      color: #c62828;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 10000;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-weight: 600;
+      text-align: center;
+    `;
+    document.body.appendChild(errorDiv);
+    
+    // Remove error message after 5 seconds
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.remove();
+      }
+    }, 5000);
+  });
+});
+
+window.addEventListener('resize', function() {
+  chartInstance && chartInstance.resize();
+  chartInstance2 && chartInstance2.resize();
+  updatePrChart();
+  
+  // Hide calendar on window resize to prevent positioning issues
+  if (prCalendar && typeof prCalendar.hidePicker === 'function') {
+    prCalendar.hidePicker();
+  }
+  
+  // Hide tooltip on window resize to prevent positioning issues
+  const existingTooltip = document.getElementById('custom-tooltip');
+  if (existingTooltip) {
+    existingTooltip.remove();
+  }
+});
+</script>
+</body>
+</html>

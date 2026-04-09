@@ -1,0 +1,485 @@
+{% load static %}
+{% load django_vite %}
+{% load permission_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Django Web App{% endblock %}</title>
+    <link rel="icon" href="{% static 'PEAK_LOGO.jpg' %}" type="image/jpeg">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% if user.is_authenticated %}
+        {% if DJANGO_VITE_DEV_MODE %}
+            {% vite_hmr_client %}
+        {% endif %}
+    {% endif %}
+    <style>
+        /* ===== GLOBAL HEIGHT FIXES ===== */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Body must NOT scroll — scroll only happens inside .content-area */
+        body {
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            overflow-y: hidden;  /* Prevent body scroll - content-area handles it */
+            background: var(--bg-primary, #f8fbff);
+            color: var(--text-primary, #1a1a1a);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .app-layout {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 56px) !important; /* subtract navbar height */
+            overflow: hidden;  /* content-area will handle scrolling */
+        }
+
+        /* ===== SCROLLABLE CONTENT AREA ===== */
+        .content-area {
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            overflow-y: auto !important;   /* SINGLE SCROLLBAR */
+            overflow-x: hidden !important;
+            background: var(--bg-primary, #f8fbff);
+            padding: 0;
+            margin: 0;
+            transition: background-color 0.3s ease;
+            /* Ensure scrollbar is always visible when content overflows */
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e0 #f1f5f9;
+            /* Force scrollbar to be visible on WebKit browsers */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* React root should NOT create its own scroll - allow content to grow */
+        #react-root {
+            width: 100%;
+            height: auto !important;  /* Allow to grow beyond parent */
+            min-height: 100%;  /* At least fill parent */
+            flex: 1 1 auto;
+            overflow: visible !important;
+        }
+
+        /* Scrollbar styling - ensure scrollbars are visible */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        /* Ensure scrollbar is visible on content-area */
+        .content-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-area::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        .content-area::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        .content-area::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        html {
+            scrollbar-color: #cbd5e0 #f1f5f9;
+        }
+
+        body.light-page {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .content-area.light-theme {
+            background: #f8fafc;
+            color: #0f172a;
+            padding: 0;
+        }
+        .content-area.light-theme .card,
+        .content-area.light-theme .table {
+            color: inherit;
+        }
+        .container {
+            padding-bottom: 0;
+        }
+        /* Ensure dropdowns and selects are fully visible */
+        .form-select, .dropdown-menu {
+            margin-bottom: 20px;
+        }
+        /* Hide any sandboxed frame indicators */
+        body.iframe-mode::before,
+        body.iframe-mode::after,
+        [class*="sandbox"],
+        [id*="sandbox"],
+        [data-sandbox] {
+            display: none !important;
+        }
+
+        /* =========================================================
+           DISABLE IFRAME INTERNAL SCROLLING (PARENT HANDLES IT)
+           ========================================================= */
+        /* When page is inside iframe, disable all internal scrolling */
+        body.iframe-mode {
+            overflow: hidden !important;
+        }
+
+        body.iframe-mode .content-area {
+            overflow: visible !important;
+        }
+
+        body.iframe-mode #react-root {
+            overflow: visible !important;
+        }
+
+        /* =========================================================
+           GLOBAL PAGE HEIGHT UNLOCK (FIXES ALL NON-KPI PAGES)
+           ========================================================= */
+
+        .content-area > * {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+        }
+
+        .container,
+        .container-fluid,
+        .row,
+        .col,
+        #react-root {
+            height: auto !important;
+            min-height: auto !important;
+            overflow: visible !important;
+        }
+
+        /* =========================================================
+           PAGE SCROLL ROOT WRAPPER (GUARANTEES NATURAL FLOW)
+           ========================================================= */
+        .page-scroll-root {
+            display: flex;
+            flex-direction: column;
+            min-height: 100%;
+            width: 100%;
+        }
+
+        .page-scroll-root > * {
+            flex: 1;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Hide navbar when in iframe -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark" id="main-navbar" style="margin-bottom: 0;">
+        <div class="container" style="padding-left: 0; padding-right: 0;">
+            <a class="navbar-brand" href="{% url 'main:home' %}" target="_parent">Peak Energy</a>
+            <div class="navbar-nav ms-auto d-flex align-items-center">
+                {% if user.is_authenticated %}
+                    {% if user|has_app_access:'web' %}
+                        <a class="nav-link" href="{% url 'main:dashboard' %}" target="_parent">Dashboard</a>
+                    {% endif %}
+                    {% if user|has_app_access:'ticketing' %}
+                        <a class="nav-link" href="{% url 'ticketing:ticket_dashboard' %}" target="_parent">Ticketing</a>
+                    {% endif %}
+                    {% if user|has_app_access:'api' %}
+                        <a class="nav-link" href="{% url 'api:api_manual' %}" target="_parent">API Manual</a>
+                    {% endif %}
+                    {% if user.is_superuser or user|has_capability:'api.manage' %}
+                        <a class="nav-link" href="{% url 'api:api_config_dashboard' %}">
+                            <i class="fas fa-cogs"></i> API Config
+                        </a>
+                    {% endif %}
+                    <a class="nav-link" href="{% url 'accounts:profile' %}" target="_parent">Profile</a>
+                    <!-- Settings Dropdown Container -->
+                    <div 
+                        id="settings-dropdown-root"
+                        data-username="{{ user.username }}"
+                        data-user-role="{{ user_role|default:'' }}"
+                        data-logout-url="{% url 'accounts:logout' %}"
+                        style="display: inline-flex; align-items: center; margin-left: 8px; min-width: 40px; min-height: 40px;"
+                    ></div>
+                {% else %}
+                    <a class="nav-link" href="{% url 'accounts:login' %}" target="_parent">Login</a>
+                    <a class="nav-link" href="{% url 'accounts:register' %}" target="_parent">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    
+    <script>
+    // Hide navbar when page is loaded in iframe
+    if (window.self !== window.top) {
+        document.getElementById('main-navbar').style.display = 'none';
+    }
+    </script>
+
+    <div class="app-layout" style="margin: 0; padding: 0;">
+        <main class="content-area {% block content_area_class %}{% endblock %}" style="margin: 0; padding: 0;">
+            <div class="page-scroll-root">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    <!-- Toast Container for Auto-Dismissing Messages -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+    {% if messages %}
+    <div id="django-messages-data" data-messages='[{% for message in messages %}{"text":"{{ message|escapejs }}","tags":"{{ message.tags|escapejs }}"}{% if not forloop.last %},{% endif %}{% endfor %}]' style="display: none;"></div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+    <script src="{% static 'js/rate-limit-handler.js' %}"></script>
+    {% if user.is_authenticated %}
+        {% vite_asset 'src/settings-dropdown.tsx' app='default' %}
+    {% endif %}
+    <script>
+    // Enhanced iframe navigation handling with postMessage for sandboxed iframes
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if we're in an iframe
+        const isInIframe = window.top !== window.self;
+        
+        if (isInIframe) {
+            
+            // Remove target="_parent" attributes as they won't work in sandboxed iframes
+            const navLinks = document.querySelectorAll('nav a, .nav-link, .navbar-brand, .pagination-link');
+            
+            navLinks.forEach(link => {
+                // Skip pagination links that should not trigger parent navigation
+                if (link.hasAttribute('data-skip-iframe-nav')) {
+                    return;
+                }
+                
+                // Remove target="_parent" to prevent sandbox errors
+                link.removeAttribute('target');
+                
+                // Add click handler for postMessage navigation
+                link.addEventListener('click', function(e) {
+                    e.preventDefault(); // Always prevent default for iframe navigation
+                    
+                    const href = this.getAttribute('href');
+                    if (href && href !== '#' && !href.startsWith('javascript:')) {
+                        console.log('Iframe navigation requested:', href);
+                        
+                        try {
+                            // Method 1: Use postMessage to ask parent to navigate
+                            window.parent.postMessage({
+                                type: 'navigate_request',
+                                url: href,
+                                from: 'iframe_navigation'
+                            }, '*');
+                            
+                            console.log('Navigation request sent via postMessage');
+                            
+                        } catch (postMessageError) {
+                            console.error('PostMessage failed:', postMessageError);
+                            
+                            // Method 2: Try direct navigation (might fail but worth trying)
+                            try {
+                                window.location.href = href;
+                            } catch (directError) {
+                                console.error('Direct navigation also failed:', directError);
+                                
+                                // Method 3: Show user-friendly message
+                                showNavigationFallback(href);
+                            }
+                        }
+                    }
+                });
+            });
+            
+            // Add iframe mode class (no visual indicator)
+            document.body.classList.add('iframe-mode');
+            
+            // Remove any existing sandbox indicators that might have been created
+            const existingIndicators = document.querySelectorAll('[class*="sandbox"], [id*="sandbox"], [data-sandbox], [style*="Sandboxed"]');
+            existingIndicators.forEach(el => el.remove());
+            
+            // Also check for elements with "Sandboxed Frame" text and remove them
+            const allElements = document.querySelectorAll('*');
+            allElements.forEach(el => {
+                if (el.textContent && el.textContent.includes('Sandboxed Frame')) {
+                    const style = window.getComputedStyle(el);
+                    if (style.position === 'fixed' && (style.top === '0px' || style.top === '0') && (style.right === '0px' || style.right === '0')) {
+                        el.remove();
+                    }
+                }
+            });
+        }
+    });
+    
+    // Function to show navigation fallback when postMessage fails
+    function showNavigationFallback(url) {
+        // Create a modal-like overlay for navigation options
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        `;
+        
+        modal.innerHTML = `
+            <h4 style="color: #FF6B35; margin-bottom: 15px;">🔒 Navigation Restricted</h4>
+            <p style="margin-bottom: 15px;">Due to security restrictions, automatic navigation is blocked.</p>
+            <p style="margin-bottom: 20px;"><strong>Click the link below to navigate:</strong></p>
+            <a href="${url}" style="
+                display: inline-block;
+                background: #007bff;
+                color: white;
+                padding: 10px 20px;
+                text-decoration: none;
+                border-radius: 5px;
+                margin: 5px;
+            ">🔗 Open ${url}</a>
+            <br>
+            <button onclick="this.closest('[style*=fixed]').remove()" style="
+                background: #6c757d;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                margin-top: 10px;
+                cursor: pointer;
+            ">Close</button>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (document.body.contains(overlay)) {
+                overlay.remove();
+            }
+        }, 10000);
+    }
+    
+    // Toast notification function for auto-dismissing messages
+    function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastId = 'toast-' + Date.now();
+        const colorClass = type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white bg-${colorClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()" aria-label="Close">&times;</button>
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // Show the toast
+        const toastElement = document.getElementById(toastId);
+        
+        // Check if Bootstrap is available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+            // Use Bootstrap Toast if available
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: type === 'error' ? 5000 : 3000
+            });
+            toast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                if (toastElement.parentNode) {
+                    toastElement.remove();
+                }
+            });
+        } else {
+            // Fallback: Manual show/hide without Bootstrap
+            toastElement.style.display = 'block';
+            toastElement.style.opacity = '0';
+            
+            // Animate in
+            setTimeout(() => {
+                toastElement.style.transition = 'opacity 0.3s ease-in-out';
+                toastElement.style.opacity = '1';
+            }, 10);
+            
+            // Auto-hide after delay
+            setTimeout(() => {
+                toastElement.style.opacity = '0';
+                setTimeout(() => {
+                    if (toastElement.parentNode) {
+                        toastElement.remove();
+                    }
+                }, 300);
+            }, type === 'error' ? 5000 : 3000);
+        }
+    }
+    
+    // Auto-display Django messages as toasts
+    document.addEventListener('DOMContentLoaded', function() {
+        const messagesDataElement = document.getElementById('django-messages-data');
+        if (!messagesDataElement) {
+            return;
+        }
+        try {
+            const djangoMessages = JSON.parse(messagesDataElement.dataset.messages || '[]');
+            djangoMessages.forEach(function(item) {
+                showToast(item.text, item.tags);
+            });
+        } catch (error) {
+            console.error('Failed to parse Django messages data:', error);
+        }
+    });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

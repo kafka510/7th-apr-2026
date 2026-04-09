@@ -1,0 +1,178 @@
+% Inverter Expected Power — Calculation and Persistence
+% Source: main/calculations/inverter_expected_power_service.py
+% Reference for SDM-group based inverter expected power and write-back to timeseries_data.
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{siunitx}
+
+\geometry{margin=2.5cm}
+\sisetup{detect-all}
+
+\title{Inverter Expected Power\\Calculation \& Persistence}
+\author{Reference for \texttt{inverter\_expected\_power\_service.py}}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+%==============================================================================
+\section{Overview}
+%==============================================================================
+
+Inverter-level expected power is computed by treating each inverter's \texttt{tilt\_configs} as a set of \emph{SDM groups}: each group has a single tilt/azimuth and a fixed number of strings and modules per string. For each group we obtain plane-of-array irradiance (GII), run the Single Diode Model array to get DC power, then aggregate and apply inverter constraints to obtain AC expected power. The result is written to \texttt{timeseries\_data} with \texttt{device\_id} = inverter id and \texttt{metric} = \texttt{expected\_power} at the same timestamps as the GII series used.
+
+Main steps:
+\begin{enumerate}
+  \item Read inverter \texttt{tilt\_configs} from \texttt{device\_list} (SDM groups).
+  \item For each group, load GII time series from \texttt{timeseries\_data} (synthetic device id from transposition).
+  \item Run SDM expected power per group (array: \(N_{\mathrm{ser}}\), \(N_{\mathrm{par}}\)).
+  \item Sum group DC powers; apply inverter efficiency and AC capacity limit.
+  \item Delete existing \texttt{expected\_power} for that inverter in the time window; write new series.
+\end{enumerate}
+
+Implementation: \texttt{main/calculations/inverter\_expected\_power\_service.py}. Callable from calculation-test API and (later) Celery tasks.
+
+%==============================================================================
+\section{Input Data}
+%==============================================================================
+
+\subsection{Inverter \texttt{tilt\_configs} (SDM groups)}
+
+Stored on the inverter row in \texttt{device\_list.tilt\_configs} as a JSON array. Each element describes one homogeneous sub-array:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Field & Description \\
+\midrule
+\texttt{tilt\_deg} & Tilt angle (degrees, 0 = horizontal). \\
+\texttt{azimuth\_deg} & Surface azimuth (degrees; 0 = south, east negative, west positive). \\
+\texttt{string\_count} & Number of parallel strings in this group (\(N_{\mathrm{par}}\)). \\
+\texttt{modules\_in\_series} & Modules per string (\(N_{\mathrm{ser}}\)). \\
+\texttt{panel\_count} & Total panels; must equal \texttt{string\_count} \(\times\) \texttt{modules\_in\_series}. \\
+\texttt{orientation} & Optional label (e.g.\ North, South). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For group index \(g\), we denote:
+\begin{equation}
+  (\beta_g,\;\gamma_g,\;N_{\mathrm{par},g},\;N_{\mathrm{ser},g}).
+\end{equation}
+
+\subsection{GII time series per group}
+
+Transposed GII is stored in \texttt{timeseries\_data} with synthetic device ids:
+\begin{equation}
+  \mathtt{device\_id}_g = \mathtt{gii\_device\_id}(\mathtt{asset\_code},\; \beta_g,\; \gamma_g),
+\end{equation}
+and \texttt{metric} = \texttt{gii}. The implementation loads \(G_{\mathrm{poa},g}(t)\) for each group \(g\) over the requested time range \([t_{\mathrm{start}}, t_{\mathrm{end}}]\).
+
+\subsection{Weather and module data}
+
+\begin{itemize}
+  \item \textbf{Temperature} and \textbf{wind} are read from \texttt{timeseries\_data} using \texttt{weather\_device\_config} on the inverter (or asset). Required: at least one temperature series (device + metric) so that ambient (or module) temperature is available at each timestamp \(t\).
+  \item \textbf{Module datasheet} and loss parameters are taken from a representative \emph{string} device under the inverter (same \texttt{parent\_code}, \texttt{device\_sub\_group} = inverter \texttt{device\_id}, with \texttt{module\_datasheet\_id} and \texttt{modules\_in\_series} set). That string is used only to supply the SDM model; for each group the array size is overridden by the group's \(N_{\mathrm{ser},g}\) and \(N_{\mathrm{par},g}\).
+\end{itemize}
+
+%==============================================================================
+\section{Per-group DC power (SDM)}
+%==============================================================================
+
+For each group \(g\) and each timestamp \(t\):
+
+\begin{enumerate}
+  \item Irradiance: \(G_{\mathrm{poa},g}(t)\) from GII time series for \(\mathtt{device\_id}_g\).
+  \item Array config: \(N_{\mathrm{ser}} = N_{\mathrm{ser},g}\), \(N_{\mathrm{par}} = N_{\mathrm{par},g}\) (and NOCT from module).
+  \item Derates: soiling, shading, degradation, etc., from the representative string (or inverter) configuration.
+  \item The Single Diode Model array (see \texttt{sdm\_array\_model\_equations.tex}) yields DC power for that group at \(t\):
+\end{enumerate}
+
+\begin{equation}
+  P_{\mathrm{dc},g}(t) = \text{SDM}\bigl(G_{\mathrm{poa},g}(t),\; T_{\mathrm{amb}}(t),\; v_{\mathrm{wind}}(t);\; N_{\mathrm{ser},g},\; N_{\mathrm{par},g},\; \text{module},\; \text{derates}\bigr).
+\end{equation}
+
+The implementation uses \texttt{PowerCalculationService.calculate\_expected\_power} with the representative string device whose \texttt{modules\_in\_series} and \texttt{strings\_in\_parallel} are set to \(N_{\mathrm{ser},g}\) and \(N_{\mathrm{par},g}\) for that group.
+
+%==============================================================================
+\section{Inverter aggregation and AC expected power}
+%==============================================================================
+
+\subsection{DC aggregation}
+
+Total inverter DC at time \(t\) is the sum over all groups that have GII at \(t\):
+
+\begin{equation}
+  P_{\mathrm{dc,inv}}(t) = \sum_{g} P_{\mathrm{dc},g}(t).
+\end{equation}
+
+(If a group has no GII at \(t\), it does not contribute; that timestamp may still be written if at least one group has data, depending on implementation.)
+
+\subsection{Inverter constraints (DC to AC)}
+
+A simple model applies an efficiency \(\eta_{\mathrm{inv}}\) and an AC capacity limit \(P_{\mathrm{ac,max}}\) (e.g.\ from \texttt{device\_list.ac\_capacity}, in kW):
+
+\begin{equation}
+  P_{\mathrm{ac,inv}}(t) = \min\Bigl( P_{\mathrm{ac,max}},\; \eta_{\mathrm{inv}} \cdot P_{\mathrm{dc,inv}}(t) \Bigr).
+\end{equation}
+
+Default \(\eta_{\mathrm{inv}} = 0.97\). \(P_{\mathrm{ac,max}}\) is taken from the inverter row when available (converted to W if stored in kW).
+
+%==============================================================================
+\section{Persistence to \texttt{timeseries\_data}}
+%==============================================================================
+
+The computed inverter expected power is written back to the same database table used for GHI/GII and other metrics.
+
+\subsection{Schema}
+
+For each timestamp \(t\) at which \(P_{\mathrm{ac,inv}}(t)\) was computed:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Column & Value \\
+\midrule
+\texttt{device\_id} & Inverter id (same as \texttt{device\_list.device\_id} for the inverter). \\
+\texttt{ts} & Timestamp \(t\) (same as the GII timestamps used for that point). \\
+\texttt{metric} & \texttt{expected\_power}. \\
+\texttt{value} & \(P_{\mathrm{ac,inv}}(t)\) (e.g.\ in W). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Idempotency}
+
+Before writing new values for a given inverter and time range \([t_{\mathrm{start}}, t_{\mathrm{end}}]\), the service deletes existing rows in \texttt{timeseries\_data} where:
+
+\begin{itemize}
+  \item \texttt{device\_id} = inverter id,
+  \item \texttt{metric} = \texttt{expected\_power},
+  \item \texttt{ts} \(\in [t_{\mathrm{start}}, t_{\mathrm{end}}]\).
+\end{itemize}
+
+Re-running the calculation for the same window therefore overwrites expected power without duplicating rows.
+
+\subsection{Writer}
+
+The implementation uses \texttt{TimeseriesWriter.write\_batch} with \texttt{device\_type}=\texttt{inverter} so that the same path can be used from the calculation-test API and from Celery tasks.
+
+%==============================================================================
+\section{Summary}
+%==============================================================================
+
+\begin{itemize}
+  \item \textbf{Input:} Inverter \texttt{tilt\_configs}, GII per group (synthetic device ids), temperature (and optionally wind) from \texttt{weather\_device\_config}, module datasheet from a string under the inverter.
+  \item \textbf{Output:} Time series of expected AC power for the inverter, stored in \texttt{timeseries\_data} with \texttt{device\_id} = inverter id, \texttt{metric} = \texttt{expected\_power}, and \texttt{ts} aligned to the GII timestamps.
+  \item \textbf{Formulae:} \(P_{\mathrm{dc},g}\) from SDM per group; \(P_{\mathrm{dc,inv}} = \sum_g P_{\mathrm{dc},g}\); \(P_{\mathrm{ac,inv}} = \min(P_{\mathrm{ac,max}},\; \eta_{\mathrm{inv}} P_{\mathrm{dc,inv}})\).
+\end{itemize}
+
+\end{document}

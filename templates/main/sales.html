@@ -1,0 +1,2644 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Environmental & Generation Insights</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          primary: '#0072CE',
+          'primary-dark': '#0056a3'
+        }
+      }
+    }
+  }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+<style>
+  :root {
+  --primary: #0072CE;
+  --primary-dark: #005a9e;
+  --accent: #43A047;
+  --bg: #f8fbff;
+  --card-bg: #fff;
+  --kpi-shadow: 0 4px 16px rgba(0, 114, 206, 0.10);
+  --kpi-radius: 16px;
+  --kpi-icon-size: 2rem;
+  --kpi-label: #555;
+  --kpi-value: #222;
+}
+
+/* ================================
+   GLOBAL
+   ================================ */
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  background: linear-gradient(135deg, #f9fafc, #eef6ff);
+  min-height: 100vh;
+  color: var(--kpi-value);
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
+.main-content {
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* ================================
+   HEADER
+   ================================ */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  border-radius: 0 0 12px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  min-height: 40px;
+}
+.dashboard-header .title {
+  font-size: clamp(1rem, 1.3vw, 1.5rem);
+  font-weight: 700;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+}
+.dashboard-header .subtitle {
+  font-size: clamp(0.8rem, 1vw, 1.1rem);
+  color: #7a8799;
+}
+
+.dashboard-header .logo {
+  display: flex;
+  align-items: center;
+  margin-right: 16px;
+}
+
+.dashboard-header .logo img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* ================================
+   FILTERS
+   ================================ */
+.filters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 8px 16px;
+  margin: 8px auto;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  z-index: 100;
+}
+.filters select {
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+  background: var(--bg);
+  min-width: 80px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.filter-item .icon {
+  font-size: clamp(0.8rem, 0.9vw, 1rem);
+}
+
+/* ================================
+   KPI CARDS
+   ================================ */
+.kpi-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 16px;
+}
+.kpi-box {
+  background: var(--card-bg);
+  border-radius: var(--kpi-radius);
+  box-shadow: var(--kpi-shadow);
+  padding: 16px 20px;
+  min-width: 160px;
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+}
+.kpi-label {
+  font-size: clamp(0.75rem, 0.9vw, 1rem);
+  color: var(--kpi-label);
+  font-weight: 500;
+}
+.kpi-value {
+  font-size: clamp(1.2rem, 2vw, 2.2rem);
+  font-weight: 700;
+  color: var(--kpi-value);
+}
+
+/* ================================
+   CHARTS
+   ================================ */
+.charts {
+  margin: 16px;
+  padding: 16px;
+  background: var(--card-bg);
+  border-radius: 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.charts h2 {
+  margin-bottom: 16px;
+  color: var(--primary);
+  font-size: clamp(1rem, 1.3vw, 1.4rem);
+}
+.charts-grid {
+  display: grid;
+  gap: 1rem;
+}
+.chart-card {
+  background: #f8fbff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,114,206,0.06);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* ================================
+   MULTI-SELECT STYLES
+   ================================ */
+.multi-select-container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  z-index: 10;
+}
+
+.multi-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 8px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  text-align: left;
+}
+
+.multi-select-trigger:hover {
+  background: #e6f1fc;
+  border-color: var(--primary-dark);
+}
+
+.multi-select-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.multi-select-label {
+  font-weight: 600;
+  margin-right: 4px;
+  color: var(--primary);
+}
+
+.multi-select-text {
+  flex: 1;
+  text-align: left;
+  color: #333;
+}
+
+.multi-select-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+  margin-left: 4px;
+}
+
+.multi-select-trigger.active .multi-select-arrow {
+  transform: rotate(180deg);
+}
+
+.multi-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 9999;
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-top: 2px;
+  min-width: 200px;
+  width: max-content;
+}
+
+.multi-select-dropdown.hidden {
+  display: none;
+}
+
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.multi-select-option:last-child {
+  border-bottom: none;
+}
+
+.multi-select-option:hover {
+  background-color: #f8fafc;
+}
+
+.multi-select-option.selected {
+  background-color: #e6f1fc;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.multi-select-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  border: 2px solid var(--primary);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  background-color: white;
+  position: relative;
+}
+
+.multi-select-checkbox.checked {
+  background-color: var(--primary);
+  color: white;
+}
+
+.multi-select-checkbox.checked::after {
+  content: '✓';
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  display: block;
+  line-height: 1;
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.multi-select-option-text {
+  flex: 1;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.multi-select-separator {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 4px 0;
+}
+
+.select-all-option {
+  font-weight: 600;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.select-all-option:hover {
+  background-color: #e9ecef;
+}
+
+/* Ensure dropdowns appear above all content */
+.filters .multi-select-dropdown {
+  z-index: 99999 !important;
+}
+
+/* Ensure KPI cards don't interfere with dropdowns */
+.kpi-cards {
+  position: relative;
+  z-index: 1;
+}
+
+/* Reset Button Styling */
+.reset-btn {
+  background: #0072CE;
+  color: white;
+  border: 2px solid #0072CE;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 60px;
+  user-select: none;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+.reset-btn:hover {
+  background: white;
+  color: #0072CE;
+  border-color: #0072CE;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 114, 206, 0.2);
+}
+
+.reset-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 114, 206, 0.2);
+}
+
+/* Responsive dropdown width adjustments */
+@media (min-width: 768px) {
+  .multi-select-dropdown {
+    min-width: 250px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .multi-select-dropdown {
+    min-width: 300px;
+  }
+}
+
+/* Ensure dropdowns don't get cut off on smaller screens */
+@media (max-width: 767px) {
+  .multi-select-dropdown {
+    min-width: 180px;
+    max-width: calc(100vw - 40px);
+  }
+}
+
+/* ================================
+   RESPONSIVE GRID FIX
+   ================================ */
+
+/* Mobile ≤600px → 1 column */
+@media (max-width: 600px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-container { flex-direction: column; }
+}
+
+/* Tablets 601px–1023px → 1 column */
+@media (min-width: 601px) and (max-width: 1023px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Medium screens 1024px–1399px → 2 columns (side by side) */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: minmax(350px, auto); /* ensures charts fit */
+  }
+}
+
+/* Large screens ≥1400px → 2×2 grid (all 4 visible) */
+@media (min-width: 1400px) {
+  .charts-grid {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, minmax(350px, auto));
+  }
+}
+
+
+</style>
+</head>
+<body>
+
+<div class="dashboard-header">
+  <div class="logo">
+    <img src="{% static "PEAK_LOGO.jpg" %}" alt="Peak Energy" />
+  </div>
+</div>
+<div id="mainContent" class="main-content">
+
+
+<div class="file-inputs" style="display: none;">
+  <label>Upload Solar Generation (yield.csv):
+    <input type="file" id="solarFile" accept=".csv" />
+  </label>
+  <label>Upload Asset Metadata (map_data.csv):
+    <input type="file" id="mapFile" accept=".csv" />
+  </label>
+</div>
+
+<div class="filters">
+  <!-- Country Multi-Select -->
+  <div class="filter-item" title="Country">
+    <span class="icon" aria-hidden="true">🌍</span>
+    <div class="multi-select-container">
+      <button id="countrySelectBtn" class="multi-select-trigger" disabled>
+        <span class="multi-select-label">Country:</span>
+        <span id="countrySelectText" class="multi-select-text">All</span>
+        <svg class="multi-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      <div id="countrySelectOptions" class="multi-select-dropdown hidden">
+        <!-- Options will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Portfolio Multi-Select -->
+  <div class="filter-item" title="Portfolio">
+    <span class="icon" aria-hidden="true">📂</span>
+    <div class="multi-select-container">
+      <button id="portfolioSelectBtn" class="multi-select-trigger" disabled>
+        <span class="multi-select-label">Portfolio:</span>
+        <span id="portfolioSelectText" class="multi-select-text">All</span>
+        <svg class="multi-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      <div id="portfolioSelectOptions" class="multi-select-dropdown hidden">
+        <!-- Options will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Installation Type Multi-Select -->
+  <div class="filter-item" title="Installation Type">
+    <span class="icon" aria-hidden="true">⚡</span>
+    <div class="multi-select-container">
+      <button id="installationSelectBtn" class="multi-select-trigger" disabled>
+        <span class="multi-select-label">Installation:</span>
+        <span id="installationSelectText" class="multi-select-text">All</span>
+        <svg class="multi-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      <div id="installationSelectOptions" class="multi-select-dropdown hidden">
+        <!-- Options will be populated by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Period Filter (keeping existing calendar) -->
+  <div class="filter-period" style="position: relative; display: inline-block; overflow: visible;">
+    <label class="filter-item" title="Period">
+      <span class="icon" aria-hidden="true">⏳</span>
+      <button id="monthMatrixTrigger" type="button" class="month-trigger-btn" style="background: #f8fbff; border: 1px solid #b3d7f2; border-radius: 6px; padding: 4px 8px; font-size: clamp(0.75rem, 0.8vw, 0.9rem); color: #0072CE; cursor: pointer; text-align: left; transition: all 0.2s ease; white-space: nowrap; min-width: 100px; user-select: none;" onmouseover="this.style.background='#e6f1fc'; this.style.borderColor='#0072CE';" onmouseout="this.style.background='#f8fbff'; this.style.borderColor='#b3d7f2';">
+        <span id="selectedMonthLabel">Select Period</span>
+      </button>
+    </label>
+    <!-- Calendar Container (positioned relative to this div) -->
+    <div id="calendarContainer" style="position: absolute; top: 100%; left: 0; background: #fff; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); padding: 20px; z-index: 2147483647 !important; min-width: 280px; max-width: 400px; display: none; border: 1px solid #b3d7f2; margin-top: 4px; font-family: 'Inter', Arial, sans-serif;">
+      <div id="monthMatrixPicker" class="month-matrix-picker"></div>
+    </div>
+    
+    <style>
+      .month-matrix-picker {
+        position: absolute !important;
+        top: 100%;
+        left: 0;
+        z-index: 2147483647 !important;  /* max safe z-index */
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        padding: 12px;
+        display: flex !important;
+        flex-direction: column;
+        visibility: hidden;
+        min-width: 280px;
+        max-width: 400px;
+        border: 1px solid #b3d7f2;
+        font-family: 'Inter', Arial, sans-serif;
+      }
+      .month-matrix-picker.bc-visible {
+        visibility: visible !important;
+      }
+    </style>
+  </div>
+
+  <!-- Reset Button -->
+  <div class="filter-item" title="Reset Filters">
+    <span class="icon" aria-hidden="true">🔄</span>
+    <button id="resetFiltersBtn" class="reset-btn" onclick="resetFilters()">
+      Reset
+    </button>
+  </div>
+</div>
+
+
+
+<!-- Calendar Backdrop (optional) -->
+<div id="calendarBackdrop" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.1); z-index: 9998; pointer-events: none;"></div>
+
+<!-- Premium KPI Dashboard -->
+<div class="kpi-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 4px; padding: 4px; box-sizing: border-box; width: 100%; max-width: 100%; margin: 4px 0 8px 0; overflow: hidden;">
+  
+  <!-- Solar Generation -->
+  <div class="kpi-card" style="padding: clamp(0.3rem, 0.5vw, 0.6rem); border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1px solid #fbbf24; display: flex; justify-content: space-between; align-items: center; min-height: 55px; overflow: hidden; position: relative; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; min-width: 0;">
+      <p style="font-size: clamp(10px, 0.9vw, 14px); color: #555; margin: 0 0 0.4rem 0; font-weight: 500;">Solar Generation</p>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h2 id="solarEnergyValue" class="value" style="font-size: clamp(16px, 1.4vw, 24px); font-weight: 700; color: #111; margin: 0; line-height: 1;">0</h2>
+        <p style="font-size: clamp(10px, 0.9vw, 14px); color: #666; margin: 0; font-weight: 500;">MWh</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;">
+      <i class="fas fa-solar-panel" style="font-size: clamp(18px, 2vw, 24px); color: #f59e0b; opacity: 0.8;"></i>
+    </div>
+  </div>
+
+  <!-- BESS Discharge -->
+  <div class="kpi-card" style="padding: clamp(0.3rem, 0.5vw, 0.6rem); border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: linear-gradient(135deg, #f5f3ff, #e0e7ff); border: 1px solid #8b5cf6; display: flex; justify-content: space-between; align-items: center; min-height: 55px; overflow: hidden; position: relative; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; min-width: 0;">
+      <p style="font-size: clamp(10px, 0.9vw, 14px); color: #555; margin: 0 0 0.4rem 0; font-weight: 500;">BESS Discharge</p>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h2 id="bessEnergyValue" style="font-size: clamp(16px, 1.4vw, 24px); font-weight: 700; color: #111; margin: 0; line-height: 1;">0</h2>
+        <p style="font-size: clamp(10px, 0.9vw, 14px); color: #666; margin: 0; font-weight: 500;">MWh</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;">
+      <i class="fas fa-battery-three-quarters" style="font-size: clamp(18px, 2vw, 24px); color: #7c3aed; opacity: 0.8;"></i>
+    </div>
+  </div>
+
+  <!-- CO₂ Saved -->
+  <div class="kpi-card" style="padding: clamp(0.3rem, 0.5vw, 0.6rem); border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: linear-gradient(135deg, #ecfeff, #cffafe); border: 1px solid #06b6d4; display: flex; justify-content: space-between; align-items: center; min-height: 55px; overflow: hidden; position: relative; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; min-width: 0;">
+      <p style="font-size: clamp(10px, 0.9vw, 14px); color: #555; margin: 0 0 0.4rem 0; font-weight: 500;">CO₂ Saved</p>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h2 id="totalCO2Value" style="font-size: clamp(16px, 1.4vw, 24px); font-weight: 700; color: #111; margin: 0; line-height: 1;">0</h2>
+        <p style="font-size: clamp(10px, 0.9vw, 14px); color: #666; margin: 0; font-weight: 500;">Tons</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;">
+      <i class="fas fa-leaf" style="font-size: clamp(18px, 2vw, 24px); color: #14b8a6; opacity: 0.8;"></i>
+    </div>
+  </div>
+
+  <!-- Trees Equivalent -->
+  <div class="kpi-card" style="padding: clamp(0.3rem, 0.5vw, 0.6rem); border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1px solid #22c55e; display: flex; justify-content: space-between; align-items: center; min-height: 55px; overflow: hidden; position: relative; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; min-width: 0;">
+      <p style="font-size: clamp(10px, 0.9vw, 14px); color: #555; margin: 0 0 0.4rem 0; font-weight: 500;">Trees Equivalent</p>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h2 id="treesSavedValue" style="font-size: clamp(16px, 1.4vw, 24px); font-weight: 700; color: #111; margin: 0; line-height: 1;">0</h2>
+        <p style="font-size: clamp(10px, 0.9vw, 14px); color: #666; margin: 0; font-weight: 500;">Trees</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;">
+      <i class="fas fa-tree" style="font-size: clamp(18px, 2vw, 24px); color: #22c55e; opacity: 0.8;"></i>
+    </div>
+  </div>
+
+  <!-- Solar Assets Count -->
+  <div class="kpi-card" style="padding: clamp(0.3rem, 0.5vw, 0.6rem); border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: linear-gradient(135deg, #fef7ff, #fae8ff); border: 1px solid #d946ef; display: flex; justify-content: space-between; align-items: center; min-height: 55px; overflow: hidden; position: relative; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; min-width: 0;">
+      <p style="font-size: clamp(10px, 0.9vw, 14px); color: #555; margin: 0 0 0.4rem 0; font-weight: 500;">Solar Assets</p>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h2 id="solarAssetsCountValue" style="font-size: clamp(16px, 1.4vw, 24px); font-weight: 700; color: #111; margin: 0; line-height: 1;">0</h2>
+        <p style="font-size: clamp(10px, 0.9vw, 14px); color: #666; margin: 0; font-weight: 500;">Assets</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;">
+      <i class="fas fa-building" style="font-size: clamp(18px, 2vw, 24px); color: #d946ef; opacity: 0.8;"></i>
+    </div>
+  </div>
+
+  <!-- Solar DC Capacity -->
+  <div class="kpi-card" style="padding: clamp(0.3rem, 0.5vw, 0.6rem); border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: linear-gradient(135deg, #fffbeb, #fed7aa); border: 1px solid #f97316; display: flex; justify-content: space-between; align-items: center; min-height: 55px; overflow: hidden; position: relative; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; min-width: 0;">
+      <p style="font-size: clamp(10px, 0.9vw, 14px); color: #555; margin: 0 0 0.4rem 0; font-weight: 500;">Solar Capacity</p>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h2 id="solarDcCapacityValue" style="font-size: clamp(16px, 1.4vw, 24px); font-weight: 700; color: #111; margin: 0; line-height: 1;">0</h2>
+        <p style="font-size: clamp(10px, 0.9vw, 14px); color: #666; margin: 0; font-weight: 500;">MWp</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;">
+      <i class="fas fa-bolt" style="font-size: clamp(18px, 2vw, 24px); color: #f97316; opacity: 0.8;"></i>
+    </div>
+  </div>
+
+  <!-- Battery Capacity -->
+  <div class="kpi-card" style="padding: clamp(0.3rem, 0.5vw, 0.6rem); border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); background: linear-gradient(135deg, #f0f9ff, #dbeafe); border: 1px solid #3b82f6; display: flex; justify-content: space-between; align-items: center; min-height: 55px; overflow: hidden; position: relative; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; flex: 1; min-width: 0;">
+      <p style="font-size: clamp(10px, 0.9vw, 14px); color: #555; margin: 0 0 0.4rem 0; font-weight: 500;">Battery Capacity</p>
+      <div style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h2 id="bessCapacityValue" style="font-size: clamp(16px, 1.4vw, 24px); font-weight: 700; color: #111; margin: 0; line-height: 1;">0</h2>
+        <p style="font-size: clamp(10px, 0.9vw, 14px); color: #666; margin: 0; font-weight: 500;">MW</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-left: 0.5rem;">
+      <i class="fas fa-battery-full" style="font-size: clamp(18px, 2vw, 24px); color: #3b82f6; opacity: 0.8;"></i>
+    </div>
+  </div>
+
+</div>
+
+<div class="charts-container" style="max-width: 100%; padding: clamp(2px, 0.3vw, 4px); box-sizing: border-box; margin-top: 2px; width: 100%;">
+  <!-- Charts Grid - 2x2 Layout -->
+  <div class="charts-grid" style="display: grid !important; grid-template-columns: repeat(2, 1fr) !important; grid-template-rows: repeat(2, 1fr) !important; gap: 0.3rem; width: 100%; margin-bottom: 0.1rem; max-width: 100%; box-sizing: border-box;">
+    
+    <!-- Solar Generation -->
+    <div class="chart-col" style="min-height: 200px; display: flex; flex-direction: column;">
+      <div class="chart-card solar" style="flex: 1; display: flex; flex-direction: column; min-height: 200px;">
+        <h3 style="font-size: clamp(9px, 0.8vw, 13px); font-weight: 600; margin-bottom: 0.2rem; color: #f59e0b;">Solar Generation (MWh)</h3>
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+          <canvas id="solarGenChart" style="max-height: 160px; width: 100% !important;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- BESS Discharge -->
+    <div class="chart-col" style="min-height: 200px; display: flex; flex-direction: column;">
+      <div class="chart-card bess" style="flex: 1; display: flex; flex-direction: column; min-height: 200px;">
+        <h3 style="font-size: clamp(9px, 0.8vw, 13px); font-weight: 600; margin-bottom: 0.2rem; color: #7c3aed;">BESS Discharge (MWh)</h3>
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+          <canvas id="bessGenChart" style="max-height: 160px; width: 100% !important;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CO₂ Saved -->
+    <div class="chart-col" style="min-height: 200px; display: flex; flex-direction: column;">
+      <div class="chart-card co2" style="flex: 1; display: flex; flex-direction: column; min-height: 200px;">
+        <h3 style="font-size: clamp(9px, 0.8vw, 13px); font-weight: 600; margin-bottom: 0.2rem; color: #14b8a6;">Emissions reduced (tCO₂)</h3>
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+          <canvas id="co2Chart" style="max-height: 160px; width: 100% !important;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trees Saved -->
+    <div class="chart-col" style="min-height: 200px; display: flex; flex-direction: column;">
+      <div class="chart-card trees" style="flex: 1; display: flex; flex-direction: column; min-height: 200px;">
+        <h3 style="font-size: clamp(9px, 0.8vw, 13px); font-weight: 600; margin-bottom: 0.2rem; color: #22c55e;">🌳 Trees Protected (No's)</h3>
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+          <canvas id="treesChart" style="max-height: 160px; width: 100% !important;"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+  <!-- Dynamic Insight Card - Separate Container -->
+  <div style="width: 100%; margin-top: 0.1rem;">
+    <div class="chart-card" style="border-top-color: #0a73d1; min-height: auto;">
+      <div id="insightBox">
+        <div style="padding: 10px; background: linear-gradient(135deg, #e0f7fa, #f1f8e9); border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); font-size: 12px;">
+          🌞 Loading insights...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="{% static "bestcalendar.js" %}"></script>
+<script>
+  // Initialize BestCalendar
+  let bestCalendar = null;
+
+  // Add getMonthAbbr at the top level
+  function getMonthAbbr(ym) {
+    // ym: '2025-01' or '2025-1' or 'Jan', etc.
+    if (!ym) return '';
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const match = ym.match(/\d{4}-(\d{1,2})/);
+    if (match) {
+      const m = parseInt(match[1], 10);
+      return monthNames[m-1] || ym;
+    }
+    // fallback: if already a month name
+    if (monthNames.includes(ym.slice(0,3))) return ym.slice(0,3);
+    return ym;
+  }
+// Country-specific grid emission factors (kg CO2/kWh)
+const countryGridFactors = {
+  "Japan": 0.460,
+  "Korea": 0.411,        // Primary entry for database
+  "S. Korea": 0.411,     // Alternate naming
+  "South Korea": 0.411,  // Alternate naming
+  "Singapore": 0.412,
+  "Taiwan": 0.509
+  // Add more countries as needed
+};
+(() => {
+  // Register Chart.js plugins
+  Chart.register(ChartDataLabels);
+  
+  // Data holders
+  let solarData = [], mapData = [];
+  let filters = {
+    country: [],
+    portfolio: [],
+    selectedMonth: null,
+    selectedYear: null,
+    installation: []
+  };
+
+  // Multi-select state management
+  let multiSelectStates = {
+    country: { selected: [], isOpen: false },
+    portfolio: { selected: [], isOpen: false },
+    installation: { selected: [], isOpen: false }
+  };
+
+  // DOM Elements
+  const solarFileInput = document.getElementById('solarFile');
+  const mapFileInput = document.getElementById('mapFile');
+  
+  // Multi-select elements
+  const countrySelectBtn = document.getElementById('countrySelectBtn');
+  const countrySelectText = document.getElementById('countrySelectText');
+  const countrySelectOptions = document.getElementById('countrySelectOptions');
+  
+  const portfolioSelectBtn = document.getElementById('portfolioSelectBtn');
+  const portfolioSelectText = document.getElementById('portfolioSelectText');
+  const portfolioSelectOptions = document.getElementById('portfolioSelectOptions');
+  
+  const installationSelectBtn = document.getElementById('installationSelectBtn');
+  const installationSelectText = document.getElementById('installationSelectText');
+  const installationSelectOptions = document.getElementById('installationSelectOptions');
+
+  const kpis = {
+    solarEnergy: document.getElementById('solarEnergy'),
+    bessEnergy: document.getElementById('bessEnergy'),
+    totalCO2: document.getElementById('totalCO2'),
+    treesSaved: document.getElementById('treesSaved'),
+    solarAssetsCount: document.getElementById('solarAssetsCount'),
+    solarDcCapacity: document.getElementById('solarDcCapacity'),
+    bessCapacity: document.getElementById('bessCapacity')
+  };
+
+  let co2Chart = null;
+  let treesChart = null;
+  let solarGenChart = null;
+  let bessGenChart = null;
+
+  // Utility: get unique sorted values for a key in array of objects
+  function uniqueSorted(arr, key) {
+    return [...new Set(arr.map(r => r[key]).filter(v => v != null && v !== ''))].sort();
+  }
+
+  // Multi-select utility functions
+  function toggleDropdown(filterType) {
+    const state = multiSelectStates[filterType];
+    const optionsDiv = document.getElementById(filterType + 'SelectOptions');
+    const btn = document.getElementById(filterType + 'SelectBtn');
+    const arrow = btn?.querySelector('.multi-select-arrow');
+    
+    
+    // Close all other dropdowns
+    Object.keys(multiSelectStates).forEach(key => {
+      if (key !== filterType) {
+        const otherState = multiSelectStates[key];
+        const otherOptionsDiv = document.getElementById(key + 'SelectOptions');
+        const otherBtn = document.getElementById(key + 'SelectBtn');
+        const otherArrow = otherBtn?.querySelector('.multi-select-arrow');
+        
+        if (otherState.isOpen) {
+          otherState.isOpen = false;
+          otherOptionsDiv.classList.add('hidden');
+          if (otherArrow) otherArrow.style.transform = 'rotate(0deg)';
+          otherBtn.classList.remove('active');
+        }
+      }
+    });
+    
+    // Toggle current dropdown
+    state.isOpen = !state.isOpen;
+    
+    if (state.isOpen) {
+      // Ensure dropdown has content before showing
+      const options = getAvailableOptions(filterType);
+      optionsDiv.innerHTML = createMultiSelectOptions(filterType, options);
+      
+      optionsDiv.classList.remove('hidden');
+      optionsDiv.style.display = 'block';
+      if (arrow) arrow.style.transform = 'rotate(180deg)';
+      btn.classList.add('active');
+    } else {
+      optionsDiv.classList.add('hidden');
+      optionsDiv.style.display = 'none';
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+      btn.classList.remove('active');
+    }
+  }
+
+  function toggleOption(filterType, optionValue) {
+    const state = multiSelectStates[filterType];
+    const index = state.selected.indexOf(optionValue);
+    
+    if (index > -1) {
+      state.selected.splice(index, 1);
+    } else {
+      state.selected.push(optionValue);
+    }
+    
+    
+    // Refresh the current filter's dropdown to show updated checkboxes
+    const options = getAvailableOptions(filterType);
+    const optionsDiv = document.getElementById(`${filterType}SelectOptions`);
+    if (optionsDiv) {
+      optionsDiv.innerHTML = createMultiSelectOptions(filterType, options);
+    }
+    
+    updateFilterDisplay(filterType);
+    
+    // Trigger cascading updates for other filters
+    triggerCascadingUpdate(filterType);
+    
+    updateDashboard();
+  }
+
+  function toggleSelectAll(filterType, allSelected) {
+    const state = multiSelectStates[filterType];
+    
+    if (allSelected) {
+      state.selected = [];
+    } else {
+      const opts = getAvailableOptions(filterType);
+      state.selected = [...opts];
+    }
+    
+    
+    // Refresh the current filter's dropdown to show updated checkboxes
+    const options = getAvailableOptions(filterType);
+    const optionsDiv = document.getElementById(`${filterType}SelectOptions`);
+    if (optionsDiv) {
+      optionsDiv.innerHTML = createMultiSelectOptions(filterType, options);
+    }
+    
+    updateFilterDisplay(filterType);
+    
+    // Trigger cascading updates for other filters
+    triggerCascadingUpdate(filterType);
+    
+    updateDashboard();
+  }
+
+  function updateFilterDisplay(filterType) {
+    const state = multiSelectStates[filterType];
+    const textElement = document.getElementById(filterType + 'SelectText');
+    
+    if (state.selected.length === 0) {
+      textElement.textContent = 'All';
+    } else if (state.selected.length === 1) {
+      textElement.textContent = state.selected[0];
+    } else {
+      textElement.textContent = `${state.selected.length} selected`;
+    }
+  }
+
+  function triggerCascadingUpdate(changedFilterType) {
+    
+    // Update all other filters based on the changed filter
+    Object.keys(multiSelectStates).forEach(filterType => {
+      if (filterType !== changedFilterType) {
+        const options = getAvailableOptions(filterType);
+        const optionsDiv = document.getElementById(filterType + 'SelectOptions');
+        
+        // Remove selections that are no longer available
+        const state = multiSelectStates[filterType];
+        state.selected = state.selected.filter(selected => options.includes(selected));
+        
+        // Update the UI
+        if (optionsDiv) {
+          optionsDiv.innerHTML = createMultiSelectOptions(filterType, options);
+        }
+        updateFilterDisplay(filterType);
+        
+      }
+    });
+  }
+
+  function getFieldForFilter(filterType) {
+    const fieldMap = {
+      'country': 'country',
+      'portfolio': 'portfolio', 
+      'installation': 'installation_type'
+    };
+    return fieldMap[filterType];
+  }
+
+  function getAvailableOptions(filterType) {
+    const field = getFieldForFilter(filterType);
+    if (!field) return [];
+    
+    // Get filtered data based on other active filters
+    let filteredData = mapData;
+    
+    // Apply other filters (cascading logic)
+    Object.keys(multiSelectStates).forEach(key => {
+      if (key !== filterType && multiSelectStates[key].selected.length > 0) {
+        const otherField = getFieldForFilter(key);
+        filteredData = filteredData.filter(r => 
+          multiSelectStates[key].selected.includes(r[otherField])
+        );
+      }
+    });
+    
+    const options = uniqueSorted(filteredData, field);
+    return options;
+  }
+
+  function createMultiSelectOptions(filterType, options) {
+    const state = multiSelectStates[filterType];
+    const allSelected = state.selected.length === options.length;
+    
+    let html = '';
+    
+    // Add "Select All" option
+    html += `
+      <div class="multi-select-option select-all-option ${allSelected ? 'selected' : ''}"
+           data-filter-type="${filterType}" 
+           data-select-all="true" 
+           data-all-selected="${allSelected}">
+        <div class="multi-select-checkbox ${allSelected ? 'checked' : ''}"></div>
+        <span class="multi-select-option-text"><b>Select All</b></span>
+      </div>
+      <div class="multi-select-separator"></div>
+    `;
+    
+    // Add individual options
+    options.forEach(option => {
+      const isSelected = state.selected.includes(option);
+      html += `
+        <div class="multi-select-option ${isSelected ? 'selected' : ''}" 
+             data-filter-type="${filterType}" 
+             data-option-value="${option}">
+          <div class="multi-select-checkbox ${isSelected ? 'checked' : ''}"></div>
+          <span class="multi-select-option-text">${option}</span>
+        </div>
+      `;
+    });
+    
+    return html;
+  }
+
+  function populateAllFilters() {
+    // Populate each filter with available options
+    Object.keys(multiSelectStates).forEach(filterType => {
+      const options = getAvailableOptions(filterType);
+      const optionsDiv = document.getElementById(filterType + 'SelectOptions');
+      
+      // Only update if dropdown is open or if we're initializing
+      if (multiSelectStates[filterType].isOpen || !optionsDiv.innerHTML.includes('multi-select-option')) {
+        optionsDiv.innerHTML = createMultiSelectOptions(filterType, options);
+      }
+    });
+  }
+
+  // Number formatter without K format for KPI cards
+  function fmtNumNoK(num, decimals = 0) {
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+
+  // Number formatter with K format for other uses
+  function fmtNum(num, decimals = 0) {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(decimals) + "K";
+    }
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+
+  // Utility: animated count-up for KPIs
+  function animateCount(elementId, targetValue, decimals = 0, duration = 1200, useKFormat = true) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    let startTime = null;
+    const start = 0;
+    const formatter = useKFormat ? 
+      (v) => fmtNum(v, decimals) : 
+      (v) => fmtNumNoK(v, decimals);
+    
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // easeOutExpo
+      const current = start + eased * (targetValue - start);
+      el.textContent = formatter(current);
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // Helper to get unique, case-insensitive, trimmed values (returns original first occurrence)
+  function uniqueCaseInsensitive(arr) {
+    const map = new Map();
+    for (const val of arr) {
+      if (!val) continue;
+      const norm = val.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!map.has(norm)) {
+        map.set(norm, val.trim());
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  // Helper to get unique, case-insensitive, trimmed values (returns original first occurrence)
+  function uniqueCaseInsensitiveDisplay(arr) {
+    const map = new Map();
+    for (const val of arr) {
+      if (!val) continue;
+      const norm = val.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!map.has(norm)) {
+        map.set(norm, val.trim());
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  // Helper to get grid factor for a country with robust matching
+  function getGridFactor(country) {
+    if (!country) return 0.7; // default factor
+    
+    const normalizedCountry = country.trim().toLowerCase();
+    
+    // Direct match first
+    if (countryGridFactors[country]) {
+      return countryGridFactors[country];
+    }
+    
+    // Case-insensitive match
+    for (const [key, value] of Object.entries(countryGridFactors)) {
+      if (key.toLowerCase() === normalizedCountry) {
+        return value;
+      }
+    }
+    
+    // Handle common variations
+    if (normalizedCountry === 'korea' || normalizedCountry === 'south korea' || normalizedCountry === 's. korea') {
+      return 0.411; // Korea's grid factor
+    }
+    
+    return 0.7; // default factor for unknown countries
+  }
+
+  // Helper to normalize month to YYYY-MM (pads month)
+  function normalizeMonth(val) {
+    if (!val) return '';
+    let v = val.trim();
+    // If already YYYY-MM
+    if (/^\d{4}-\d{1,2}$/.test(v)) {
+      let [y, m] = v.split('-');
+      m = m.padStart(2, '0');
+      return `${y}-${m}`;
+    }
+    // If MM/YYYY or M/YYYY
+    if (/^\d{1,2}\/\d{4}$/.test(v)) {
+      let [m, y] = v.split('/');
+      m = m.padStart(2, '0');
+      return `${y}-${m}`;
+    }
+    // If MonthName-YYYY or MonthName YYYY
+    let match = v.match(/^(\w+)[-\s](\d{4})$/);
+    if (match) {
+      const monthNames = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+      let idx = monthNames.indexOf(match[1].toLowerCase().slice(0,3));
+      if (idx >= 0) {
+        return `${match[2]}-${String(idx+1).padStart(2,'0')}`;
+      }
+    }
+    // If only year, treat as Jan
+    if (/^\d{4}$/.test(v)) {
+      return `${v}-01`;
+    }
+    return v;
+  }
+
+  // Helper to get unique, normalized months, but display as YYYY-MM
+  function uniqueMonthsDisplay(arr) {
+    const map = new Map();
+    for (const val of arr) {
+      if (!val) continue;
+      const norm = normalizeMonth(val);
+      if (!map.has(norm)) {
+        map.set(norm, norm); // always display as YYYY-MM
+      }
+    }
+    return Array.from(map.values());
+  }
+
+  // BestCalendar Component
+  let bestCalendar = null;
+
+  function initializeBestCalendar() {
+    
+    
+    // Check if BestCalendar is available
+    if (typeof BestCalendar === 'undefined') {
+      console.error('BestCalendar is not loaded!');
+      return false;
+    }
+    
+    try {
+      bestCalendar = new BestCalendar({
+        triggerId: 'monthMatrixTrigger',
+        pickerId: 'monthMatrixPicker',
+        labelId: 'selectedMonthLabel',
+        options: {
+          range: true, // Enable range selection
+                      onPeriodChange: function(period) {
+            // Update filters with selected period
+            if (period.month) {
+              filters.selectedMonth = period.month;
+              filters.selectedYear = null; // Clear year when month is selected
+              filters.selectedRange = null; // Clear range when month is selected
+            } else if (period.year) {
+              filters.selectedYear = period.year;
+              filters.selectedMonth = null; // Clear month when year is selected
+              filters.selectedRange = null; // Clear range when year is selected
+            } else if (period.range && period.range.start && period.range.end) {
+              // Handle range selection
+              filters.selectedMonth = null;
+              filters.selectedYear = null;
+              filters.selectedRange = period.range;
+            }
+            updateDashboard();
+          }
+        }
+      });
+
+      // Create data array for bestcalendar from solarData
+      const availableMonths = [...new Set(solarData.map(row => row.month).filter(Boolean))].sort();
+
+      let convertedMonths = [];
+      if (availableMonths.length > 0) {
+        const firstMonth = availableMonths[0];
+        if (firstMonth.includes('-')) {
+          if (/^\d{4}-\d{2}$/.test(firstMonth)) {
+            convertedMonths = availableMonths;
+          } else {
+            convertedMonths = availableMonths.map(monthStr => {
+              const [year, month] = monthStr.split('-');
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const monthIndex = monthNames.indexOf(month);
+              const fullYear = '20' + year;
+              const monthNum = String(monthIndex + 1).padStart(2, '0');
+              return `${fullYear}-${monthNum}`;
+            });
+          }
+        } else {
+          convertedMonths = availableMonths;
+        }
+      }
+
+
+      bestCalendar.setData(convertedMonths.map(month => ({ month, value: 1 })));
+
+      // Position the calendar container properly
+      const container = document.getElementById('calendarContainer');
+      const trigger = document.getElementById('monthMatrixTrigger');
+      
+      if (container && trigger) {
+        // Position the container relative to the trigger
+        const triggerRect = trigger.getBoundingClientRect();
+        container.style.position = 'fixed';
+        container.style.top = (triggerRect.bottom + 5) + 'px';
+        container.style.left = Math.max(10, triggerRect.left) + 'px';
+        container.style.zIndex = '999999';
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error initializing BestCalendar:', error);
+      return false;
+    }
+  }
+
+  // Fallback month picker if BestCalendar fails to render
+  function createFallbackMonthPicker() {
+    const trigger = document.getElementById('monthMatrixTrigger');
+    const picker = document.getElementById('monthMatrixPicker');
+    
+    if (!trigger || !picker) { 
+      console.error('Trigger or picker elements not found');
+      return; 
+    }
+    
+    const availableMonths = [...new Set(solarData.map(row => row.month).filter(Boolean))].sort();
+
+    
+    if (availableMonths.length === 0) { 
+      console.error('No available months found');
+      return; 
+    }
+    
+    // Create simple dropdown with month/year/range tabs
+    picker.innerHTML = `
+      <div style="padding: 20px; background: white; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); min-width: 280px;">
+        <!-- Tabs -->
+        <div style="display: flex; justify-content: space-around; margin-bottom: 16px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">
+          <button id="monthTabBtn" class="tab-btn active" style="border: none; background: none; padding: 8px 16px; cursor: pointer; font-size: 14px; color: #0072CE; font-weight: bold; border-bottom: 2px solid #0072CE;">Month</button>
+          <button id="yearTabBtn" class="tab-btn" style="border: none; background: none; padding: 8px 16px; cursor: pointer; font-size: 14px; color: #666; font-weight: 500;">Year</button>
+          <button id="rangeTabBtn" class="tab-btn" style="border: none; background: none; padding: 8px 16px; cursor: pointer; font-size: 14px; color: #666; font-weight: 500;">Range</button>
+        </div>
+        
+        <!-- Month View -->
+        <div id="monthView" class="picker-view active" style="display: block;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
+            ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((month, index) => {
+              const monthNum = String(index + 1).padStart(2, '0');
+              const monthStr = `2025-${monthNum}`;
+              const isAvailable = availableMonths.includes(monthStr);
+              const style = isAvailable ? 
+                'padding: 8px 4px; text-align: center; border: 1px solid #0072CE; border-radius: 4px; cursor: pointer; font-size: 12px; background: #0072CE; color: white;' :
+                'padding: 8px 4px; text-align: center; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 12px; background: #f5f5f5; color: #ccc; cursor: not-allowed;';
+              return `<div class="month-cell" data-month="${monthStr}" style="${style}" ${isAvailable ? 'onclick="selectMonth(\'' + monthStr + '\')"' : ''}>${month}</div>`;
+            }).join('')}
+          </div>
+        </div>
+        
+        <!-- Year View -->
+        <div id="yearView" class="picker-view" style="display: none;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            ${[...new Set(availableMonths.map(m => m.split('-')[0]))].sort().map(year => 
+              `<div class="year-cell" data-year="${year}" style="padding: 12px 8px; text-align: center; border: 1px solid #e0e0e0; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; background: white; color: #333;" onclick="selectYear('${year}')">${year}</div>`
+            ).join('')}
+          </div>
+        </div>
+        
+        <!-- Range View -->
+        <div id="rangeView" class="picker-view" style="display: none;">
+          <div style="text-align: center; color: #666; font-size: 12px; margin-bottom: 8px;">
+            Select start and end months
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
+            ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((month, index) => {
+              const monthNum = String(index + 1).padStart(2, '0');
+              const monthStr = `2025-${monthNum}`;
+              const isAvailable = availableMonths.includes(monthStr);
+              const style = isAvailable ? 
+                'padding: 8px 4px; text-align: center; border: 1px solid #0072CE; border-radius: 4px; cursor: pointer; font-size: 12px; background: white; color: #333;' :
+                'padding: 8px 4px; text-align: center; border: 1px solid #e0e0e0; border-radius: 4px; font-size: 12px; background: #f5f5f5; color: #ccc; cursor: not-allowed;';
+              return `<div class="range-month-cell" data-month="${monthStr}" style="${style}" ${isAvailable ? 'onclick="selectRangeMonth(\'' + monthStr + '\')"' : ''}>${month}</div>`;
+            }).join('')}
+          </div>
+          <div id="rangeInfo" style="margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 12px; text-align: center; color: #999;">
+            Select start month
+          </div>
+        </div>
+        
+        <!-- Close button -->
+        <div style="margin-top: 16px; text-align: right;">
+          <button id="closePickerBtn" style="padding: 6px 12px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; cursor: pointer; font-size: 12px;">Close</button>
+        </div>
+      </div>
+    `;
+    
+    // Add tab switching functionality
+    document.getElementById('monthTabBtn').onclick = () => switchTab('month');
+    document.getElementById('yearTabBtn').onclick = () => switchTab('year');
+    document.getElementById('rangeTabBtn').onclick = () => switchTab('range');
+    document.getElementById('closePickerBtn').onclick = () => {
+      // Use BestCalendar's hide method if available, otherwise use custom hide
+      if (bestCalendar && typeof bestCalendar.hidePicker === 'function') {
+        bestCalendar.hidePicker();
+      } else {
+        hideCalendar();
+      }
+    };
+    
+    // Ensure the calendar trigger works with the fallback
+    setupCalendarTrigger();
+  }
+
+  // Tab switching function
+  function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active');
+      btn.style.color = '#666';
+      btn.style.fontWeight = '500';
+      btn.style.borderBottom = 'none';
+    });
+    
+    const activeBtn = document.getElementById(tabName + 'TabBtn');
+    if (activeBtn) {
+      activeBtn.classList.add('active');
+      activeBtn.style.color = '#0072CE';
+      activeBtn.style.fontWeight = 'bold';
+      activeBtn.style.borderBottom = '2px solid #0072CE';
+    }
+    
+    // Update views
+    document.querySelectorAll('.picker-view').forEach(view => {
+      view.style.display = 'none';
+    });
+    
+    const activeView = document.getElementById(tabName + 'View');
+    if (activeView) {
+      activeView.style.display = 'block';
+    }
+  }
+
+  // Selection functions - Made global so they can be called from onclick handlers
+  window.selectMonth = function(month) {
+    filters.selectedMonth = month;
+    filters.selectedYear = null;
+    filters.selectedRange = null;
+    document.getElementById('selectedMonthLabel').textContent = formatMonthLabel(month);
+    
+    // Use BestCalendar's hide method if available, otherwise use custom hide
+    if (bestCalendar && typeof bestCalendar.hidePicker === 'function') {
+      bestCalendar.hidePicker();
+    } else {
+      hideCalendar();
+    }
+    updateDashboard();
+  };
+
+  window.selectYear = function(year) {
+    filters.selectedYear = year;
+    filters.selectedMonth = null;
+    filters.selectedRange = null;
+    document.getElementById('selectedMonthLabel').textContent = year + ' (Year)';
+    
+    // Use BestCalendar's hide method if available, otherwise use custom hide
+    if (bestCalendar && typeof bestCalendar.hidePicker === 'function') {
+      bestCalendar.hidePicker();
+    } else {
+      hideCalendar();
+    }
+    updateDashboard();
+  };
+
+  let rangeStart = null;
+  let rangeEnd = null;
+
+  window.selectRangeMonth = function(month) {
+    if (!rangeStart) {
+      rangeStart = month;
+      document.getElementById('rangeInfo').textContent = 'Start: ' + formatMonthLabel(month) + ' - Select end month';
+      document.getElementById('rangeInfo').style.color = '#666';
+    } else if (!rangeEnd) {
+      rangeEnd = month;
+      if (rangeStart > rangeEnd) {
+        [rangeStart, rangeEnd] = [rangeEnd, rangeStart];
+      }
+      filters.selectedRange = { start: rangeStart, end: rangeEnd };
+      filters.selectedMonth = null;
+      filters.selectedYear = null;
+      document.getElementById('selectedMonthLabel').textContent = formatMonthLabel(rangeStart) + ' - ' + formatMonthLabel(rangeEnd);
+      
+      // Use BestCalendar's hide method if available, otherwise use custom hide
+      if (bestCalendar && typeof bestCalendar.hidePicker === 'function') {
+        bestCalendar.hidePicker();
+      } else {
+        hideCalendar();
+      }
+
+      rangeStart = null;
+      rangeEnd = null;
+      updateDashboard();
+    }
+  };
+
+  window.formatMonthLabel = function(monthStr) {
+    if (!monthStr) return '';
+    const [year, month] = monthStr.split('-');
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return monthNames[parseInt(month) - 1] + ' ' + year;
+  };
+
+
+  // Load sample data
+  async function loadSampleData() {
+    try {
+      const { solarSample, mapSample } = generateSampleData();
+      
+      solarData = solarSample;
+      mapData = mapSample;
+      
+      checkEnableFilters();
+      populateFilters();
+      updateDashboard();
+      
+    } catch (error) {
+      console.error('Error loading sample data:', error);
+    }
+  }
+
+  // Load data from Django view
+  function loadCSVFiles() {
+    {% if error_message %}
+      console.error('Error loading sales data:', '{{ error_message }}');
+    {% elif yield_data_json|length > 0 and map_data_json|length > 0 %}
+      // Load solar data from Django view
+      const solarDataRaw = {{ yield_data_json|safe }};
+      solarData = processSolarData(solarDataRaw);
+      
+      // Load map data from Django view
+      const mapDataRaw = {{ map_data_json|safe }};
+      mapData = processMapData(mapDataRaw);
+      
+      checkAllDataLoaded();
+    {% else %}
+      console.error('No sales data available');
+    {% endif %}
+  }
+
+  // Check if all data is loaded and update dashboard
+  function checkAllDataLoaded() {
+    if (solarData.length > 0 && mapData.length > 0) {
+      checkEnableFilters();
+      populateFilters();
+      updateDashboard();
+    }
+  }
+
+  // Process solar data with robust parsing (now also includes export_energy)
+  function processSolarData(data) {
+    return data.map((row, idx) => {
+      const cleaned = {};
+      for (let key in row) {
+        const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, "_");
+        cleaned[normalizedKey] = typeof row[key] === "string" ? row[key].trim() : row[key];
+      }
+      // Normalize common field names
+      cleaned.assetno = cleaned.asset_no || cleaned.assetno || cleaned["asset_no"];
+      cleaned.country = cleaned.country || cleaned.country_name || cleaned["country"];
+      cleaned.portfolio = cleaned.portfolio || cleaned.portfolio_name || cleaned["portfolio"];
+      cleaned.month = cleaned.month || cleaned.month_name || cleaned["month"];
+      cleaned.date = cleaned.date || cleaned.date_time || cleaned["date"];
+      cleaned.actual_generation = cleaned.actual_generation || cleaned.generation || cleaned["actual_generation"] || 0;
+      // Use bess_generation_mwh for export_energy
+      cleaned.export_energy = cleaned.bess_generation_mwh || cleaned["bess_generation_mwh"] || 0;
+      return cleaned;
+    });
+  }
+
+  // Process map data with robust parsing
+  function processMapData(data) {
+    return data.map((row, idx) => {
+      const cleaned = {};
+      for (let key in row) {
+        const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, "_");
+        cleaned[normalizedKey] = typeof row[key] === "string" ? row[key].trim() : row[key];
+      }
+      
+      // Normalize common field names
+      cleaned.asset_no = cleaned.asset_no || cleaned.assetno || cleaned["asset_no"];
+      cleaned.country = cleaned.country || cleaned.country_name || cleaned["country"];
+      cleaned.portfolio = cleaned.portfolio || cleaned.portfolio_name || cleaned["portfolio"];
+      cleaned.plant_type = cleaned.plant_type || cleaned.planttype || cleaned["plant_type"];
+      cleaned.installation_type = cleaned.installation_type || cleaned.installationtype || cleaned["installation_type"];
+      cleaned.dc_capacity_mwp = cleaned.dc_capacity_mwp || cleaned.dc_capacity || cleaned["dc_capacity_mwp"] || 0;
+      cleaned.battery_capacity_mw = cleaned.battery_capacity_mw || cleaned.battery_capacity || cleaned["battery_capacity_mw"] || 0;
+      
+      return cleaned;
+    });
+  }
+
+  // Process files from folder input (kept for compatibility)
+  async function processFiles(files) {
+    const fileMap = new Map();
+    
+    // Categorize files by name
+    for (let file of files) {
+      const fileName = file.name.toLowerCase();
+      if (fileName.includes('yield') || fileName.includes('solar')) {
+        fileMap.set('solar', file);
+      } else if (fileName.includes('map') || fileName.includes('asset')) {
+        fileMap.set('map', file);
+      }
+    }
+
+    // Process each file
+    try {
+      if (fileMap.has('solar')) {
+        const file = fileMap.get('solar');
+        Papa.parse(file, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: function (results) {
+            solarData = processSolarData(results.data);
+            checkEnableFilters();
+            populateFilters();
+            updateDashboard();
+          }
+        });
+      }
+      
+      if (fileMap.has('map')) {
+        const file = fileMap.get('map');
+        Papa.parse(file, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: function (results) {
+            mapData = processMapData(results.data);
+            checkEnableFilters();
+            populateFilters();
+            updateDashboard();
+          }
+        });
+        }
+
+} catch (error) {
+      console.error('Error processing files:', error);
+    }
+  }
+
+  // On file uploads (kept for compatibility)
+  solarFileInput.addEventListener('change', async e => {
+    if (!e.target.files.length) return;
+    const file = e.target.files[0];
+    Papa.parse(file, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        solarData = processSolarData(results.data);
+        checkEnableFilters();
+        populateFilters();
+        updateDashboard();
+      }
+    });
+  });
+
+  mapFileInput.addEventListener('change', async e => {
+    if (!e.target.files.length) return;
+    const file = e.target.files[0];
+    Papa.parse(file, {
+      header: true,
+      dynamicTyping: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        mapData = processMapData(results.data);
+        checkEnableFilters();
+        populateFilters();
+        updateDashboard();
+      }
+    });
+  });
+
+  // Auto-load CSV files when page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCSVFiles();
+    setupCalendarTrigger(); // Setup calendar trigger event handlers
+    
+    // Initialize BestCalendar if available
+    if (typeof BestCalendar !== 'undefined') {
+  
+    }
+    
+    // Use BestCalendar's native toggle method
+    const triggerBtn = document.querySelector("#monthMatrixTrigger");
+    
+    if (triggerBtn && bestCalendar) {
+      triggerBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+
+        if (bestCalendar && typeof bestCalendar.togglePicker === 'function') {
+          bestCalendar.togglePicker(); // native method
+        }
+      });
+    }
+  });
+
+  // Enable filters only when both files loaded
+  function checkEnableFilters() {
+    const ready = solarData.length > 0 && mapData.length > 0;
+    
+    // Enable/disable multi-select buttons
+    countrySelectBtn.disabled = !ready;
+    portfolioSelectBtn.disabled = !ready;
+    installationSelectBtn.disabled = !ready;
+    
+    // Enable BestCalendar when data is ready
+    const monthTrigger = document.getElementById('monthMatrixTrigger');
+    if (monthTrigger) {
+      monthTrigger.disabled = !ready;
+      if (ready) {
+        monthTrigger.style.cursor = 'pointer';
+        monthTrigger.style.opacity = '1';
+      } else {
+        monthTrigger.style.cursor = 'not-allowed';
+        monthTrigger.style.opacity = '0.5';
+      }
+    }
+  }
+
+  // Populate filters dynamically from loaded data
+  function populateFilters() {
+    if (!solarData.length || !mapData.length) return;
+    
+    
+    // Initialize multi-select filters
+    populateAllFilters();
+    
+    // Initialize BestCalendar with available data if not already initialized
+    if (!bestCalendar && typeof BestCalendar !== 'undefined') {
+      try {
+        bestCalendar = new BestCalendar({
+          triggerId: 'monthMatrixTrigger',
+          pickerId: 'monthMatrixPicker',
+          labelId: 'selectedMonthLabel',
+          options: {
+            range: true,
+            onPeriodChange: function(period) {
+              if (period.month) {
+                filters.selectedMonth = period.month;
+                filters.selectedYear = null;
+                filters.selectedRange = null;
+              } else if (period.year) {
+                filters.selectedYear = period.year;
+                filters.selectedMonth = null;
+                filters.selectedRange = null;
+              } else if (period.range && period.range.start && period.range.end) {
+                filters.selectedMonth = null;
+                filters.selectedYear = null;
+                filters.selectedRange = period.range;
+              }
+              updateDashboard();
+            }
+          }
+        });
+
+        // Override BestCalendar's showPicker and hidePicker methods to handle the container
+        const originalShowPicker = bestCalendar.showPicker;
+        const originalHidePicker = bestCalendar.hidePicker;
+        const originalTogglePicker = bestCalendar.togglePicker;
+        
+        bestCalendar.showPicker = function() {
+          const container = document.getElementById('calendarContainer');
+          const picker = document.getElementById('monthMatrixPicker');
+          const trigger = document.getElementById('monthMatrixTrigger');
+          
+          if (container && trigger) {
+            // Move container to document body to escape stacking context
+            if (container.parentNode !== document.body) {
+              document.body.appendChild(container);
+            }
+            
+            // Position relative to trigger button
+            const triggerRect = trigger.getBoundingClientRect();
+            container.style.position = 'fixed';
+            container.style.top = (triggerRect.bottom + 5) + 'px';
+            container.style.left = Math.max(10, triggerRect.left) + 'px';
+            container.style.zIndex = '2147483647';
+            container.style.display = 'block';
+          }
+          
+          if (picker) {
+            picker.classList.add('bc-visible');
+          }
+          
+          originalShowPicker.call(this);
+        };
+        
+        bestCalendar.hidePicker = function() {
+          const container = document.getElementById('calendarContainer');
+          const picker = document.getElementById('monthMatrixPicker');
+          const filterPeriod = document.querySelector('.filter-period');
+          
+          if (container) {
+            container.style.display = 'none';
+            
+            // Move container back to its original position
+            if (container.parentNode === document.body && filterPeriod) {
+              filterPeriod.appendChild(container);
+              container.style.position = 'absolute';
+              container.style.top = '100%';
+              container.style.left = '0';
+            }
+          }
+          
+          if (picker) {
+            picker.classList.remove('bc-visible');
+          }
+          
+          originalHidePicker.call(this);
+        };
+        
+        bestCalendar.togglePicker = function() {
+          const container = document.getElementById('calendarContainer');
+          if (container) {
+            const isHidden = container.style.display === 'none';
+            if (isHidden) {
+              this.showPicker();
+            } else {
+              this.hidePicker();
+            }
+          } else {
+            originalTogglePicker.call(this);
+          }
+        };
+
+        // Set data for the calendar
+        const availableMonths = [...new Set(solarData.map(row => row.month).filter(Boolean))].sort();
+        let convertedMonths = [];
+        if (availableMonths.length > 0) {
+          convertedMonths = availableMonths.map(monthStr => {
+            if (monthStr.includes('-')) {
+              const [year, month] = monthStr.split('-');
+              if (year.length === 2) {
+                return `20${year}-${month.padStart(2, '0')}`;
+              }
+              return monthStr;
+            }
+            return monthStr;
+          });
+        }
+        
+        bestCalendar.setData(convertedMonths.map(month => ({ month, value: 1 })));
+
+        // Ensure the calendar container is properly set up for BestCalendar
+        const container = document.getElementById('calendarContainer');
+        if (container) {
+          container.style.display = 'none'; // Start hidden
+        }
+        
+        // Test if BestCalendar can render content
+        const picker = document.getElementById('monthMatrixPicker');
+        if (picker) {
+          // BestCalendar is ready
+        }
+      } catch (error) {
+        console.error('Error initializing BestCalendar:', error);
+        createFallbackMonthPicker();
+      }
+    } else {
+      console.error('BestCalendar not available, using fallback');
+      createFallbackMonthPicker();
+    }
+  }
+
+  // Event handlers for multi-select buttons
+  function setupEventListeners() {
+    const countrySelectBtn = document.getElementById('countrySelectBtn');
+    const portfolioSelectBtn = document.getElementById('portfolioSelectBtn');
+    const installationSelectBtn = document.getElementById('installationSelectBtn');
+
+    if (countrySelectBtn) {
+      countrySelectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown('country');
+      });
+    }
+
+    if (portfolioSelectBtn) {
+      portfolioSelectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown('portfolio');
+      });
+    }
+
+    if (installationSelectBtn) {
+      installationSelectBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown('installation');
+      });
+    }
+  }
+
+  // Initial setup
+  setupEventListeners();
+
+  // Global event delegation for multi-select options
+  document.addEventListener('click', (e) => {
+    const option = e.target.closest('.multi-select-option');
+    if (option) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const filterType = option.dataset.filterType;
+      const isSelectAll = option.dataset.selectAll === 'true';
+      
+      
+      if (isSelectAll) {
+        const allSelected = option.dataset.allSelected === 'true';
+        toggleSelectAll(filterType, allSelected);
+      } else {
+        const optionValue = option.dataset.optionValue;
+        if (optionValue) {
+          toggleOption(filterType, optionValue);
+        }
+      }
+    }
+  });
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.multi-select-container')) {
+      Object.keys(multiSelectStates).forEach(filterType => {
+        const state = multiSelectStates[filterType];
+        if (state.isOpen) {
+          const optionsDiv = document.getElementById(filterType + 'SelectOptions');
+          const arrow = optionsDiv.previousElementSibling.querySelector('.multi-select-arrow');
+          const btn = document.getElementById(filterType + 'SelectBtn');
+          
+          state.isOpen = false;
+          optionsDiv.classList.add('hidden');
+          arrow.style.transform = 'rotate(0deg)';
+          btn.classList.remove('active');
+        }
+      });
+    }
+  });
+
+  // Helper to filter assets by installation type, country, portfolio
+  function filterAssets() {
+    return mapData.filter(a => {
+      // Check country filter
+      if (multiSelectStates.country.selected.length > 0 && 
+          !multiSelectStates.country.selected.includes(a.country)) return false;
+      
+      // Check portfolio filter
+      if (multiSelectStates.portfolio.selected.length > 0 && 
+          !multiSelectStates.portfolio.selected.includes(a.portfolio)) return false;
+      
+      // Check installation type filter
+      if (multiSelectStates.installation.selected.length > 0 && 
+          !multiSelectStates.installation.selected.includes(a.installation_type)) return false;
+      
+      return true;
+    });
+  }
+
+  // Reset all filters to default state
+  function resetFilters() {
+    try {
+      // Close all dropdowns
+      Object.keys(multiSelectStates).forEach(filterType => {
+        const dropdown = document.getElementById(`${filterType}SelectOptions`);
+        const button = document.getElementById(`${filterType}SelectBtn`);
+        const arrow = button?.querySelector('.multi-select-arrow');
+        
+        if (dropdown) {
+          dropdown.classList.add('hidden');
+          dropdown.style.display = 'none';
+        }
+        
+        if (arrow) {
+          arrow.style.transform = 'rotate(0deg)';
+        }
+        
+        if (button) {
+          button.classList.remove('active');
+        }
+      });
+      
+      // Reset all multi-select states
+      Object.keys(multiSelectStates).forEach(filterType => {
+        multiSelectStates[filterType].selected = [];
+        multiSelectStates[filterType].isOpen = false;
+      });
+      
+      // Reset period selection to default
+      const monthLabel = document.getElementById('selectedMonthLabel');
+      if (monthLabel) {
+        monthLabel.textContent = 'Select Period';
+      }
+      
+      // Clear all period-related filters
+      if (typeof filters !== 'undefined') {
+        filters.selectedMonth = null;
+        filters.selectedYear = null;
+        filters.selectedRange = null;
+      }
+      
+      // Hide calendar if open
+      const calendarContainer = document.getElementById('calendarContainer');
+      if (calendarContainer) {
+        calendarContainer.style.display = 'none';
+      }
+      
+      // Try to reset calendar if available
+      if (window.bestCalendar && typeof window.bestCalendar.reset === 'function') {
+        window.bestCalendar.reset();
+      }
+      
+      // Update filter displays
+      Object.keys(multiSelectStates).forEach(filterType => {
+        updateFilterDisplay(filterType);
+      });
+      
+      // Refresh all filter options
+      populateAllFilters();
+      
+      // Update dashboard with reset data
+      updateDashboard();
+      
+      // Re-attach event listeners to ensure they work after reset
+      reattachEventListeners();
+      
+    } catch (error) {
+      console.error('Error in resetFilters:', error);
+    }
+  }
+
+  // Re-attach event listeners for multi-select buttons
+  function reattachEventListeners() {
+    const countrySelectBtn = document.getElementById('countrySelectBtn');
+    const portfolioSelectBtn = document.getElementById('portfolioSelectBtn');
+    const installationSelectBtn = document.getElementById('installationSelectBtn');
+
+    // Clone and replace buttons to remove all event listeners
+    if (countrySelectBtn) {
+      const newCountryBtn = countrySelectBtn.cloneNode(true);
+      countrySelectBtn.parentNode.replaceChild(newCountryBtn, countrySelectBtn);
+      newCountryBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown('country');
+      });
+    }
+
+    if (portfolioSelectBtn) {
+      const newPortfolioBtn = portfolioSelectBtn.cloneNode(true);
+      portfolioSelectBtn.parentNode.replaceChild(newPortfolioBtn, portfolioSelectBtn);
+      newPortfolioBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown('portfolio');
+      });
+    }
+
+    if (installationSelectBtn) {
+      const newInstallationBtn = installationSelectBtn.cloneNode(true);
+      installationSelectBtn.parentNode.replaceChild(newInstallationBtn, installationSelectBtn);
+      newInstallationBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdown('installation');
+      });
+    }
+  }
+
+  // Make resetFilters globally accessible
+  window.resetFilters = resetFilters;
+
+  // Main dashboard update logic
+  function updateDashboard() {
+    if (!solarData.length || !mapData.length) return;
+    
+
+    // Filter solarData by country, portfolio, selected month/year (use yield data as primary source)
+    let solarFiltered = solarData.filter(r => {
+      // Check country filter
+      if (multiSelectStates.country.selected.length > 0 && 
+          !multiSelectStates.country.selected.includes(r.country)) return false;
+      
+      // Check portfolio filter
+      if (multiSelectStates.portfolio.selected.length > 0 && 
+          !multiSelectStates.portfolio.selected.includes(r.portfolio)) return false;
+      
+      // Month/Year/Range filtering
+      if (filters.selectedMonth) {
+        const recordMonth = r.month || r.Month;
+        if (recordMonth !== filters.selectedMonth) return false;
+      } else if (filters.selectedYear) {
+        const recordMonth = r.month || r.Month;
+        if (recordMonth) {
+          // Handle different month formats: "2025-01", "January", "Jan 2025", etc.
+          let year = null;
+          
+          // Try YYYY-MM format first
+          if (recordMonth.includes('-')) {
+            const parts = recordMonth.split('-');
+            if (parts.length >= 2) {
+              year = parseInt(parts[0]);
+            }
+          }
+          // Try month name with year format
+          else if (recordMonth.match(/\d{4}/)) {
+            year = parseInt(recordMonth.match(/\d{4}/)[0]);
+          }
+          
+          // Convert filters.selectedYear to number for comparison
+          const selectedYear = parseInt(filters.selectedYear);
+          if (year && year !== selectedYear) return false;
+        }
+      } else if (filters.selectedRange && filters.selectedRange.start && filters.selectedRange.end) {
+        const recordMonth = r.month || r.Month;
+        if (recordMonth) {
+          // Handle different month formats and check if within range
+          let monthValue = null;
+          
+          // Try YYYY-MM format first
+          if (recordMonth.includes('-')) {
+            const parts = recordMonth.split('-');
+            if (parts.length >= 2) {
+              const year = parts[0];
+              const month = parts[1];
+              if (year.length === 4 && month.length <= 2) {
+                monthValue = `${year}-${month.padStart(2, '0')}`;
+              }
+            }
+          }
+          
+          // Check if month is within the selected range
+          if (monthValue && (monthValue < filters.selectedRange.start || monthValue > filters.selectedRange.end)) {
+            return false;
+          }
+        }
+      }
+      
+      return true;
+    });
+    
+    // Filter assets for capacities (use map data only for capacity calculations)
+    const filteredAssets = filterAssets();
+    
+
+    
+    // Solar Energy: sum actual_generation with consistent rounding
+    const solarEnergy = Math.round(solarFiltered.reduce((sum, r) => sum + (parseFloat(r.actual_generation) || 0), 0) * 100) / 100;
+    // BESS energy: sum of export_energy (now in MWh, no division)
+    const bessEnergy = solarFiltered.reduce((sum, r) => sum + (parseFloat(r.export_energy) || 0), 0);
+    // Total solar assets count (unique)
+    const solarAssets = new Set(solarFiltered.map(r => r.assetno || r.asset_no || r['asset_no']));
+    const solarAssetsCount = solarAssets.size;
+    
+    // Get latest month from filtered data for capacity calculations
+    const latestMonth = solarFiltered.length > 0 
+      ? solarFiltered.map(r => r.month || r.Month).filter(Boolean).sort().pop()
+      : null;
+    
+    // Filter to latest month only for capacity calculations
+    const latestMonthData = latestMonth 
+      ? solarFiltered.filter(r => (r.month || r.Month) === latestMonth)
+      : solarFiltered;
+    
+    // Get unique assets from latest month and sum their capacities
+    const assetCapacityMap = new Map();
+    latestMonthData.forEach(r => {
+      const assetId = r.assetno || r.asset_no || r['asset_no'];
+      if (assetId && !assetCapacityMap.has(assetId)) {
+        assetCapacityMap.set(assetId, {
+          dcCapacity: parseFloat(r.dc_capacity_mw) || 0,
+          bessCapacity: parseFloat(r.bess_capacity_mwh) || 0
+        });
+      }
+    });
+    
+    // Sum capacities from unique assets only
+    let solarDcCapacity = 0;
+    let bessCapacity = 0;
+    assetCapacityMap.forEach(asset => {
+      solarDcCapacity += asset.dcCapacity;
+      bessCapacity += asset.bessCapacity;
+    });
+    // Environmental KPIs
+    const totalEnergy = solarEnergy + bessEnergy;
+    // Improved CO2 calculation: use country-specific grid factor for each country if no country is selected
+    let co2Saved = 0;
+    if (multiSelectStates.country.selected.length === 1) {
+      // Single country selected, use its grid factor
+      let gridFactor = getGridFactor(multiSelectStates.country.selected[0]);
+      gridFactor = gridFactor * 1000 / 1000; // tons CO2/MWh
+      co2Saved = totalEnergy * gridFactor;
+    } else {
+      // No country selected: sum for each country in filtered data
+      // For solar
+      const solarByCountry = {};
+      solarFiltered.forEach(r => {
+        const country = r.country || r.Country || 'Unknown';
+        const gen = parseFloat(r.actual_generation) || 0;
+        if (!solarByCountry[country]) solarByCountry[country] = 0;
+        solarByCountry[country] += gen;
+      });
+      // For BESS (from export_energy in yield.csv)
+      const bessByCountry = {};
+      solarFiltered.forEach(r => {
+        const country = r.country || r.Country || 'Unknown';
+        const gen = (parseFloat(r.export_energy) || 0) / 1000;
+        if (!bessByCountry[country]) bessByCountry[country] = 0;
+        bessByCountry[country] += gen;
+      });
+      // Merge all countries
+      const allCountries = new Set([...Object.keys(solarByCountry), ...Object.keys(bessByCountry)]);
+      allCountries.forEach(country => {
+        const energy = (solarByCountry[country] || 0) + (bessByCountry[country] || 0);
+        let gridFactor = getGridFactor(country) * 1000 / 1000;
+        co2Saved += energy * gridFactor;
+      });
+    }
+    const treesSaved = co2Saved / 0.021;
+    // Update KPIs UI with animation
+    animateCount('solarEnergyValue', solarEnergy, 0, 1200, false); // No K format
+    animateCount('bessEnergyValue', bessEnergy, 0, 1200, false); // No K format
+    animateCount('totalCO2Value', co2Saved, 0);
+    animateCount('treesSavedValue', treesSaved, 0);
+    animateCount('solarAssetsCountValue', solarAssetsCount, 0);
+    animateCount('solarDcCapacityValue', solarDcCapacity, 1);
+    animateCount('bessCapacityValue', bessCapacity, 1);
+
+    // Generate dynamic insights
+    const insightBox = document.getElementById('insightBox');
+    if (insightBox) {
+      insightBox.innerHTML = `
+        <div style="padding: 10px; background: linear-gradient(135deg, #e0f7fa, #f1f8e9); border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.08); font-size: 12px;">
+          🌞 Solar generation reached <b>${fmtNumNoK(solarEnergy, 0)} MWh</b>, equivalent to saving <b>${fmtNum(treesSaved,0)} trees</b>.
+          ${bessEnergy > 0 ? `<br/>🔋 BESS discharged <b>${fmtNumNoK(bessEnergy, 0)} MWh</b> of clean energy.` : ''}
+          <br/>🌱 Total CO₂ emissions saved: <b>${fmtNum(co2Saved, 0)} tons</b>.
+        </div>
+      `;
+    }
+    // Prepare chart data by date (solar + bess)
+    const dateSet = new Set();
+    solarFiltered.forEach(r => dateSet.add(r.Date || r.date));
+    const dates = [...dateSet].sort((a,b) => new Date(a) - new Date(b));
+    // Sum solar and bess per date
+    const solarByDate = {};
+    solarFiltered.forEach(r => {
+      const d = r.Date || r.date;
+      solarByDate[d] = (solarByDate[d] || 0) + (parseFloat(r.actual_generation) || 0);
+    });
+    const bessByDate = {};
+    solarFiltered.forEach(r => {
+      const d = r.Date || r.date;
+      bessByDate[d] = (bessByDate[d] || 0) + (parseFloat(r.export_energy) || 0)/1000;
+    });
+    // Calculate monthly CO2 emissions and trees saved, and also solar/bess generation
+    const monthlyData = {};
+    
+
+    
+    // Group data by month (YYYY-MM format for consistent sorting)
+    solarFiltered.forEach(r => {
+      let monthKey = r.month || r.Month || 'Unknown';
+      
+      // Convert month to YYYY-MM format if it's not already
+      if (monthKey !== 'Unknown') {
+        // Handle different month formats
+        if (monthKey.includes('-')) {
+          // Already in YYYY-MM format or similar
+          const parts = monthKey.split('-');
+          if (parts.length >= 2) {
+            const year = parts[0];
+            const month = parts[1];
+            // Check if it's already in YYYY-MM format
+            if (year.length === 4 && month.length <= 2) {
+              monthKey = `${year}-${month.padStart(2, '0')}`;
+            } else {
+              // Handle "25-Jan" format
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const monthIndex = monthNames.indexOf(month);
+              if (monthIndex !== -1) {
+                const fullYear = '20' + year;
+                const monthNum = String(monthIndex + 1).padStart(2, '0');
+                monthKey = `${fullYear}-${monthNum}`;
+              }
+            }
+          }
+        } else {
+          // Try to parse as date if it's a date string
+          const date = new Date(monthKey);
+          if (!isNaN(date.getTime())) {
+            monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          }
+        }
+      }
+      
+      // Process all records - include invalid months in "Unknown" category
+      if (monthKey === 'Unknown' || !monthKey.match(/^\d{4}-\d{2}$/)) {
+        monthKey = 'Unknown';
+      }
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = {
+          solarEnergy: 0,
+          bessEnergy: 0,
+          totalEnergy: 0,
+          co2Saved: 0,
+          treesSaved: 0
+        };
+      }
+      monthlyData[monthKey].solarEnergy += Math.round((parseFloat(r.actual_generation) || 0) * 100) / 100;
+      monthlyData[monthKey].bessEnergy += Math.round((parseFloat(r.export_energy) || 0) * 100) / 100;
+    });
+    
+
+    
+    // Calculate CO2 and trees saved for each month
+    Object.keys(monthlyData).forEach(month => {
+      const data = monthlyData[month];
+      data.totalEnergy = data.solarEnergy + data.bessEnergy;
+      
+      // Improved: for each month, if country is selected use its grid factor, else sum by country
+      if (multiSelectStates.country.selected.length === 1) {
+        let gridFactor = getGridFactor(multiSelectStates.country.selected[0]) * 1000 / 1000;
+        data.co2Saved = data.totalEnergy * gridFactor;
+      } else {
+        // No country selected: sum for each country in this month's data
+        let co2Sum = 0;
+        
+        // Get records for this month
+        const monthRecords = solarFiltered.filter(r => {
+          let recordMonth = r.month || r.Month || 'Unknown';
+          if (recordMonth !== 'Unknown') {
+            // Handle different month formats
+            if (recordMonth.includes('-')) {
+              // Already in YYYY-MM format or similar
+              const parts = recordMonth.split('-');
+              if (parts.length >= 2) {
+                const year = parts[0];
+                const month = parts[1];
+                // Check if it's already in YYYY-MM format
+                if (year.length === 4 && month.length <= 2) {
+                  recordMonth = `${year}-${month.padStart(2, '0')}`;
+                } else {
+                  // Handle "25-Jan" format
+                  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                  const monthIndex = monthNames.indexOf(month);
+                  if (monthIndex !== -1) {
+                    const fullYear = '20' + year;
+                    const monthNum = String(monthIndex + 1).padStart(2, '0');
+                    recordMonth = `${fullYear}-${monthNum}`;
+                  }
+                }
+              }
+            } else {
+              // Try to parse as date if it's a date string
+              const date = new Date(recordMonth);
+              if (!isNaN(date.getTime())) {
+                recordMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+              }
+            }
+          }
+          return recordMonth === month;
+        });
+        
+        // Solar by country for this month
+        const solarByCountry = {};
+        monthRecords.forEach(r => {
+          const country = r.country || r.Country || 'Unknown';
+          const gen = parseFloat(r.actual_generation) || 0;
+          if (!solarByCountry[country]) solarByCountry[country] = 0;
+          solarByCountry[country] += gen;
+        });
+        
+        // BESS by country for this month (from export_energy)
+        const bessByCountry = {};
+        monthRecords.forEach(r => {
+          const country = r.country || r.Country || 'Unknown';
+          const gen = (parseFloat(r.export_energy) || 0) / 1000;
+          if (!bessByCountry[country]) bessByCountry[country] = 0;
+          bessByCountry[country] += gen;
+        });
+        
+        const allCountries = new Set([...Object.keys(solarByCountry), ...Object.keys(bessByCountry)]);
+        allCountries.forEach(country => {
+          const energy = (solarByCountry[country] || 0) + (bessByCountry[country] || 0);
+          let gridFactor = getGridFactor(country) * 1000 / 1000;
+          co2Sum += energy * gridFactor;
+        });
+        data.co2Saved = co2Sum;
+      }
+      data.treesSaved = data.co2Saved / 0.021; // trees saved
+    });
+    
+    const months = Object.keys(monthlyData).sort((a, b) => {
+      // Put "Unknown" at the end
+      if (a === 'Unknown') return 1;
+      if (b === 'Unknown') return -1;
+      
+      // Sort months chronologically for YYYY-MM format
+      const [aYear, aMonth] = a.split('-');
+      const [bYear, bMonth] = b.split('-');
+      if (aYear !== bYear) return parseInt(aYear) - parseInt(bYear);
+      return parseInt(aMonth) - parseInt(bMonth);
+    });
+    
+    const co2Data = months.map(m => monthlyData[m].co2Saved);
+    const treesData = months.map(m => monthlyData[m].treesSaved);
+    const solarGenData = months.map(m => monthlyData[m].solarEnergy);
+    const bessGenData = months.map(m => monthlyData[m].bessEnergy);
+    
+    // Calculate monthly sum for chart data
+    const monthlySum = solarGenData.reduce((sum, val) => sum + val, 0);
+    
+    updateEnvironmentalCharts(months, co2Data, treesData, solarGenData, bessGenData);
+  }
+
+  // Environmental charts update or create
+  function updateEnvironmentalCharts(months, co2Data, treesData, solarGenData, bessGenData) {
+    // Destroy existing charts to avoid duplicates
+    if (solarGenChart) solarGenChart.destroy();
+    if (bessGenChart) bessGenChart.destroy();
+    if (co2Chart) co2Chart.destroy();
+    if (treesChart) treesChart.destroy();
+
+    // Create gradients for charts
+    const solarGenCtx = document.getElementById('solarGenChart').getContext('2d');
+    const bessGenCtx = document.getElementById('bessGenChart').getContext('2d');
+    const co2SavedCtx = document.getElementById('co2Chart').getContext('2d');
+    const treesSavedCtx = document.getElementById('treesChart').getContext('2d');
+
+    const solarGenGradient = solarGenCtx.createLinearGradient(0, 0, 0, 400);
+    solarGenGradient.addColorStop(0, "#facc15"); // yellow
+    solarGenGradient.addColorStop(1, "#f97316"); // orange
+
+    const bessGenGradient = bessGenCtx.createLinearGradient(0, 0, 0, 400);
+    bessGenGradient.addColorStop(0, "#8b5cf6"); // purple
+    bessGenGradient.addColorStop(1, "#3b82f6"); // blue
+
+    const co2Gradient = co2SavedCtx.createLinearGradient(0, 0, 0, 400);
+    co2Gradient.addColorStop(0, "#0ea5e9"); // teal-blue
+    co2Gradient.addColorStop(1, "#22d3ee"); // cyan
+
+    const treesGradient = treesSavedCtx.createLinearGradient(0, 0, 0, 400);
+    treesGradient.addColorStop(0, "#22c55e"); // green
+    treesGradient.addColorStop(1, "#86efac"); // light green
+
+    // Chart config template
+    const chartConfig = (label, data, bg) => ({
+      type: "bar",
+      data: {
+        labels: months.map(getMonthAbbr),
+        datasets: [{
+          label,
+          data,
+          backgroundColor: bg,
+          borderRadius: 12,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#1e293b",
+            titleColor: "#fff",
+            bodyColor: "#f3f4f6",
+            borderWidth: 1,
+            borderColor: "#475569",
+            padding: 12,
+            displayColors: false,
+            callbacks: {
+              label: function (context) {
+                return context.dataset.label + ": " + context.parsed.y.toLocaleString();
+              }
+            }
+          },
+          datalabels: {
+            anchor: "end",          // position outside bar
+            align: "end",           // align at end of bar
+            color: "#374151",       // darker label color for better readability
+            font: { 
+              weight: "600",
+              size: window.innerWidth < 1200 ? 10 : window.innerWidth < 1600 ? 12 : 14  // more responsive font size
+            },
+            offset: 4,              // closer to the bar
+            formatter: function (value) {
+              // Show values in thousands (like 18 for 18,000) since Y-axis shows K format
+              if (value >= 1000) {
+                return Math.round(value / 1000);
+              }
+              return Math.round(value);
+            },
+            display: function(context) {
+              // only show labels for non-zero values and if there's enough space
+              return context.parsed && context.parsed.y > 0 && context.parsed.y > Math.max(...context.dataset.data) * 0.05;
+            }
+          }
+        },
+        scales: {
+          x: { 
+            grid: { display: false }, 
+            ticks: { color: "#334155" } 
+          },
+          y: { 
+            beginAtZero: true,
+            grid: { color: "#f1f5f9" }, 
+            ticks: { 
+              color: "#334155",
+              callback: function (value) {
+                // Format y-axis with K format for better readability
+                if (value >= 1000) {
+                  return Math.round(value / 1000) + "K";
+                }
+                return value.toLocaleString();
+              }
+            },
+            // Auto-scale to leave space for label
+            suggestedMax: Math.max(...data) * 1.2
+          }
+        },
+        animation: {
+          duration: 1200,
+          easing: "easeOutExpo"
+        }
+      },
+      plugins: [ChartDataLabels] // activate the datalabels plugin
+    });
+
+    // Render Charts
+    solarGenChart = new Chart(solarGenCtx, chartConfig("Solar Generation (MWh)", solarGenData, solarGenGradient));
+    bessGenChart = new Chart(bessGenCtx, chartConfig("BESS Generation (MWh)", bessGenData, bessGenGradient));
+    co2Chart = new Chart(co2SavedCtx, chartConfig("Emissions reduced (tCO₂)", co2Data, co2Gradient));
+    treesChart = new Chart(treesSavedCtx, chartConfig("Trees Protected", treesData, treesGradient));
+
+    // --- KPI Count Up Animation ---
+    animateValue("solarEnergyValue", 0, sum(solarGenData), 1200, 0, false); // No K format
+    animateValue("bessEnergyValue", 0, sum(bessGenData), 1200, 0, false); // No K format
+    animateValue("totalCO2Value", 0, sum(co2Data), 1200);
+    animateValue("treesSavedValue", 0, sum(treesData), 1200);
+
+    // --- Insights Box ---
+    const insightBox = document.getElementById("insightBox");
+    if (insightBox) {
+      insightBox.innerHTML = `
+        <div style="
+          padding: 10px;
+          background: linear-gradient(135deg, #e0f7fa, #f1f8e9);
+          border-radius: 10px;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+          font-size: 12px;">
+          🌞 Solar generation reached <b>${fmtNum(sum(solarGenData), 0)} MWh</b>, 
+          ⚡ BESS discharged <b>${fmtNum(sum(bessGenData), 0)} MWh</b>, 
+          🌱 equivalent to saving <b>${fmtNum(sum(co2Data),0)} tons CO₂</b> 
+          and planting <b>${fmtNum(sum(treesData),0)} trees</b>.
+        </div>
+      `;
+    }
+  }
+
+  // Helper: Sum values
+  function sum(arr) {
+    return arr.reduce((a, b) => a + b, 0);
+  }
+
+  // Animate KPI numbers with smooth count-up
+  function animateValue(id, start, end, duration, decimals = 0, useKFormat = true) {
+    const el = document.getElementById(id);
+    if (!el) return;
+
+    let startTimestamp = null;
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      const current = progress * (end - start) + start;
+      el.textContent = useKFormat ? fmtNum(current, decimals) : fmtNumNoK(current, decimals);
+
+      if (progress < 1) {
+        window.requestAnimationFrame(step);
+      }
+    };
+
+    window.requestAnimationFrame(step);
+  }
+
+
+  // Add calendar trigger event handler
+  function setupCalendarTrigger() {
+    const trigger = document.getElementById('monthMatrixTrigger');
+    const container = document.getElementById('calendarContainer');
+    
+    if (trigger && container) {
+      // Remove any existing event listeners
+      trigger.removeEventListener('click', toggleCalendar);
+      document.removeEventListener('click', handleOutsideClick);
+      
+      // Add click handler to trigger
+      trigger.addEventListener('click', toggleCalendar);
+      
+      // Add global click handler to close calendar when clicking outside
+      document.addEventListener('click', handleOutsideClick);
+    }
+  }
+  
+  function toggleCalendar(event) {
+    event.stopPropagation();
+
+    
+    // Use BestCalendar's toggle method if available
+    if (bestCalendar && typeof bestCalendar.togglePicker === 'function') {
+
+      bestCalendar.togglePicker();
+    } else {
+      
+      // Fallback to custom implementation
+      const container = document.getElementById('calendarContainer');
+      const backdrop = document.getElementById('calendarBackdrop');
+      
+      if (container.style.display === 'none' || !container.style.display) {
+
+        showCalendar();
+      } else {
+        
+        hideCalendar();
+      }
+    }
+  }
+  
+  function showCalendar() {
+    const container = document.getElementById('calendarContainer');
+    const backdrop = document.getElementById('calendarBackdrop');
+    const trigger = document.getElementById('monthMatrixTrigger');
+    
+    if (container && trigger) {
+      // Position the container relative to the trigger
+      const triggerRect = trigger.getBoundingClientRect();
+      container.style.position = 'fixed';
+      container.style.top = (triggerRect.bottom + 5) + 'px';
+      container.style.left = Math.max(10, triggerRect.left) + 'px';
+      container.style.zIndex = '999999';
+      container.style.display = 'block';
+      
+      // Don't show backdrop to avoid blur effect
+      if (backdrop) {
+        backdrop.style.display = 'none';
+      }
+    }
+  }
+  
+  function hideCalendar() {
+    const container = document.getElementById('calendarContainer');
+    const backdrop = document.getElementById('calendarBackdrop');
+    
+    if (container) {
+      container.style.display = 'none';
+    }
+    
+    if (backdrop) {
+      backdrop.style.display = 'none';
+    }
+  }
+  
+  function handleOutsideClick(event) {
+    const container = document.getElementById('calendarContainer');
+    const trigger = document.getElementById('monthMatrixTrigger');
+    
+    if (container && trigger) {
+      if (!container.contains(event.target) && !trigger.contains(event.target)) {
+        // Use BestCalendar's hide method if available, otherwise use custom hide
+        if (bestCalendar && typeof bestCalendar.hidePicker === 'function') {
+          bestCalendar.hidePicker();
+        } else {
+          hideCalendar();
+        }
+      }
+    }
+  }
+})();
+
+// Remove sidebar toggle logic JS
+</script>
+
+</body>
+</html>
+
+

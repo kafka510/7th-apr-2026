@@ -1,0 +1,1338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Analytics Dashboard - PEAK ENERGY{% endblock %}
+
+{% block content %}
+<style>
+    .analytics-container {
+        max-width: 100%;
+        padding: 20px;
+    }
+    
+    .page-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .page-header h1 {
+        margin: 0 0 10px 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    
+    .page-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+    
+    .controls-section {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    
+    .control-group {
+        margin-bottom: 20px;
+    }
+    
+    .control-group label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .control-group select,
+    .control-group input {
+        width: 100%;
+        padding: 10px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: border-color 0.3s;
+    }
+    
+    .control-group select:focus,
+    .control-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.15);
+    }
+    
+    .chart-container {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+        min-height: 500px;
+    }
+    
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f1f3f5;
+    }
+    
+    .chart-header h3 {
+        margin: 0;
+        color: #212529;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+    
+    .chart-info {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+    
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .btn-primary-custom {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+    
+    .btn-primary-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-primary-custom:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .error-message {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        color: #856404;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .info-message {
+        background: #d1ecf1;
+        border: 1px solid #17a2b8;
+        color: #0c5460;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .no-data-message {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+        font-size: 1.1rem;
+    }
+    
+    .measurement-points-group {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .measurement-points-group h5 {
+        margin: 0 0 12px 0;
+        color: #495057;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .checkbox-group {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 10px;
+    }
+    
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        transition: background 0.2s;
+    }
+    
+    .checkbox-item:hover {
+        background: #e9ecef;
+    }
+    
+    .checkbox-item input[type="checkbox"] {
+        margin-right: 8px;
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .checkbox-item label {
+        margin: 0;
+        cursor: pointer;
+        flex: 1;
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .timezone-badge {
+        display: inline-block;
+        background: #e7f3ff;
+        color: #0066cc;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    
+    /* Chart control buttons */
+    #chartControls .btn-group {
+        display: inline-flex;
+    }
+    
+    #chartControls .btn.active {
+        background-color: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+    
+    #chartControls .btn-outline-primary.active {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    #chartControls .btn-outline-info.active {
+        background-color: #17a2b8;
+        color: white;
+    }
+    
+    #chartControls .btn {
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+    }
+</style>
+
+<div class="analytics-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-chart-line"></i> Analytics Dashboard</h1>
+        <p>Visualize device data with timezone-aware chart display</p>
+    </div>
+    
+    {% if error_message %}
+    <div class="error-message">
+        <strong>Error:</strong> {{ error_message }}
+    </div>
+    {% endif %}
+    
+    <!-- Controls Section -->
+    <div class="controls-section">
+        <div class="row">
+            <!-- Site Selection -->
+            <div class="col-md-6 col-lg-4">
+                <div class="control-group">
+                    <label for="siteSelect">
+                        <i class="fas fa-map-marker-alt"></i> Select Site
+                    </label>
+                    <select id="siteSelect" class="form-select">
+                        <option value="">-- Select a site --</option>
+                        {% for asset in assets %}
+                        <option value="{{ asset.asset_code }}" 
+                                data-timezone="{{ asset.timezone }}"
+                                data-country="{{ asset.country }}"
+                                data-portfolio="{{ asset.portfolio }}">
+                            {{ asset.asset_name }} ({{ asset.asset_code }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">
+                        <span id="siteTimezone"></span>
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Device Selection -->
+            <div class="col-md-12 col-lg-8">
+                <div class="control-group">
+                    <label>
+                        <i class="fas fa-microchip"></i> Select Devices
+                        <button type="button" id="selectAllDevices" class="btn btn-sm btn-outline-primary ms-2" style="display: none;">
+                            Select All
+                        </button>
+                        <button type="button" id="clearAllDevices" class="btn btn-sm btn-outline-secondary ms-1" style="display: none;">
+                            Clear All
+                        </button>
+                    </label>
+                    <div id="deviceSelectionContainer" style="max-height: 300px; overflow-y: auto; border: 2px solid #e9ecef; border-radius: 8px; padding: 15px; background: #f8f9fa;">
+                        <style>
+                            .device-checkbox {
+                                width: 16px !important;
+                                height: 16px !important;
+                                margin-right: 8px !important;
+                                margin-top: 0 !important;
+                                flex-shrink: 0 !important;
+                            }
+                            .form-check {
+                                display: flex !important;
+                                align-items: center !important;
+                                margin-bottom: 8px !important;
+                                padding: 4px !important;
+                            }
+                            .form-check-label {
+                                margin-left: 0 !important;
+                                font-size: 0.9rem !important;
+                                cursor: pointer !important;
+                                flex: 1 !important;
+                            }
+                        </style>
+                        <p class="text-muted text-center" id="devicePlaceholder">Please select a site first</p>
+                    </div>
+                    <small class="text-muted">
+                        <span id="selectedDeviceCount">0</span> device(s) selected
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Date Range -->
+            <div class="col-md-12 col-lg-4">
+                <div class="control-group">
+                    <label for="startDate">
+                        <i class="fas fa-calendar-alt"></i> Date Range
+                    </label>
+                    <div class="row">
+                        <div class="col-6">
+                            <input type="date" id="startDate" class="form-control" disabled>
+                            <small class="text-muted">Start Date</small>
+                        </div>
+                        <div class="col-6">
+                            <input type="date" id="endDate" class="form-control" disabled>
+                            <small class="text-muted">End Date</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Measurement Points Selection (shown after devices are selected) -->
+        <div id="measurementPointsContainer" style="display: none;">
+            <hr class="my-4">
+            <div class="control-group">
+                <label>
+                    <i class="fas fa-ruler"></i> Select Measurement Points
+                </label>
+                <div id="measurementPointsList"></div>
+            </div>
+        </div>
+        
+        <!-- Load Data Button -->
+        <div class="text-center mt-4">
+            <button id="loadDataBtn" class="btn btn-primary-custom" disabled>
+                <i class="fas fa-sync-alt"></i> Load Chart Data
+            </button>
+        </div>
+    </div>
+    
+    <!-- Chart Display Section -->
+    <div class="chart-container" id="chartContainer" style="display: none;">
+        <div class="chart-header">
+            <h3><i class="fas fa-chart-area"></i> Time-Series Visualization</h3>
+            <div class="chart-info">
+                <span id="chartTimezone" class="timezone-badge"></span>
+                <span id="chartDataCount" style="margin-left: 10px; color: #6c757d;"></span>
+                <span id="chartDataQuality" style="margin-left: 10px; color: #6c757d; font-size: 0.9em;" class="badge badge-secondary"></span>
+            </div>
+        </div>
+        <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 12px; color: #6c757d;">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Chart Controls:</strong> 
+                Scroll wheel to zoom | Hold Ctrl + Drag to pan
+            </div>
+            <div id="chartControls" style="display: none; gap: 5px;">
+                <div class="btn-group btn-group-sm" role="group">
+                    <button id="zoomXBtn" class="btn btn-outline-primary" title="Zoom X-axis (Time)">
+                        <i class="fas fa-arrows-alt-h"></i> Zoom Time
+                    </button>
+                    <button id="zoomYBtn" class="btn btn-outline-primary" title="Zoom Y-axis (Values)">
+                        <i class="fas fa-arrows-alt-v"></i> Zoom Values
+                    </button>
+                    <button id="zoomXYBtn" class="btn btn-outline-primary active" title="Zoom Both Axes">
+                        <i class="fas fa-expand-arrows-alt"></i> Zoom Both
+                    </button>
+                </div>
+                <div class="btn-group btn-group-sm" role="group" style="margin-left: 10px;">
+                    <button id="panXBtn" class="btn btn-outline-info" title="Pan X-axis (Time)">
+                        <i class="fas fa-arrows-alt-h"></i> Pan Time
+                    </button>
+                    <button id="panYBtn" class="btn btn-outline-info" title="Pan Y-axis (Values)">
+                        <i class="fas fa-arrows-alt-v"></i> Pan Values
+                    </button>
+                    <button id="panXYBtn" class="btn btn-outline-info active" title="Pan Both Axes">
+                        <i class="fas fa-arrows-alt"></i> Pan Both
+                    </button>
+                </div>
+                <button id="resetZoomBtn" class="btn btn-sm btn-outline-secondary" style="margin-left: 10px;">
+                    <i class="fas fa-undo"></i> Reset Zoom
+                </button>
+                <div class="vr mx-2" style="border-left: 1px solid #dee2e6; height: 20px;"></div>
+                <button id="downloadCsvBtn" class="btn btn-sm btn-success" title="Download Chart Data as CSV - Right-click if blocked" disabled>
+                    <i class="fas fa-download"></i> Download CSV
+                </button>
+            </div>
+        </div>
+        <div style="position: relative;">
+            <canvas id="analyticsChart"></canvas>
+            <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- No Data Message -->
+    <div id="noDataMessage" class="no-data-message" style="display: none;">
+        <i class="fas fa-info-circle" style="font-size: 3rem; color: #6c757d; margin-bottom: 15px;"></i>
+        <p>No data available for the selected criteria.</p>
+        <p>Please try different devices, measurement points, or date range.</p>
+    </div>
+</div>
+
+<!-- Chart.js Library - Using UMD build for better compatibility -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<!-- Chart.js Zoom Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+<script>
+// Global variables
+let analyticsChart = null;
+let selectedAssetCode = null;
+let selectedTimezone = null;
+let currentZoomMode = 'xy';  // Current zoom mode: 'x', 'y', or 'xy'
+let currentPanMode = 'xy';   // Current pan mode: 'x', 'y', or 'xy'
+let chartData = null; // Store chart data for CSV download
+
+// Timezone conversion function
+function convertToTimezone(timestamp, targetTimezone) {
+    // The backend sends timestamps like "2025-10-02T00:00:18.868000+08:00"
+    // We need to create a Date object that represents the local time correctly
+    
+    // Remove the timezone info and treat it as local time
+    const localTimestamp = timestamp.replace(/[+-]\d{2}:\d{2}$/, '');
+    const date = new Date(localTimestamp);
+    
+    
+    return date;
+}
+
+// Initialize date inputs with today and 7 days ago
+const today = new Date();
+const weekAgo = new Date(today);
+weekAgo.setDate(weekAgo.getDate() - 7);
+
+document.getElementById('startDate').value = weekAgo.toISOString().split('T')[0];
+document.getElementById('endDate').value = today.toISOString().split('T')[0];
+
+// Site selection handler
+document.getElementById('siteSelect').addEventListener('change', async function() {
+    const assetCode = this.value;
+    selectedAssetCode = assetCode;
+    
+    // Reset dependent selections
+    const container = document.getElementById('deviceSelectionContainer');
+    const placeholder = document.getElementById('devicePlaceholder');
+    container.innerHTML = '<p class="text-muted text-center" id="devicePlaceholder">Loading devices...</p>';
+    document.getElementById('selectAllDevices').style.display = 'none';
+    document.getElementById('clearAllDevices').style.display = 'none';
+    document.getElementById('measurementPointsContainer').style.display = 'none';
+    document.getElementById('loadDataBtn').disabled = true;
+    updateDeviceCount();
+    
+    if (!assetCode) {
+        document.getElementById('siteTimezone').textContent = '';
+        container.innerHTML = '<p class="text-muted text-center" id="devicePlaceholder">Please select a site first</p>';
+        return;
+    }
+    
+    // Get timezone from selected option
+    const selectedOption = this.options[this.selectedIndex];
+    selectedTimezone = selectedOption.dataset.timezone;
+    document.getElementById('siteTimezone').textContent = `Timezone: ${selectedTimezone}`;
+    
+    // Enable date inputs
+    document.getElementById('startDate').disabled = false;
+    document.getElementById('endDate').disabled = false;
+    
+    // Load devices for this site
+    try {
+        const response = await fetch(`/api/analytics/devices/?asset_code=${assetCode}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            if (result.data.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">No devices found for this site</p>';
+            } else {
+                // Group devices by device type
+                const devicesByType = {};
+                result.data.forEach(device => {
+                    if (!devicesByType[device.device_type]) {
+                        devicesByType[device.device_type] = [];
+                    }
+                    devicesByType[device.device_type].push(device);
+                });
+                
+                // Build grouped checkbox UI with collapsible sections
+                container.innerHTML = '';
+                Object.keys(devicesByType).sort().forEach(deviceType => {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'device-type-group mb-2';
+                    groupDiv.style.cssText = 'border: 1px solid #dee2e6; border-radius: 6px; background: white;';
+                    
+                    // Header with click to expand/collapse
+                    const header = document.createElement('div');
+                    header.className = 'device-type-header';
+                    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 12px; cursor: pointer; background: #f8f9fa; border-radius: 6px 6px 0 0; border-bottom: 1px solid #dee2e6;';
+                    header.onclick = () => toggleDeviceTypeGroup(deviceType);
+                    header.dataset.groupId = deviceType;
+                    
+                    const headerLeft = document.createElement('div');
+                    headerLeft.style.cssText = 'display: flex; align-items: center;';
+                    
+                    const expandIcon = document.createElement('i');
+                    expandIcon.className = 'fas fa-chevron-down expand-icon';
+                    expandIcon.style.cssText = 'margin-right: 8px; font-size: 0.8rem; color: #6c757d; transition: transform 0.2s;';
+                    
+                    const headerText = document.createElement('h6');
+                    headerText.style.cssText = 'margin: 0; color: #495057; font-weight: 600; font-size: 0.95rem;';
+                    headerText.innerHTML = `<i class="fas fa-microchip"></i> ${deviceType} <span style="color: #6c757d; font-size: 0.8rem;">(${devicesByType[deviceType].length})</span>`;
+                    
+                    headerLeft.appendChild(expandIcon);
+                    headerLeft.appendChild(headerText);
+                    
+                    const selectAllBtn = document.createElement('button');
+                    selectAllBtn.type = 'button';
+                    selectAllBtn.className = 'btn btn-sm btn-outline-primary';
+                    selectAllBtn.textContent = 'Select All';
+                    selectAllBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        // Expand this group first
+                        const groupContent = groupDiv.querySelector('.device-type-content');
+                        const groupIcon = groupDiv.querySelector('.expand-icon');
+                        if (groupContent && groupIcon) {
+                            groupContent.style.display = 'block';
+                            groupIcon.style.transform = 'rotate(0deg)';
+                        }
+                        selectDevicesByType(deviceType, true);
+                    };
+                    
+                    header.appendChild(headerLeft);
+                    header.appendChild(selectAllBtn);
+                    groupDiv.appendChild(header);
+                    
+                    // Collapsible content
+                    const content = document.createElement('div');
+                    content.className = 'device-type-content';
+                    content.style.cssText = 'display: none; padding: 12px;';
+                    
+                    devicesByType[deviceType].forEach(device => {
+                        const checkboxDiv = document.createElement('div');
+                        checkboxDiv.className = 'form-check mb-2';
+                        checkboxDiv.style.cssText = 'display: flex; align-items: center;';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'form-check-input device-checkbox';
+                        checkbox.id = `device-${device.device_id}`;
+                        checkbox.value = device.device_id;
+                        checkbox.dataset.deviceType = device.device_type;
+                        checkbox.dataset.deviceName = device.device_name;
+                        checkbox.dataset.groupId = deviceType;
+                        checkbox.onchange = handleDeviceSelection;
+                        checkbox.style.cssText = 'margin-right: 8px; margin-top: 0; width: 16px; height: 16px;';
+                        
+                        const label = document.createElement('label');
+                        label.className = 'form-check-label';
+                        label.htmlFor = `device-${device.device_id}`;
+                        label.style.cssText = 'font-size: 0.9rem; cursor: pointer; margin: 0; flex: 1;';
+                        label.textContent = device.device_name;
+                        label.title = `${device.device_name} (${device.device_id})`;
+                        
+                        checkboxDiv.appendChild(checkbox);
+                        checkboxDiv.appendChild(label);
+                        content.appendChild(checkboxDiv);
+                    });
+                    
+                    groupDiv.appendChild(content);
+                    container.appendChild(groupDiv);
+                });
+                
+                // Show select/clear all buttons
+                document.getElementById('selectAllDevices').style.display = 'inline-block';
+                document.getElementById('clearAllDevices').style.display = 'inline-block';
+            }
+        } else {
+            alert('Error loading devices: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to load devices');
+    }
+});
+
+// Function to update device count
+function updateDeviceCount() {
+    const count = document.querySelectorAll('.device-checkbox:checked').length;
+    document.getElementById('selectedDeviceCount').textContent = count;
+}
+
+// Function to toggle device type group visibility
+function toggleDeviceTypeGroup(deviceType) {
+    const header = document.querySelector(`[data-group-id="${deviceType}"]`);
+    if (!header) return;
+    
+    const groupDiv = header.closest('.device-type-group');
+    const content = groupDiv.querySelector('.device-type-content');
+    const icon = groupDiv.querySelector('.expand-icon');
+    
+    if (content && icon) {
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            icon.style.transform = 'rotate(0deg)';
+        } else {
+            content.style.display = 'none';
+            icon.style.transform = 'rotate(-90deg)';
+        }
+    }
+}
+
+// Function to select/deselect devices by type
+function selectDevicesByType(deviceType, select) {
+    const checkboxes = document.querySelectorAll(`.device-checkbox[data-device-type="${deviceType}"]`);
+    checkboxes.forEach(cb => {
+        cb.checked = select;
+    });
+    handleDeviceSelection();
+}
+
+// Select all devices button
+document.getElementById('selectAllDevices').addEventListener('click', function() {
+    // Expand all groups first
+    document.querySelectorAll('.device-type-content').forEach(content => {
+        content.style.display = 'block';
+    });
+    document.querySelectorAll('.expand-icon').forEach(icon => {
+        icon.style.transform = 'rotate(0deg)';
+    });
+    
+    document.querySelectorAll('.device-checkbox').forEach(cb => cb.checked = true);
+    handleDeviceSelection();
+});
+
+// Clear all devices button
+document.getElementById('clearAllDevices').addEventListener('click', function() {
+    document.querySelectorAll('.device-checkbox').forEach(cb => cb.checked = false);
+    handleDeviceSelection();
+});
+
+// Device selection handler - now works with checkboxes
+function handleDeviceSelection() {
+    updateDeviceCount();
+    
+    const selectedCheckboxes = Array.from(document.querySelectorAll('.device-checkbox:checked'));
+    
+    if (selectedCheckboxes.length === 0) {
+        document.getElementById('measurementPointsContainer').style.display = 'none';
+        document.getElementById('loadDataBtn').disabled = true;
+        return;
+    }
+    
+    // Get unique device types
+    const deviceTypes = [...new Set(selectedCheckboxes.map(cb => cb.dataset.deviceType))];
+    
+    // Load measurement points
+    loadMeasurementPoints(deviceTypes);
+}
+
+async function loadMeasurementPoints(deviceTypes) {
+    try {
+        const url = `/api/analytics/measurement-points/?asset_code=${selectedAssetCode}&device_types=${deviceTypes.join(',')}`;
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success) {
+            const container = document.getElementById('measurementPointsList');
+            container.innerHTML = '';
+            
+            if (Object.keys(result.data).length === 0) {
+                container.innerHTML = '<p class="text-muted">No measurement points found for selected devices.</p>';
+            } else {
+                // Group by device type
+                for (const [deviceType, measurements] of Object.entries(result.data)) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'measurement-points-group';
+                    
+                    const header = document.createElement('h5');
+                    header.textContent = deviceType;
+                    groupDiv.appendChild(header);
+                    
+                    const checkboxGrid = document.createElement('div');
+                    checkboxGrid.className = 'checkbox-group';
+                    
+                    // Deduplicate metrics within this device type
+                    const uniqueMetrics = new Map();
+                    measurements.forEach(mp => {
+                        // Skip records where metric is empty
+                        if (!mp.metric || mp.metric.trim() === '') {
+                            return;
+                        }
+                        
+                        const metricKey = mp.metric;
+                        
+                        // If we haven't seen this metric before, or if this one has better info
+                        if (!uniqueMetrics.has(metricKey) || 
+                            (mp.units && !uniqueMetrics.get(metricKey).units) ||
+                            (mp.description && !uniqueMetrics.get(metricKey).description)) {
+                            uniqueMetrics.set(metricKey, mp);
+                        }
+                    });
+                    
+                    // Render unique metrics
+                    uniqueMetrics.forEach(mp => {
+                        const checkboxItem = document.createElement('div');
+                        checkboxItem.className = 'checkbox-item';
+                        
+                        // Use metric as display value
+                        const displayMetric = mp.metric;
+                        const displayValue = mp.metric;
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = `mp-${displayValue}`;
+                        checkbox.value = displayValue;
+                        checkbox.dataset.oemTag = mp.oem_tag;
+                        
+                        const label = document.createElement('label');
+                        label.htmlFor = `mp-${displayValue}`;
+                        label.textContent = `${displayMetric}${mp.units ? ' (' + mp.units + ')' : ''}`;
+                        label.title = mp.description || displayMetric;
+                        
+                        checkboxItem.appendChild(checkbox);
+                        checkboxItem.appendChild(label);
+                        checkboxGrid.appendChild(checkboxItem);
+                    });
+                    
+                    groupDiv.appendChild(checkboxGrid);
+                    container.appendChild(groupDiv);
+                }
+            }
+            
+            document.getElementById('measurementPointsContainer').style.display = 'block';
+            document.getElementById('loadDataBtn').disabled = false;
+        } else {
+            alert('Error loading measurement points: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to load measurement points');
+    }
+}
+
+// Load data button handler
+document.getElementById('loadDataBtn').addEventListener('click', async function() {
+    // Get selected devices from checkboxes
+    const selectedDevices = Array.from(document.querySelectorAll('.device-checkbox:checked')).map(cb => cb.value);
+    
+    if (selectedDevices.length === 0) {
+        alert('Please select at least one device');
+        return;
+    }
+    
+    // Get selected measurement points
+    const selectedMetrics = Array.from(document.querySelectorAll('#measurementPointsList input[type="checkbox"]:checked')).map(cb => cb.value);
+    
+    if (selectedMetrics.length === 0) {
+        alert('Please select at least one measurement point');
+        return;
+    }
+    
+    // Get date range
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        alert('Please select start and end dates');
+        return;
+    }
+    
+    // Validate date range
+    if (startDate > endDate) {
+        alert('Start date cannot be after end date');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    document.getElementById('chartContainer').style.display = 'block';
+    document.getElementById('noDataMessage').style.display = 'none';
+    
+    // Fetch data
+    try {
+        const params = new URLSearchParams({
+            device_ids: selectedDevices.join(','),
+            metrics: selectedMetrics.join(','),
+            start_date: startDate,
+            end_date: endDate,
+            asset_code: selectedAssetCode
+        });
+        
+        // Debug: Log the request parameters
+        console.log('Requesting data for date range:', startDate, 'to', endDate);
+        
+        
+        const response = await fetch(`/api/analytics/timeseries-data/?${params}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update chart info
+            document.getElementById('chartTimezone').textContent = `Timezone: ${result.timezone_offset}`;
+            document.getElementById('chartDataCount').textContent = `${result.record_count} data points`;
+            
+            // Display data quality information
+            const qualityElement = document.getElementById('chartDataQuality');
+            if (result.data_quality) {
+                const quality = result.data_quality;
+                const qualityInfo = `Data Quality: ${quality.valid_records} valid points out of ${quality.total_records} total (${quality.filter_percentage.toFixed(1)}% filtered)`;
+                console.log(qualityInfo);
+                
+                // Update visual indicator
+                if (quality.filter_percentage > 0) {
+                    qualityElement.textContent = `${quality.filter_percentage.toFixed(1)}% filtered`;
+                    qualityElement.className = quality.filter_percentage > 10 ? 'badge badge-warning' : 'badge badge-info';
+                    qualityElement.style.display = 'inline';
+                } else {
+                    qualityElement.style.display = 'none';
+                }
+                
+                // Show warning if significant filtering occurred
+                if (quality.filter_percentage > 5) {
+                    console.warn(`High data filtering detected: ${quality.filter_percentage.toFixed(1)}% of data was filtered out`);
+                }
+            } else {
+                qualityElement.style.display = 'none';
+            }
+            
+            // Display warnings if any
+            if (result.warnings && result.warnings.length > 0) {
+                result.warnings.forEach(warning => {
+                    console.warn(warning);
+                });
+            }
+            
+            // Legacy warning support
+            if (result.warning) {
+                console.warn(result.warning);
+            }
+            
+            // Set the selected timezone for chart display
+            selectedTimezone = result.timezone_offset || 'UTC';
+            
+            // Store chart data for CSV download
+            chartData = result.data;
+            
+            if (result.record_count === 0) {
+                document.getElementById('chartContainer').style.display = 'none';
+                document.getElementById('noDataMessage').style.display = 'block';
+                document.getElementById('downloadCsvBtn').disabled = true;
+                return;
+            }
+            
+            // Group metrics by units for multiple Y-axes
+            const metricsByUnit = {};
+            const colors = [
+                '#667eea', '#764ba2', '#f093fb', '#4facfe',
+                '#43e97b', '#fa709a', '#fee140', '#30cfd0',
+                '#a8edea', '#fed6e3', '#ff9a9e', '#fecfef',
+                '#ffecd2', '#fcb69f', '#ff8a80', '#ffb74d'
+            ];
+            
+            // Get units for each metric from measurement points
+            const metricUnits = {};
+            result.data.forEach(series => {
+                metricUnits[series.metric] = series.units || '';
+            });
+            
+            // Group series by units
+            result.data.forEach((series, index) => {
+                const unit = series.units || 'no-unit';
+                if (!metricsByUnit[unit]) {
+                    metricsByUnit[unit] = [];
+                }
+                
+                const color = colors[index % colors.length];
+            metricsByUnit[unit].push({
+                label: `${series.device_id} - ${series.metric}`,
+                data: series.data_points.map(dp => ({
+                    x: convertToTimezone(dp.timestamp, selectedTimezone),
+                    y: parseFloat(dp.value)
+                })),
+                    borderColor: color,
+                    backgroundColor: color + '20',
+                    borderWidth: 1.5,
+                    tension: 0.4,
+                    pointRadius: 1.5,
+                    pointHoverRadius: 4,
+                    pointHitRadius: 10,
+                    unit: unit
+                });
+            });
+            
+            // Create datasets with Y-axis assignments
+            const datasets = [];
+            const unitKeys = Object.keys(metricsByUnit);
+            
+            unitKeys.forEach((unit, unitIndex) => {
+                metricsByUnit[unit].forEach(dataset => {
+                    datasets.push({
+                        ...dataset,
+                        yAxisID: `y${unitIndex}`
+                    });
+                });
+            });
+            
+            // Create or update chart
+            const ctx = document.getElementById('analyticsChart').getContext('2d');
+            
+            if (analyticsChart) {
+                analyticsChart.destroy();
+            }
+            
+            analyticsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            callbacks: {
+                                title: function(context) {
+                                    return new Date(context[0].parsed.x).toLocaleString();
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: currentPanMode,
+                                modifierKey: 'ctrl',
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                    speed: 0.1,
+                                },
+                                pinch: {
+                                    enabled: true,
+                                },
+                                mode: currentZoomMode,
+                            },
+                            limits: {
+                                x: {min: 'original', max: 'original'},
+                                y: {min: 'original', max: 'original'}
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'MMM dd HH:mm'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: `Time (${selectedTimezone})`,
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        // Create multiple Y-axes for different units
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: unitKeys[0] || 'Value',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.05)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(2);
+                                }
+                            },
+                            beginAtZero: true,
+                            suggestedMin: 0
+                        },
+                        // Add additional Y-axes for other units
+                        ...unitKeys.slice(1).reduce((axes, unit, index) => {
+                            axes[`y${index + 1}`] = {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: unit,
+                                    font: {
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                grid: {
+                                    drawOnChartArea: false,
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toFixed(2);
+                                    }
+                                },
+                                beginAtZero: true,
+                                suggestedMin: 0
+                            };
+                            return axes;
+                        }, {})
+                    }
+                }
+            });
+            
+            // Set fixed height for chart
+            document.getElementById('analyticsChart').style.height = '500px';
+            
+            // Show chart controls
+            document.getElementById('chartControls').style.display = 'flex';
+            
+            // Enable download button
+            document.getElementById('downloadCsvBtn').disabled = false;
+            
+        } else {
+            alert('Error loading data: ' + result.error);
+            document.getElementById('chartContainer').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to load chart data');
+        document.getElementById('chartContainer').style.display = 'none';
+    } finally {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+});
+
+// Helper function to update zoom mode
+function updateZoomMode(mode) {
+    currentZoomMode = mode;
+    
+    if (analyticsChart) {
+        // Update the chart's zoom options
+        analyticsChart.options.plugins.zoom.zoom.mode = mode;
+        
+        // Apply changes without animation
+        analyticsChart.update('none');
+    }
+    
+    // Update button states
+    document.querySelectorAll('#zoomXBtn, #zoomYBtn, #zoomXYBtn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (mode === 'x') document.getElementById('zoomXBtn').classList.add('active');
+    if (mode === 'y') document.getElementById('zoomYBtn').classList.add('active');
+    if (mode === 'xy') document.getElementById('zoomXYBtn').classList.add('active');
+}
+
+// Helper function to update pan mode
+function updatePanMode(mode) {
+    currentPanMode = mode;
+    
+    if (analyticsChart) {
+        // Update the chart's pan options
+        analyticsChart.options.plugins.zoom.pan.mode = mode;
+        
+        // Apply changes without animation
+        analyticsChart.update('none');
+    }
+    
+    // Update button states
+    document.querySelectorAll('#panXBtn, #panYBtn, #panXYBtn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    if (mode === 'x') document.getElementById('panXBtn').classList.add('active');
+    if (mode === 'y') document.getElementById('panYBtn').classList.add('active');
+    if (mode === 'xy') document.getElementById('panXYBtn').classList.add('active');
+}
+
+// Zoom control buttons
+document.getElementById('zoomXBtn').addEventListener('click', function() {
+    updateZoomMode('x');
+});
+
+document.getElementById('zoomYBtn').addEventListener('click', function() {
+    updateZoomMode('y');
+});
+
+document.getElementById('zoomXYBtn').addEventListener('click', function() {
+    updateZoomMode('xy');
+});
+
+// Pan control buttons
+document.getElementById('panXBtn').addEventListener('click', function() {
+    updatePanMode('x');
+});
+
+document.getElementById('panYBtn').addEventListener('click', function() {
+    updatePanMode('y');
+});
+
+document.getElementById('panXYBtn').addEventListener('click', function() {
+    updatePanMode('xy');
+});
+
+// Reset Zoom Button
+document.getElementById('resetZoomBtn').addEventListener('click', function() {
+    if (analyticsChart) {
+        analyticsChart.resetZoom();
+    }
+});
+
+// CSV Download Function
+function downloadChartDataAsCSV() {
+    // Get current selection parameters
+    const assetCode = selectedAssetCode;
+    const selectedDevices = Array.from(document.querySelectorAll('#deviceSelectionContainer input[type="checkbox"]:checked')).map(cb => cb.value);
+    const selectedMetrics = Array.from(document.querySelectorAll('#measurementPointsList input[type="checkbox"]:checked')).map(cb => cb.value);
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    // Debug: Log all values to see what's missing
+    console.log('Download validation check:', {
+        assetCode: assetCode,
+        selectedDevices: selectedDevices,
+        selectedMetrics: selectedMetrics,
+        startDate: startDate,
+        endDate: endDate,
+        chartDataAvailable: !!chartData
+    });
+    
+    // More specific validation with better error messages
+    if (!assetCode) {
+        console.error('CSV Download Error: No site selected');
+        showErrorMessage('Please select a site first.');
+        return;
+    }
+    
+    if (selectedDevices.length === 0) {
+        console.error('CSV Download Error: No devices selected');
+        showErrorMessage('Please select at least one device.');
+        return;
+    }
+    
+    if (selectedMetrics.length === 0) {
+        console.error('CSV Download Error: No measurement points selected');
+        showErrorMessage('Please select at least one measurement point.');
+        return;
+    }
+    
+    if (!startDate || !endDate) {
+        console.error('CSV Download Error: Date range not selected');
+        showErrorMessage('Please select both start and end dates.');
+        return;
+    }
+    
+    // Check if chart data is available as a fallback
+    if (!chartData || Object.keys(chartData).length === 0) {
+        console.error('CSV Download Error: No chart data available');
+        showErrorMessage('Please load chart data first by clicking "Load Chart Data".');
+        return;
+    }
+    
+    // Build URL parameters
+    const params = new URLSearchParams({
+        asset_code: assetCode,
+        device_ids: selectedDevices.join(','),
+        metrics: selectedMetrics.join(','),
+        start_date: startDate,
+        end_date: endDate
+    });
+    
+    // Debug logging
+    console.log('CSV Download Parameters:', {
+        asset_code: assetCode,
+        device_ids: selectedDevices,
+        metrics: selectedMetrics,
+        start_date: startDate,
+        end_date: endDate
+    });
+    
+    // Create download URL
+    const downloadUrl = `/api/analytics/download-csv/?${params}`;
+    console.log('CSV Download URL:', downloadUrl);
+    
+    // Show success message
+    showSuccessMessage('CSV download started. Check your downloads folder.');
+    
+    // Use the same direct navigation method as user management and site onboarding
+    try {
+        console.log('Starting CSV download using direct navigation...');
+        window.location.href = downloadUrl;
+        console.log('Download navigation triggered');
+    } catch (error) {
+        console.error('Download failed:', error);
+        showErrorMessage('Download failed. Please try again or contact support.');
+    }
+}
+
+// Helper function to show error messages
+function showErrorMessage(message) {
+    const errorMsg = document.createElement('div');
+    errorMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #dc3545; color: white; padding: 10px 15px; border-radius: 4px; z-index: 9999; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);';
+    errorMsg.textContent = message;
+    document.body.appendChild(errorMsg);
+    setTimeout(() => errorMsg.remove(), 5000);
+}
+
+// Helper function to show success messages
+function showSuccessMessage(message) {
+    const successMsg = document.createElement('div');
+    successMsg.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 10px 15px; border-radius: 4px; z-index: 9999; font-size: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);';
+    successMsg.textContent = message;
+    document.body.appendChild(successMsg);
+    setTimeout(() => successMsg.remove(), 3000);
+}
+
+// CSV Download Button
+document.getElementById('downloadCsvBtn').addEventListener('click', function() {
+    downloadChartDataAsCSV();
+});
+
+// Add right-click context menu for download button
+document.getElementById('downloadCsvBtn').addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    
+    // Get current parameters
+    const assetCode = selectedAssetCode;
+    const selectedDevices = Array.from(document.querySelectorAll('#deviceSelectionContainer input[type="checkbox"]:checked')).map(cb => cb.value);
+    const selectedMetrics = Array.from(document.querySelectorAll('#measurementPointsList input[type="checkbox"]:checked')).map(cb => cb.value);
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!assetCode || selectedDevices.length === 0 || selectedMetrics.length === 0 || !startDate || !endDate) {
+        showErrorMessage('Please complete all selections before downloading.');
+        return;
+    }
+    
+    // Build download URL
+    const params = new URLSearchParams({
+        asset_code: assetCode,
+        device_ids: selectedDevices.join(','),
+        metrics: selectedMetrics.join(','),
+        start_date: startDate,
+        end_date: endDate
+    });
+    
+    const downloadUrl = `/api/analytics/download-csv/?${params}`;
+    
+    // Copy URL to clipboard if possible, otherwise show it
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(downloadUrl).then(() => {
+            showSuccessMessage('Download URL copied to clipboard. Paste in new tab.');
+        }).catch(() => {
+            showErrorMessage(`Copy this URL manually: ${downloadUrl}`);
+        });
+    } else {
+        showErrorMessage(`Copy this URL manually: ${downloadUrl}`);
+    }
+    
+    console.log('Right-click download URL:', downloadUrl);
+});
+</script>
+
+{% endblock %}
+

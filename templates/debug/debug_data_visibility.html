@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Debug Data Visibility{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Debug Data Visibility</h2>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>User Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Role:</strong> {{ user_role }}</p>
+                    <p><strong>Accessible Sites:</strong> {{ accessible_sites.count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Yield Data (All vs Accessible)</h5>
+                </div>
+                <div class="card-body">
+                    <h6>All Yield Data (First 10):</h6>
+                    {% if yield_data %}
+                        <ul>
+                        {% for record in yield_data %}
+                            <li>{{ record.assetno }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No yield data found</p>
+                    {% endif %}
+
+                    <h6>Your Accessible Yield Data (First 10):</h6>
+                    {% if accessible_yield_data %}
+                        <ul>
+                        {% for record in accessible_yield_data %}
+                            <li>{{ record.assetno }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No accessible yield data found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>BESS Data (All vs Accessible)</h5>
+                </div>
+                <div class="card-body">
+                    <h6>All BESS Data (First 10):</h6>
+                    {% if bess_data %}
+                        <ul>
+                        {% for record in bess_data %}
+                            <li>{{ record.asset_no }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No BESS data found</p>
+                    {% endif %}
+
+                    <h6>Your Accessible BESS Data (First 10):</h6>
+                    {% if accessible_bess_data %}
+                        <ul>
+                        {% for record in accessible_bess_data %}
+                            <li>{{ record.asset_no }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No accessible BESS data found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>AOC Data (All vs Accessible)</h5>
+                </div>
+                <div class="card-body">
+                    <h6>All AOC Data (First 10):</h6>
+                    {% if aoc_data %}
+                        <ul>
+                        {% for record in aoc_data %}
+                            <li>{{ record.asset_no }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No AOC data found</p>
+                    {% endif %}
+
+                    <h6>Your Accessible AOC Data (First 10):</h6>
+                    {% if accessible_aoc_data %}
+                        <ul>
+                        {% for record in accessible_aoc_data %}
+                            <li>{{ record.asset_no }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No accessible AOC data found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Map Data (All vs Accessible)</h5>
+                </div>
+                <div class="card-body">
+                    <h6>All Map Data (First 10):</h6>
+                    {% if map_data %}
+                        <ul>
+                        {% for record in map_data %}
+                            <li>{{ record.asset_no }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No map data found</p>
+                    {% endif %}
+
+                    <h6>Your Accessible Map Data (First 10):</h6>
+                    {% if accessible_map_data %}
+                        <ul>
+                        {% for record in accessible_map_data %}
+                            <li>{{ record.asset_no }} - {{ record.country }} - {{ record.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No accessible map data found</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Template - Peak Energy</title>
+  
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Shared Dashboard Styles and Components -->
+  <link rel="stylesheet" href="/static/dashboard-common.css">
+  <script src="/static/dashboard-utils.js"></script>
+  <script src="/static/components.js"></script>
+  
+  <style>
+    /* Dashboard-specific styles (minimal) */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+    }
+  </style>
+</head>
+<body>
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">Dashboard Template</h1>
+  </div>
+
+  <!-- Dashboard Container -->
+  <div class="dashboard-container">
+    <!-- Filter Panel -->
+    <div id="filterPanel"></div>
+    
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div id="kpi1"></div>
+      <div id="kpi2"></div>
+      <div id="kpi3"></div>
+      <div id="kpi4"></div>
+    </div>
+    
+    <!-- Charts Grid -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-header">Revenue Trend</div>
+        <div class="card-content">
+          <div class="chart-container">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">Performance Metrics</div>
+        <div class="card-content">
+          <div class="chart-container">
+            <canvas id="performanceChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Data Table -->
+    <div class="card">
+      <div class="card-header">Data Table</div>
+      <div class="card-content">
+        <div id="dataTable"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class TemplateDashboard {
+      constructor() {
+        this.data = [];
+        this.filteredData = [];
+        this.components = {};
+        this.init();
+      }
+
+      async init() {
+        try {
+          // Initialize components
+          this.initFilterPanel();
+          this.initKPICards();
+          this.initCharts();
+          this.initDataTable();
+          
+          // Load data
+          await this.loadData();
+          
+          // Update dashboard with loaded data
+          this.updateDashboard();
+          
+        } catch (error) {
+          console.error('Dashboard initialization failed:', error);
+          this.showError(error);
+        }
+      }
+
+      initFilterPanel() {
+        this.components.filterPanel = new FilterPanel('filterPanel', {
+          filters: [
+            {
+              id: 'dateRange',
+              label: 'Date Range',
+              type: 'select',
+              options: [
+                { value: '7d', label: 'Last 7 Days' },
+                { value: '30d', label: 'Last 30 Days' },
+                { value: '90d', label: 'Last 90 Days' },
+                { value: '1y', label: 'Last Year' }
+              ],
+              defaultValue: '30d'
+            },
+            {
+              id: 'category',
+              label: 'Category',
+              type: 'select',
+              options: [
+                { value: 'all', label: 'All Categories' },
+                { value: 'solar', label: 'Solar' },
+                { value: 'wind', label: 'Wind' },
+                { value: 'battery', label: 'Battery' }
+              ],
+              defaultValue: 'all'
+            },
+            {
+              id: 'region',
+              label: 'Region',
+              type: 'select',
+              options: [
+                { value: 'all', label: 'All Regions' },
+                { value: 'north', label: 'North' },
+                { value: 'south', label: 'South' },
+                { value: 'east', label: 'East' },
+                { value: 'west', label: 'West' }
+              ],
+              defaultValue: 'all'
+            }
+          ],
+          onFilterChange: (filters) => this.handleFilterChange(filters),
+          showExportButtons: true
+        });
+      }
+
+      initKPICards() {
+        // Initialize KPI cards
+        this.components.kpi1 = new KPICard('kpi1', {
+          title: 'Total Revenue',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'currency'
+        });
+
+        this.components.kpi2 = new KPICard('kpi2', {
+          title: 'Generation (MWh)',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'number'
+        });
+
+        this.components.kpi3 = new KPICard('kpi3', {
+          title: 'Efficiency (%)',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'percentage'
+        });
+
+        this.components.kpi4 = new KPICard('kpi4', {
+          title: 'Active Sites',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'number'
+        });
+      }
+
+      initCharts() {
+        // Initialize charts
+        this.components.revenueChart = new ChartWrapper('revenueChart', {
+          type: 'line',
+          data: {
+            labels: [],
+            datasets: [{
+              label: 'Revenue',
+              data: [],
+              borderColor: '#0072CE',
+              backgroundColor: 'rgba(0, 114, 206, 0.1)',
+              tension: 0.4
+            }]
+          }
+        });
+
+        this.components.performanceChart = new ChartWrapper('performanceChart', {
+          type: 'bar',
+          data: {
+            labels: [],
+            datasets: [{
+              label: 'Performance',
+              data: [],
+              backgroundColor: DashboardChartUtils.createColorPalette(5)
+            }]
+          }
+        });
+      }
+
+      initDataTable() {
+        this.components.dataTable = new DataTable('dataTable', {
+          columns: [
+            { key: 'date', label: 'Date', type: 'date' },
+            { key: 'category', label: 'Category', type: 'text' },
+            { key: 'revenue', label: 'Revenue', type: 'currency' },
+            { key: 'generation', label: 'Generation', type: 'number' },
+            { key: 'efficiency', label: 'Efficiency', type: 'percentage' }
+          ],
+          pageSize: 10
+        });
+      }
+
+      async loadData() {
+        try {
+          // Show loading state
+          DashboardUIState.showLoadingState('dashboard-container', 'Loading dashboard data...');
+          
+          // Try to load from CSV file first
+          try {
+            this.data = await DashboardDataService.loadCSVData('/data/sample-data.csv');
+          } catch (error) {
+            console.warn('Failed to load CSV data, using fallback data:', error);
+            this.data = DashboardDataService.getFallbackData();
+          }
+          
+          // Validate and transform data
+          this.data = DashboardDataService.validateAndTransform(this.data, {
+            required: ['date', 'category', 'revenue', 'generation', 'efficiency']
+          });
+          
+          this.filteredData = [...this.data];
+          
+          // Hide loading state
+          DashboardUIState.hideLoadingState('dashboard-container');
+          
+        } catch (error) {
+          DashboardUIState.hideLoadingState('dashboard-container');
+          DashboardUIState.showErrorState(error, 'dashboard-container', () => this.loadData());
+          throw error;
+        }
+      }
+
+      updateDashboard() {
+        this.updateKPICards();
+        this.updateCharts();
+        this.updateDataTable();
+      }
+
+      updateKPICards() {
+        const totals = this.calculateTotals();
+        
+        // Update KPI cards with calculated values
+        this.components.kpi1.update({
+          value: totals.revenue,
+          trend: this.calculateTrend('revenue'),
+          trendDirection: this.calculateTrend('revenue') > 0 ? 'up' : 'down'
+        });
+
+        this.components.kpi2.update({
+          value: totals.generation,
+          trend: this.calculateTrend('generation'),
+          trendDirection: this.calculateTrend('generation') > 0 ? 'up' : 'down'
+        });
+
+        this.components.kpi3.update({
+          value: totals.efficiency,
+          trend: this.calculateTrend('efficiency'),
+          trendDirection: this.calculateTrend('efficiency') > 0 ? 'up' : 'down'
+        });
+
+        this.components.kpi4.update({
+          value: totals.sites,
+          trend: this.calculateTrend('sites'),
+          trendDirection: this.calculateTrend('sites') > 0 ? 'up' : 'down'
+        });
+      }
+
+      updateCharts() {
+        // Update revenue chart
+        const revenueData = this.aggregateDataByDate('revenue');
+        this.components.revenueChart.updateData({
+          labels: revenueData.labels,
+          datasets: [{
+            ...this.components.revenueChart.chart.data.datasets[0],
+            data: revenueData.values
+          }]
+        });
+
+        // Update performance chart
+        const performanceData = this.aggregateDataByCategory('efficiency');
+        this.components.performanceChart.updateData({
+          labels: performanceData.labels,
+          datasets: [{
+            ...this.components.performanceChart.chart.data.datasets[0],
+            data: performanceData.values
+          }]
+        });
+      }
+
+      updateDataTable() {
+        this.components.dataTable.setData(this.filteredData);
+      }
+
+      calculateTotals() {
+        if (this.filteredData.length === 0) {
+          return { revenue: 0, generation: 0, efficiency: 0, sites: 0 };
+        }
+
+        const totals = this.filteredData.reduce((acc, row) => {
+          acc.revenue += row.revenue || 0;
+          acc.generation += row.generation || 0;
+          acc.efficiency += row.efficiency || 0;
+          return acc;
+        }, { revenue: 0, generation: 0, efficiency: 0 });
+
+        // Calculate averages
+        totals.efficiency = totals.efficiency / this.filteredData.length;
+        totals.sites = new Set(this.filteredData.map(row => row.category)).size;
+
+        return totals;
+      }
+
+      calculateTrend(metric) {
+        if (this.filteredData.length < 2) return 0;
+        
+        const sortedData = [...this.filteredData].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const midPoint = Math.floor(sortedData.length / 2);
+        
+        const firstHalf = sortedData.slice(0, midPoint);
+        const secondHalf = sortedData.slice(midPoint);
+        
+        const firstAvg = firstHalf.reduce((sum, row) => sum + (row[metric] || 0), 0) / firstHalf.length;
+        const secondAvg = secondHalf.reduce((sum, row) => sum + (row[metric] || 0), 0) / secondHalf.length;
+        
+        if (firstAvg === 0) return 0;
+        return ((secondAvg - firstAvg) / firstAvg) * 100;
+      }
+
+      aggregateDataByDate(metric) {
+        const grouped = {};
+        this.filteredData.forEach(row => {
+          const date = DashboardChartUtils.formatDate(row.date, 'MM/DD');
+          grouped[date] = (grouped[date] || 0) + (row[metric] || 0);
+        });
+
+        return {
+          labels: Object.keys(grouped),
+          values: Object.values(grouped)
+        };
+      }
+
+      aggregateDataByCategory(metric) {
+        const grouped = {};
+        this.filteredData.forEach(row => {
+          const category = row.category || 'Unknown';
+          grouped[category] = (grouped[category] || 0) + (row[metric] || 0);
+        });
+
+        return {
+          labels: Object.keys(grouped),
+          values: Object.values(grouped)
+        };
+      }
+
+      handleFilterChange(filters) {
+        console.log('Filters changed:', filters);
+        
+        // Apply filters to data
+        this.filteredData = this.data.filter(row => {
+          // Date range filter
+          if (filters.dateRange && filters.dateRange !== 'all') {
+            const rowDate = new Date(row.date);
+            const now = new Date();
+            const daysAgo = parseInt(filters.dateRange.replace('d', ''));
+            const cutoffDate = new Date(now.getTime() - (daysAgo * 24 * 60 * 60 * 1000));
+            
+            if (rowDate < cutoffDate) return false;
+          }
+          
+          // Category filter
+          if (filters.category && filters.category !== 'all') {
+            if (row.category !== filters.category) return false;
+          }
+          
+          // Region filter
+          if (filters.region && filters.region !== 'all') {
+            // This would need region data in your actual dataset
+            // For now, we'll skip this filter
+          }
+          
+          return true;
+        });
+        
+        // Update dashboard with filtered data
+        this.updateDashboard();
+      }
+
+      showError(error) {
+        DashboardUIState.showErrorState(error, 'dashboard-container', () => this.loadData());
+      }
+
+      // Export methods
+      exportToPDF() {
+        DashboardExportUtils.exportToPDF('dashboard-container', 'dashboard-template.pdf');
+      }
+
+      exportToExcel() {
+        DashboardExportUtils.exportToExcel('dataTable', 'dashboard-template.xlsx');
+      }
+
+      exportToCSV() {
+        DashboardExportUtils.exportToCSV('dataTable', 'dashboard-template.csv');
+      }
+    }
+
+    // Initialize dashboard when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      window.dashboard = new TemplateDashboard();
+    });
+
+    // Handle window resize for responsive charts
+    window.addEventListener('resize', debounce(() => {
+      if (window.dashboard && window.dashboard.components) {
+        Object.values(window.dashboard.components).forEach(component => {
+          if (component.resize) {
+            component.resize();
+          }
+        });
+      }
+    }, 250));
+  </script>
+</body>
+</html> 

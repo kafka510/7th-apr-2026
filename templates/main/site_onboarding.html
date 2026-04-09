@@ -1,0 +1,3764 @@
+{% extends 'base.html' %}
+
+{% block title %}Site Onboarding - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <!-- Only show header when NOT in iframe (standalone page) -->
+    <div class="d-flex justify-content-between align-items-center mb-3" id="page-header" style="display: none;">
+        <div class="d-flex align-items-center">
+            <h2>🏗️ Site Onboarding Management</h2>
+            <span class="badge bg-danger ms-2">Admin Only</span>
+            <a href="{% url 'main:unified_operations_dashboard' %}" class="btn btn-outline-primary btn-sm ms-3" title="Back to Main Dashboard">
+                🏠 Dashboard
+            </a>
+        </div>
+        <div>
+            <button class="btn btn-info btn-sm" onclick="showHelpModal()">
+                📋 Help & Guidelines
+            </button>
+        </div>
+    </div>
+    
+    <script>
+    // Show header only when page is NOT in iframe
+    if (window.self === window.top) {
+        document.getElementById('page-header').style.display = 'flex';
+    }
+    </script>
+
+    <!-- Confirm Delete Modal -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="deleteConfirmMessage">Are you sure you want to delete this item?</p>
+                    <p class="text-warning"><strong>⚠️ This action cannot be undone!</strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer"></div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs" id="onboardingTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="asset-list-tab" data-bs-toggle="tab" data-bs-target="#asset-list" type="button" role="tab">
+                🏢 Asset List
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="device-list-tab" data-bs-toggle="tab" data-bs-target="#device-list" type="button" role="tab">
+                📱 Device List
+            </button>
+        </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="device-mapping-tab" data-bs-toggle="tab" data-bs-target="#device-mapping" type="button" role="tab">
+                        🔗 Device Mapping
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="budget-values-tab" data-bs-toggle="tab" data-bs-target="#budget-values" type="button" role="tab">
+                        💰 Budget Values
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="ic-budget-tab" data-bs-toggle="tab" data-bs-target="#ic-budget" type="button" role="tab">
+                        📊 IC Budget
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="data-collection-tab" data-bs-toggle="tab" data-bs-target="#data-collection" type="button" role="tab">
+                        📡 Data Collection
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="device-state-mapping-tab" data-bs-toggle="tab" data-bs-target="#device-state-mapping" type="button" role="tab">
+                        ⚙️ Device State Mapping
+                    </button>
+                </li>
+            </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="onboardingTabContent">
+        <!-- Asset List Tab -->
+        <div class="tab-pane fade show active" id="asset-list" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">🏢 Asset List</h5>
+                    <div>
+                        <button class="btn btn-outline-info btn-sm" onclick="downloadTemplate('asset_list')" title="Download CSV template with sample data">
+                            📋 Download Template
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="downloadData('asset_list')">
+                            📥 Download CSV
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="showUploadModal('asset_list')">
+                            📤 Upload CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" id="assetSearch" class="form-control" placeholder="Search assets..." onkeyup="searchAssets()">
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <select id="assetPageSize" class="form-select" style="width: auto; display: inline-block;" onchange="changeAssetPageSize()">
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div id="assetLoading" class="text-center d-none">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Add New Asset Button -->
+                    <div class="mb-3">
+                        <button class="btn btn-success btn-sm" onclick="showAddAssetModal()">
+                            ➕ Add New Asset
+                        </button>
+                    </div>
+
+                    <!-- Asset Table -->
+                    <div class="table-responsive sticky-table-container">
+                        <table class="table table-striped table-hover sticky-header-table" id="assetTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Asset Code</th>
+                                    <th>Asset Name</th>
+                                    <th>Capacity (kWh)</th>
+                                    <th>Address</th>
+                                    <th>Country</th>
+                                    <th>Portfolio</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Contact Person</th>
+                                    <th>Contact Method</th>
+                                    <th>Grid Connection</th>
+                                    <th>Asset Number</th>
+                                    <th>Timezone</th>
+                                    <th>Asset Name OEM</th>
+                                    <th>COD</th>
+                                    <th>Operational COD</th>
+                                    <th>Y1 Degradation (%)</th>
+                                    <th>Anual Degradation (%)</th>
+                                    <th>API Name</th>
+                                    <th>API Key</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assetTableBody">
+                                <!-- Data will be loaded via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav id="assetPagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="assetPaginationList">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device List Tab -->
+        <div class="tab-pane fade" id="device-list" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📱 Device List</h5>
+                    <div>
+                        <button class="btn btn-outline-info btn-sm" onclick="downloadTemplate('device_list')" title="Download CSV template with sample data">
+                            📋 Download Template
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="downloadData('device_list')">
+                            📥 Download CSV
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="showUploadModal('device_list')">
+                            📤 Upload CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" id="deviceSearch" class="form-control" placeholder="Search devices..." onkeyup="searchDevices()">
+                        </div>
+                        <div class="col-md-4">
+                            <select id="deviceSiteFilter" class="form-select" onchange="filterDevicesBySite()">
+                                <option value="">All Sites (Parent Code)</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <select id="devicePageSize" class="form-select" style="width: auto; display: inline-block;" onchange="changeDevicePageSize()">
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div id="deviceLoading" class="text-center d-none">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls and Count -->
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-success btn-sm" onclick="showAddDeviceModal()">
+                                ➕ Add New Device
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm ms-2" onclick="clearDeviceFilters()" id="clearDeviceFiltersBtn" style="display: none;">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </button>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary" id="device-count-badge">0 Devices</span>
+                            <span class="badge bg-info ms-1" id="device-filter-badge" style="display: none;">
+                                <i class="fas fa-filter"></i> Filtered
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Device Table -->
+                    <div class="table-responsive sticky-table-container">
+                        <table class="table table-striped table-hover sticky-header-table" id="deviceTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Device ID</th>
+                                    <th>Device Name</th>
+                                    <th>Device Code</th>
+                                    <th>Device Type ID</th>
+                                    <th>Device Serial</th>
+                                    <th>Device Model</th>
+                                    <th>Device Make</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Optimizer No</th>
+                                    <th>Parent Code</th>
+                                    <th>Device Type</th>
+                                    <th>Software Version</th>
+                                    <th>Country</th>
+                                    <th>String No</th>
+                                    <th>Connected Strings</th>
+                                    <th>Device Sub Group</th>
+                                    <th>DC Cap</th>
+                                    <th>Device Source</th>
+                                    <th>Location</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deviceTableBody">
+                                <!-- Data will be loaded via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav id="devicePagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="devicePaginationList">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Mapping Tab -->
+        <div class="tab-pane fade" id="device-mapping" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">🔗 Device Mapping</h5>
+                    <div>
+                        <button class="btn btn-outline-info btn-sm" onclick="downloadTemplate('device_mapping')" title="Download CSV template with sample data">
+                            📋 Download Template
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="downloadData('device_mapping')">
+                            📥 Download CSV
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="showUploadModal('device_mapping')">
+                            📤 Upload CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" id="mappingSearch" class="form-control" placeholder="Search mappings..." onkeyup="searchMappings()">
+                        </div>
+                        <div class="col-md-4">
+                            <select id="mappingAssetFilter" class="form-select" onchange="filterMappingsByAsset()">
+                                <option value="">All Assets (Asset Code)</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <select id="mappingPageSize" class="form-select" style="width: auto; display: inline-block;" onchange="changeMappingPageSize()">
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Loading Spinner -->
+                    <div id="mappingLoading" class="text-center d-none">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls and Count -->
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-success btn-sm" onclick="showAddMappingModal()">
+                                ➕ Add New Mapping
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm ms-2" onclick="clearMappingFilters()" id="clearMappingFiltersBtn" style="display: none;">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </button>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary" id="mapping-count-badge">0 Mappings</span>
+                            <span class="badge bg-info ms-1" id="mapping-filter-badge" style="display: none;">
+                                <i class="fas fa-filter"></i> Filtered
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Mapping Table -->
+                    <div class="table-responsive sticky-table-container">
+                        <table class="table table-striped table-hover sticky-header-table" id="mappingTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Asset Code</th>
+                                    <th>Device Type</th>
+                                    <th>OEM Tag</th>
+                                    <th>Description</th>
+                                    <th>Data Type</th>
+                                    <th>Units</th>
+                                    <th>Metric</th>
+                                    <th>Fault Code</th>
+                                    <th>Module No</th>
+                                    <th>Default Value</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mappingTableBody">
+                                <!-- Data will be loaded via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav id="mappingPagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="mappingPaginationList">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Values Tab -->
+        <div class="tab-pane fade" id="budget-values" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">💰 Budget Values</h5>
+                    <div>
+                        <button class="btn btn-outline-info btn-sm" onclick="downloadTemplate('budget_values')" title="Download CSV template with sample data">
+                            📋 Download Template
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="downloadData('budget_values')">
+                            📥 Download CSV
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="showUploadModal('budget_values')">
+                            📤 Upload CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="budgetSearch" placeholder="Search by asset code, month..." onkeyup="searchBudgetData()">
+                        </div>
+                        <div class="col-md-4">
+                            <select id="budgetAssetFilter" class="form-select" onchange="filterBudgetByAsset()">
+                                <option value="">All Assets (Asset Code)</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-primary" onclick="showAddBudgetModal()">
+                                ➕ Add Budget Values
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading indicator -->
+                    <div id="budgetLoading" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading budget values...</p>
+                    </div>
+                    
+                    <!-- Controls and Count -->
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="clearBudgetFilters()" id="clearBudgetFiltersBtn" style="display: none;">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </button>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary" id="budget-count-badge">0 Budget Values</span>
+                            <span class="badge bg-info ms-1" id="budget-filter-badge" style="display: none;">
+                                <i class="fas fa-filter"></i> Filtered
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Budget Table -->
+                    <div class="table-responsive sticky-table-container">
+                        <table class="table table-striped table-hover sticky-header-table" id="budgetTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Asset Number</th>
+                                    <th>Asset Code</th>
+                                    <th>Month</th>
+                                    <th>Month Date</th>
+                                    <th>BD Production</th>
+                                    <th>BD GHI</th>
+                                    <th>BD GTI</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="budgetTableBody">
+                                <!-- Data will be loaded via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav id="budgetPagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="budgetPaginationList">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- IC Budget Tab -->
+        <div class="tab-pane fade" id="ic-budget" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📊 IC Budget</h5>
+                    <div>
+                        <button class="btn btn-outline-info btn-sm" onclick="downloadTemplate('ic_budget')" title="Download CSV template with sample data">
+                            📋 Download Template
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="downloadData('ic_budget')">
+                            📥 Download CSV
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="showUploadModal('ic_budget')">
+                            📤 Upload CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Search and Controls -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="icBudgetSearch" placeholder="Search by asset code, month..." onkeyup="searchIcBudgetData()">
+                        </div>
+                        <div class="col-md-4">
+                            <select id="icBudgetAssetFilter" class="form-select" onchange="filterIcBudgetByAsset()">
+                                <option value="">All Assets (Asset Code)</option>
+                                <!-- Options will be populated by JavaScript -->
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-primary" onclick="showAddIcBudgetModal()">
+                                ➕ Add IC Budget
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading indicator -->
+                    <div id="icBudgetLoading" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading IC budget data...</p>
+                    </div>
+                    
+                    <!-- Controls and Count -->
+                    <div class="mb-3 d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="clearIcBudgetFilters()" id="clearIcBudgetFiltersBtn" style="display: none;">
+                                <i class="fas fa-times"></i> Clear Filters
+                            </button>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary" id="ic-budget-count-badge">0 IC Budgets</span>
+                            <span class="badge bg-info ms-1" id="ic-budget-filter-badge" style="display: none;">
+                                <i class="fas fa-filter"></i> Filtered
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- IC Budget Table -->
+                    <div class="table-responsive sticky-table-container">
+                        <table class="table table-striped table-hover sticky-header-table" id="icBudgetTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Asset Code</th>
+                                    <th>Asset Number</th>
+                                    <th>Month</th>
+                                    <th>Month Date</th>
+                                    <th>IC BD Production</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="icBudgetTableBody">
+                                <!-- Data will be loaded via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav id="icBudgetPagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="icBudgetPaginationList">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Collection Tab -->
+        <div class="tab-pane fade" id="data-collection" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📡 Data Collection (SolarGIS, etc.)</h5>
+                    <button class="btn btn-success btn-sm" onclick="showAddDataCollectionModal()">➕ Add Config</button>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Manage adapter configs for SolarGIS and other data-acquisition adapters. Lat/lng/capacity/timezone come from Asset List. Delete requires superuser.</p>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="dataCollectionSearch" placeholder="Search asset code, adapter..." onkeyup="searchDataCollectionData()">
+                        </div>
+                        <div class="col-md-4">
+                            <select id="dataCollectionAdapterFilter" class="form-select" onchange="filterDataCollectionByAdapter()">
+                                <option value="">All Adapters</option>
+                                <option value="solargis">SolarGIS</option>
+                                <option value="stub">Stub</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <select id="dataCollectionPageSize" class="form-select" style="width: auto; display: inline-block;" onchange="changeDataCollectionPageSize()">
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="dataCollectionLoading" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                    </div>
+                    <div class="table-responsive sticky-table-container">
+                        <table class="table table-striped table-hover sticky-header-table" id="dataCollectionTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Asset Code</th>
+                                    <th>Adapter</th>
+                                    <th>Config (masked)</th>
+                                    <th>Interval</th>
+                                    <th>Enabled</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataCollectionTableBody"></tbody>
+                        </table>
+                    </div>
+                    <nav id="dataCollectionPagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="dataCollectionPaginationList"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device State Mapping Tab -->
+        <div class="tab-pane fade" id="device-state-mapping" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">⚙️ Device State Mapping</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-info btn-sm" onclick="downloadTemplate('device_operating_state')" title="Download CSV template with sample data">
+                            📋 Download Template
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="downloadData('device_operating_state')">
+                            📥 Download CSV
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="showUploadModal('device_operating_state')">
+                            📤 Upload CSV
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="showAddDeviceStateModal()">➕ Add Mapping</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Map OEM inverter state codes per adapter/device type to normalized internal states (e.g. NORMAL, SHUTDOWN, FAULT).
+                        Only admin can edit; delete is restricted to superuser.
+                    </p>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control" id="deviceStateSearch" placeholder="Search adapter, type, state..." onkeyup="searchDeviceStateData()">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" id="deviceStateAdapterFilter" placeholder="Filter by adapter_id (e.g. fusion_solar)" onkeyup="searchDeviceStateData()">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" id="deviceStateDeviceTypeFilter" placeholder="Filter by device_type" onkeyup="searchDeviceStateData()">
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <select id="deviceStatePageSize" class="form-select" style="width: auto; display: inline-block;" onchange="changeDeviceStatePageSize()">
+                                <option value="25">25 per page</option>
+                                <option value="50">50 per page</option>
+                                <option value="100">100 per page</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="deviceStateLoading" class="text-center d-none">
+                        <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                    </div>
+                    <div class="table-responsive sticky-table-container">
+                        <table class="table table-striped table-hover sticky-header-table" id="deviceStateTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Adapter</th>
+                                    <th>Device Type</th>
+                                    <th>State Value</th>
+                                    <th>OEM Label</th>
+                                    <th>Internal State</th>
+                                    <th>Normal?</th>
+                                    <th>Fault Code</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deviceStateTableBody"></tbody>
+                        </table>
+                    </div>
+                    <nav id="deviceStatePagination" class="d-none">
+                        <ul class="pagination justify-content-center" id="deviceStatePaginationList"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Collection Add/Edit Modal -->
+<div class="modal fade" id="dataCollectionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dataCollectionModalTitle">Add Data Collection Config</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="dataCollectionConfigId">
+                <div class="mb-2">
+                    <label for="dataCollectionAssetCode" class="form-label">Asset Code *</label>
+                    <input type="text" class="form-control" id="dataCollectionAssetCode" placeholder="e.g. KR_01" required>
+                    <div class="form-text">Must exist in Asset List. Lat/lng/capacity/timezone come from there.</div>
+                </div>
+                <div class="mb-2">
+                    <label for="dataCollectionAdapterId" class="form-label">Adapter *</label>
+                    <select class="form-select" id="dataCollectionAdapterId">
+                        <option value="solargis">SolarGIS</option>
+                        <option value="stub">Stub</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <label for="dataCollectionConfigJson" class="form-label">Config (JSON)</label>
+                    <textarea class="form-control font-monospace small" id="dataCollectionConfigJson" rows="8" placeholder='{"api_url": "https://solargis.info/ws/rest/datadelivery/request", "api_key": "...", "summarization": "MIN_5", "processing_keys": "GHI DNI DIF GTI PVOUT TMOD TEMP WS WD RH", "terrain_shading": false, "time_stamp_type": "CENTER"}'></textarea>
+                    <div class="form-text">SolarGIS: api_url, api_key, summarization (MIN_5/MIN_1), processing_keys, terrain_shading, time_stamp_type. Optional: tilt, azimuth, linked_asset_codes.</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <label for="dataCollectionInterval" class="form-label">Interval (min)</label>
+                        <select class="form-select" id="dataCollectionInterval">
+                            <option value="5">5</option>
+                            <option value="30">30</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="dataCollectionEnabled" class="form-label">Enabled</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="dataCollectionEnabled" checked>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="dataCollectionSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Device State Mapping Add/Edit Modal -->
+<div class="modal fade" id="deviceStateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deviceStateModalTitle">Add Device State Mapping</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deviceStateId">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <label for="deviceStateAdapterId" class="form-label">Adapter ID *</label>
+                        <input type="text" class="form-control" id="deviceStateAdapterId" placeholder="e.g. fusion_solar" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label for="deviceStateDeviceType" class="form-label">Device Type *</label>
+                        <input type="text" class="form-control" id="deviceStateDeviceType" placeholder="e.g. inverter" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label for="deviceStateValue" class="form-label">State Value *</label>
+                        <input type="text" class="form-control" id="deviceStateValue" placeholder="e.g. 512" required>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label for="deviceStateOemLabel" class="form-label">OEM State Label</label>
+                    <input type="text" class="form-control" id="deviceStateOemLabel" placeholder="Grid-connected: power limited">
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <label for="deviceStateInternalState" class="form-label">Internal State *</label>
+                        <input type="text" class="form-control" id="deviceStateInternalState" placeholder="e.g. NORMAL, SHUTDOWN, FAULT" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label d-block">Is Normal?</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="deviceStateIsNormal">
+                            <label class="form-check-label" for="deviceStateIsNormal">Normal operation (no loss)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="deviceStateFaultCode" class="form-label">Fault Code (optional)</label>
+                        <input type="text" class="form-control" id="deviceStateFaultCode" placeholder="e.g. 1001">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="deviceStateSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalTitle">Upload CSV Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" id="uploadTableName" name="table_name">
+                    
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">Choose CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+                        <div class="form-text">
+                            Select a CSV file with the appropriate headers for the selected table.
+                            <br><strong>💡 Tip:</strong> Use the <span class="badge bg-info">📋 Download Template</span> button to get the correct format with sample data.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="validateData" name="validate_data" checked>
+                            <label class="form-check-label" for="validateData">
+                                Validate data before import
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">⚠️ Data Safety Verification</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirmCorrectFile" name="confirm_correct_file" required>
+                                <label class="form-check-label" for="confirmCorrectFile">
+                                    <strong>I confirm that I am uploading the correct CSV file for <span id="uploadTableDisplayName">this table</span></strong>
+                                </label>
+                            </div>
+                            <small class="text-muted mt-2 d-block">
+                                ⚡ A backup will be created automatically before any changes are made.
+                                <br>📋 Uploading the wrong file type will be prevented by validation.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6>⚠️ Important Notes:</h6>
+                        <ul class="mb-0">
+                            <li>Ensure your CSV file has the correct headers matching the table structure</li>
+                            <li>Large files may take time to process</li>
+                            <li>Invalid rows will be skipped and reported</li>
+                            <li>Always backup your data before uploading</li>
+                        </ul>
+                    </div>
+
+                    <div id="uploadProgress" class="d-none">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="uploadFile()">
+                    <span id="uploadSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Asset Modal -->
+<div class="modal fade" id="assetModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assetModalTitle">Add New Asset</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="max-height: 80vh; overflow-y: auto; padding: 1.5rem;">
+                <form id="assetForm">
+                    <input type="hidden" id="assetOriginalCode" name="original_asset_code">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetCode" class="form-label">Asset Code *</label>
+                                <input type="text" class="form-control" id="assetCode" name="asset_code" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetName" class="form-label">Asset Name *</label>
+                                <input type="text" class="form-control" id="assetName" name="asset_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="assetCapacity" class="form-label">Capacity (kWh)</label>
+                                <input type="number" step="0.001" class="form-control" id="assetCapacity" name="capacity">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="assetCountry" class="form-label">Country *</label>
+                                <input type="text" class="form-control" id="assetCountry" name="country" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="assetPortfolio" class="form-label">Portfolio *</label>
+                                <input type="text" class="form-control" id="assetPortfolio" name="portfolio" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetLatitude" class="form-label">Latitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="assetLatitude" name="latitude">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetLongitude" class="form-label">Longitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="assetLongitude" name="longitude">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="assetAddress" class="form-label">Address</label>
+                        <textarea class="form-control" id="assetAddress" name="address" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetContactPerson" class="form-label">Contact Person</label>
+                                <input type="text" class="form-control" id="assetContactPerson" name="contact_person">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetContactMethod" class="form-label">Contact Method</label>
+                                <input type="text" class="form-control" id="assetContactMethod" name="contact_method">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetGridConnection" class="form-label">Grid Connection Date</label>
+                                <input type="datetime-local" class="form-control" id="assetGridConnection" name="grid_connection_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetTimezone" class="form-label">Timezone (e.g., +05:30)</label>
+                                <input type="text" class="form-control" id="assetTimezone" name="timezone" placeholder="+05:30">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetNumber" class="form-label">Asset Number</label>
+                                <input type="text" class="form-control" id="assetNumber" name="asset_number">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetNameOem" class="form-label">Asset Name OEM</label>
+                                <input type="text" class="form-control" id="assetNameOem" name="asset_name_oem">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetCod" class="form-label">COD (Commercial Operation Date)</label>
+                                <input type="datetime-local" class="form-control" id="assetCod" name="cod">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetOperationalCod" class="form-label">Operational COD</label>
+                                <input type="datetime-local" class="form-control" id="assetOperationalCod" name="operational_cod">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetY1Degradation" class="form-label">Y1 Degradation (%)</label>
+                                <input type="number" step="0.01" class="form-control" id="assetY1Degradation" name="y1_degradation" placeholder="2.5">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="assetAnualDegradation" class="form-label">Anual Degradation (%)</label>
+                                <input type="number" step="0.01" class="form-control" id="assetAnualDegradation" name="anual_degradation" placeholder="0.5">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- API Configuration Section -->
+                    <hr class="my-4" style="border-top: 2px solid #dee2e6;">
+                    <div class="bg-light p-3 rounded mb-3">
+                        <h5 class="text-primary mb-3"><i class="fas fa-key"></i> API Configuration</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="assetApiName" class="form-label">API Name</label>
+                                    <input type="text" class="form-control" id="assetApiName" name="api_name" 
+                                           placeholder="Enter or select API name" list="apiNameList">
+                                    <datalist id="apiNameList">
+                                        <!-- Options will be populated via JavaScript -->
+                                    </datalist>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="assetApiKey" class="form-label">API Key</label>
+                                    <input type="text" class="form-control" id="assetApiKey" name="api_key" placeholder="Enter API key">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveAsset()">
+                    <span id="assetSaveSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    Save Asset
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Device Modal -->
+<div class="modal fade" id="deviceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deviceModalTitle">Add New Device</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="deviceForm">
+                    <input type="hidden" id="deviceOriginalId" name="original_device_id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceId" class="form-label">Device ID *</label>
+                                <input type="text" class="form-control" id="deviceId" name="device_id" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceName" class="form-label">Device Name *</label>
+                                <input type="text" class="form-control" id="deviceName" name="device_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceCode" class="form-label">Device Code</label>
+                                <input type="text" class="form-control" id="deviceCode" name="device_code">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceType" class="form-label">Device Type *</label>
+                                <input type="text" class="form-control" id="deviceType" name="device_type" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceCountry" class="form-label">Country *</label>
+                                <input type="text" class="form-control" id="deviceCountry" name="country" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceMake" class="form-label">Make</label>
+                                <input type="text" class="form-control" id="deviceMake" name="device_make">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceModel" class="form-label">Model</label>
+                                <input type="text" class="form-control" id="deviceModel" name="device_model">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceLatitude" class="form-label">Latitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="deviceLatitude" name="latitude">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceLongitude" class="form-label">Longitude</label>
+                                <input type="number" step="0.000001" class="form-control" id="deviceLongitude" name="longitude">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceTypeId" class="form-label">Device Type ID</label>
+                                <input type="text" class="form-control" id="deviceTypeId" name="device_type_id">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceSerial" class="form-label">Device Serial</label>
+                                <input type="text" class="form-control" id="deviceSerial" name="device_serial">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceOptimizerNo" class="form-label">Optimizer No</label>
+                                <input type="number" class="form-control" id="deviceOptimizerNo" name="optimizer_no">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceParentCode" class="form-label">Parent Code</label>
+                                <input type="text" class="form-control" id="deviceParentCode" name="parent_code">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceSoftwareVersion" class="form-label">Software Version</label>
+                                <input type="text" class="form-control" id="deviceSoftwareVersion" name="software_version">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceStringNo" class="form-label">String No</label>
+                                <input type="text" class="form-control" id="deviceStringNo" name="string_no">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceConnectedStrings" class="form-label">Connected Strings</label>
+                                <input type="text" class="form-control" id="deviceConnectedStrings" name="connected_strings">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="deviceSubGroup" class="form-label">Device Sub Group</label>
+                                <input type="text" class="form-control" id="deviceSubGroup" name="device_sub_group">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceDcCap" class="form-label">DC Capacity</label>
+                                <input type="number" step="0.01" class="form-control" id="deviceDcCap" name="dc_cap">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceSource" class="form-label">Device Source</label>
+                                <input type="text" class="form-control" id="deviceSource" name="device_source">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceAcCapacity" class="form-label">AC Capacity</label>
+                                <input type="number" step="0.01" class="form-control" id="deviceAcCapacity" name="ac_capacity">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceBessCapacity" class="form-label">BESS Capacity</label>
+                                <input type="number" step="0.01" class="form-control" id="deviceBessCapacity" name="bess_capacity">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceYom" class="form-label">Year of Manufacture (YOM)</label>
+                                <input type="text" class="form-control" id="deviceYom" name="yom" placeholder="e.g., 2023">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceNomenclature" class="form-label">Nomenclature</label>
+                                <input type="text" class="form-control" id="deviceNomenclature" name="nomenclature">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceLocation" class="form-label">Location</label>
+                                <input type="text" class="form-control" id="deviceLocation" name="location">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceCalibrationFrequency" class="form-label">Calibration Frequency</label>
+                                <input type="text" class="form-control" id="deviceCalibrationFrequency" name="calibration_frequency" placeholder="e.g., Monthly, Quarterly">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="devicePmFrequency" class="form-label">PM Frequency</label>
+                                <input type="text" class="form-control" id="devicePmFrequency" name="pm_frequency" placeholder="e.g., Monthly, Quarterly">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceVisualInspectionFrequency" class="form-label">Visual Inspection Frequency</label>
+                                <input type="text" class="form-control" id="deviceVisualInspectionFrequency" name="visual_inspection_frequency" placeholder="e.g., Monthly, Quarterly">
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3">Equipment Warranty</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceEquipmentWarrantyStart" class="form-label">Equipment Warranty Start Date</label>
+                                <input type="datetime-local" class="form-control" id="deviceEquipmentWarrantyStart" name="equipment_warranty_start_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceEquipmentWarrantyExpire" class="form-label">Equipment Warranty Expire Date</label>
+                                <input type="datetime-local" class="form-control" id="deviceEquipmentWarrantyExpire" name="equipment_warranty_expire_date">
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <h6 class="mb-3">EPC Warranty</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceEpcWarrantyStart" class="form-label">EPC Warranty Start Date</label>
+                                <input type="datetime-local" class="form-control" id="deviceEpcWarrantyStart" name="epc_warranty_start_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="deviceEpcWarrantyExpire" class="form-label">EPC Warranty Expire Date</label>
+                                <input type="datetime-local" class="form-control" id="deviceEpcWarrantyExpire" name="epc_warranty_expire_date">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveDevice()">
+                    <span id="deviceSaveSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    Save Device
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Device Mapping Modal -->
+<div class="modal fade" id="mappingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mappingModalTitle">Add New Device Mapping</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="mappingForm">
+                    <input type="hidden" id="mappingId" name="id">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingAssetCode" class="form-label">Asset Code *</label>
+                                <input type="text" class="form-control" id="mappingAssetCode" name="asset_code" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingDeviceType" class="form-label">Device Type *</label>
+                                <input type="text" class="form-control" id="mappingDeviceType" name="device_type" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingOemTag" class="form-label">OEM Tag *</label>
+                                <input type="text" class="form-control" id="mappingOemTag" name="oem_tag" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingDataType" class="form-label">Data Type *</label>
+                                <input type="text" class="form-control" id="mappingDataType" name="data_type" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingUnits" class="form-label">Units *</label>
+                                <input type="text" class="form-control" id="mappingUnits" name="units" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingMetric" class="form-label">Metric *</label>
+                                <input type="text" class="form-control" id="mappingMetric" name="metric" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mappingDescription" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="mappingDescription" name="discription">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingFaultCode" class="form-label">Fault Code</label>
+                                <input type="text" class="form-control" id="mappingFaultCode" name="fault_code">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingModuleNo" class="form-label">Module Number</label>
+                                <input type="text" class="form-control" id="mappingModuleNo" name="module_no">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mappingDefaultValue" class="form-label">Default Value</label>
+                        <input type="text" class="form-control" id="mappingDefaultValue" name="default_value">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveMapping()">
+                    <span id="mappingSaveSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    Save Mapping
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div class="modal fade" id="helpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📋 Site Onboarding Help & Guidelines</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6>🏢 Asset List Table</h6>
+                        <p>Manages basic asset information including capacity, location, and connection details.</p>
+                        <ul>
+                            <li><strong>Asset Code:</strong> Unique identifier for the asset</li>
+                            <li><strong>Capacity:</strong> Site capacity in kWh</li>
+                            <li><strong>Coordinates:</strong> Latitude and longitude for mapping</li>
+                            <li><strong>Timezone:</strong> Format: "+05:30" or "-08:00"</li>
+                        </ul>
+
+                        <h6 class="mt-4">📱 Device List Table</h6>
+                        <p>Contains detailed device information for equipment monitoring.</p>
+                        <ul>
+                            <li><strong>Device ID:</strong> Unique device identifier</li>
+                            <li><strong>Device Type:</strong> Category of equipment</li>
+                            <li><strong>Parent Code:</strong> Reference to parent asset or device</li>
+                            <li><strong>Location:</strong> Precise coordinates for device placement</li>
+                        </ul>
+
+                        <h6 class="mt-4">🔗 Device Mapping Table</h6>
+                        <p>Defines the relationship between devices and data metrics.</p>
+                        <ul>
+                            <li><strong>OEM Tag:</strong> Original equipment manufacturer tag</li>
+                            <li><strong>Metric:</strong> Standardized measurement name</li>
+                            <li><strong>Data Type:</strong> Type of data being collected</li>
+                            <li><strong>Units:</strong> Measurement units (kW, kWh, V, A, etc.)</li>
+                        </ul>
+
+                        <div class="alert alert-info mt-4">
+                            <h6>🔧 Best Practices</h6>
+                            <ul class="mb-0">
+                                <li>Always download existing data before uploading new files</li>
+                                <li>Validate CSV headers match the expected format</li>
+                                <li>Test with small batches first</li>
+                                <li>Keep backup copies of original data</li>
+                                <li>Contact IT support for large-scale imports</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables for pagination
+let currentAssetPage = 1;
+let currentDevicePage = 1;
+let currentMappingPage = 1;
+let currentBudgetPage = 1;
+let assetPageSize = 25;
+let devicePageSize = 25;
+let mappingPageSize = 25;
+let budgetPageSize = 25;
+
+// Global data storage for editing
+let currentAssetData = [];
+let currentDeviceData = [];
+let currentMappingData = [];
+let currentBudgetData = [];
+
+// Check if user is superuser (passed from Django template)
+const isSuperuser = {{ user.is_superuser|yesno:"true,false" }};
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    loadAssetData();
+    
+    // Check session status
+    checkSessionStatus();
+    
+    // Load data when tabs are clicked
+    document.getElementById('device-list-tab').addEventListener('click', function() {
+        setTimeout(() => loadDeviceData(), 100);
+    });
+    
+    document.getElementById('device-mapping-tab').addEventListener('click', function() {
+        setTimeout(() => loadMappingData(), 100);
+    });
+    
+    document.getElementById('budget-values-tab').addEventListener('click', function() {
+        setTimeout(() => loadBudgetData(), 100);
+    });
+    
+    document.getElementById('ic-budget-tab').addEventListener('click', function() {
+        setTimeout(() => loadIcBudgetData(), 100);
+    });
+
+    document.getElementById('data-collection-tab').addEventListener('click', function() {
+        setTimeout(() => loadDataCollectionData(), 100);
+    });
+
+    const deviceStateTab = document.getElementById('device-state-mapping-tab');
+    if (deviceStateTab) {
+        deviceStateTab.addEventListener('click', function() {
+            setTimeout(() => loadDeviceStateData(), 100);
+        });
+    }
+});
+
+// Function to check if session is still valid
+function checkSessionStatus() {
+    fetch('/api/site-onboarding/asset-list/?page=1&page_size=1', {
+        method: 'GET',
+        headers: {
+            'Cache-Control': 'no-cache'
+        }
+    })
+    .then(response => {
+        if (response.url.includes('/accounts/login/')) {
+            showAlert('⚠️ Your session has expired. Please refresh the page to log in again.', 'warning');
+        }
+    })
+    .catch(error => {
+        console.log('Session check failed:', error);
+    });
+}
+
+// Asset List Functions
+function loadAssetData(page = 1, search = '') {
+    showLoading('asset');
+    currentAssetPage = page;
+    
+    const params = new URLSearchParams({
+        page: page,
+        page_size: assetPageSize,
+        search: search
+    });
+    
+    fetch(`/api/site-onboarding/asset-list/?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showAlert('Error loading asset data: ' + data.error, 'danger');
+                return;
+            }
+            
+            displayAssetData(data.data);
+            setupAssetPagination(data.total_pages, data.page);
+            hideLoading('asset');
+        })
+        .catch(error => {
+            showAlert('Error loading asset data: ' + error.message, 'danger');
+            hideLoading('asset');
+        });
+}
+
+function displayAssetData(assets) {
+    const tbody = document.getElementById('assetTableBody');
+    tbody.innerHTML = '';
+    
+    // Store data for editing
+    currentAssetData = assets;
+    
+    assets.forEach(asset => {
+        const row = document.createElement('tr');
+        const deleteButton = isSuperuser ? 
+            `<button class="btn btn-outline-danger btn-sm" onclick="deleteAsset('${asset.asset_code}')" title="Delete">
+                🗑️
+            </button>` : '';
+        
+        row.innerHTML = `
+            <td>${asset.asset_code}</td>
+            <td>${asset.asset_name}</td>
+            <td>${asset.capacity.toLocaleString()}</td>
+            <td>${asset.address || ''}</td>
+            <td>${asset.country}</td>
+            <td>${asset.portfolio}</td>
+            <td>${asset.latitude.toFixed(6)}</td>
+            <td>${asset.longitude.toFixed(6)}</td>
+            <td>${asset.contact_person || ''}</td>
+            <td>${asset.contact_method || ''}</td>
+            <td>${new Date(asset.grid_connection_date).toLocaleDateString()}</td>
+            <td>${asset.asset_number || ''}</td>
+            <td>${asset.timezone}</td>
+            <td>${asset.asset_name_oem || ''}</td>
+            <td>${asset.cod ? new Date(asset.cod).toLocaleDateString() : ''}</td>
+            <td>${asset.operational_cod ? new Date(asset.operational_cod).toLocaleDateString() : ''}</td>
+            <td>${asset.y1_degradation ? asset.y1_degradation.toFixed(2) : ''}</td>
+            <td>${asset.anual_degradation ? asset.anual_degradation.toFixed(2) : ''}</td>
+            <td>${asset.api_name || ''}</td>
+            <td>${asset.api_key || ''}</td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editAsset('${asset.asset_code}')" title="Edit">
+                        ✏️
+                    </button>
+                    ${deleteButton}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function setupAssetPagination(totalPages, currentPage) {
+    const pagination = document.getElementById('assetPagination');
+    const paginationList = document.getElementById('assetPaginationList');
+    
+    if (totalPages <= 1) {
+        pagination.classList.add('d-none');
+        return;
+    }
+    
+    pagination.classList.remove('d-none');
+    paginationList.innerHTML = '';
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadAssetData(${currentPage - 1}, document.getElementById('assetSearch').value)">Previous</a>`;
+    paginationList.appendChild(prevLi);
+    
+    // Page numbers
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadAssetData(${i}, document.getElementById('assetSearch').value)">${i}</a>`;
+        paginationList.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadAssetData(${currentPage + 1}, document.getElementById('assetSearch').value)">Next</a>`;
+    paginationList.appendChild(nextLi);
+}
+
+function searchAssets() {
+    const search = document.getElementById('assetSearch').value;
+    loadAssetData(1, search);
+}
+
+function changeAssetPageSize() {
+    assetPageSize = parseInt(document.getElementById('assetPageSize').value);
+    loadAssetData(1, document.getElementById('assetSearch').value);
+}
+
+// Device List Functions
+let allDevicesData = []; // Store all devices for filtering
+let allUnfilteredDevicesData = []; // Store all devices before filtering for dropdown population
+
+function loadDeviceData(page = 1, search = '') {
+    showLoading('device');
+    currentDevicePage = page;
+    
+    const siteFilter = document.getElementById('deviceSiteFilter').value;
+    
+    // Build params with site filter
+    const params = new URLSearchParams({
+        page: page,
+        page_size: devicePageSize,
+        search: search
+    });
+    
+    // Add site filter if selected
+    if (siteFilter) {
+        params.append('parent_code', siteFilter);
+    }
+    
+    fetch(`/api/site-onboarding/device-list/?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showAlert('Error loading device data: ' + data.error, 'danger');
+                return;
+            }
+            
+            // Store data
+            allDevicesData = data.data || [];
+            
+            // Load all devices once to populate the site filter dropdown
+            if (allUnfilteredDevicesData.length === 0) {
+                loadAllDevicesForFilter();
+            }
+            
+            displayDeviceData(allDevicesData);
+            setupDevicePagination(data.total_pages, data.page);
+            hideLoading('device');
+        })
+        .catch(error => {
+            showAlert('Error loading device data: ' + error.message, 'danger');
+            hideLoading('device');
+        });
+}
+
+function loadAllDevicesForFilter() {
+    // Load all devices without pagination to populate the filter dropdown
+    fetch(`/api/site-onboarding/device-list/?page=1&page_size=10000`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error && data.data) {
+                allUnfilteredDevicesData = data.data;
+                populateSiteFilter(allUnfilteredDevicesData);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading devices for filter:', error);
+        });
+}
+
+function populateSiteFilter(devices) {
+    const siteFilter = document.getElementById('deviceSiteFilter');
+    const currentValue = siteFilter.value;
+    
+    // Get unique parent codes
+    const parentCodes = [...new Set(devices.map(d => d.parent_code))].filter(code => code).sort();
+    
+    // Only update if dropdown is empty (first load)
+    if (siteFilter.options.length === 1) {
+        parentCodes.forEach(code => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = code;
+            siteFilter.appendChild(option);
+        });
+        
+        // Restore selected value if it exists
+        if (currentValue) {
+            siteFilter.value = currentValue;
+        }
+    }
+}
+
+function filterDevicesBySite() {
+    // Reload data with current filters
+    const search = document.getElementById('deviceSearch').value;
+    loadDeviceData(1, search);
+}
+
+function clearDeviceFilters() {
+    // Clear all filters
+    document.getElementById('deviceSiteFilter').value = '';
+    document.getElementById('deviceSearch').value = '';
+    
+    // Reload data
+    loadDeviceData(1, '');
+}
+
+function displayDeviceData(devices) {
+    const tbody = document.getElementById('deviceTableBody');
+    tbody.innerHTML = '';
+    
+    // Update count badge
+    const countBadge = document.getElementById('device-count-badge');
+    countBadge.textContent = `${devices.length} Device${devices.length !== 1 ? 's' : ''}`;
+    
+    // Show/hide filter indicator
+    const siteFilter = document.getElementById('deviceSiteFilter').value;
+    const searchFilter = document.getElementById('deviceSearch').value;
+    const filterBadge = document.getElementById('device-filter-badge');
+    const clearFiltersBtn = document.getElementById('clearDeviceFiltersBtn');
+    
+    if (siteFilter || searchFilter) {
+        filterBadge.style.display = 'inline-block';
+        clearFiltersBtn.style.display = 'inline-block';
+    } else {
+        filterBadge.style.display = 'none';
+        clearFiltersBtn.style.display = 'none';
+    }
+    
+    // Store data for editing
+    currentDeviceData = devices;
+    
+    devices.forEach(device => {
+        const row = document.createElement('tr');
+        const deleteButton = isSuperuser ? 
+            `<button class="btn btn-outline-danger btn-sm" onclick="deleteDevice('${device.device_id}')" title="Delete">
+                🗑️
+            </button>` : '';
+        
+        row.innerHTML = `
+            <td>${device.device_id}</td>
+            <td>${device.device_name}</td>
+            <td>${device.device_code}</td>
+            <td>${device.device_type_id || ''}</td>
+            <td>${device.device_serial || ''}</td>
+            <td>${device.device_model}</td>
+            <td>${device.device_make}</td>
+            <td>${device.latitude.toFixed(6)}</td>
+            <td>${device.longitude.toFixed(6)}</td>
+            <td>${device.optimizer_no || ''}</td>
+            <td>${device.parent_code}</td>
+            <td>${device.device_type}</td>
+            <td>${device.software_version || ''}</td>
+            <td>${device.country}</td>
+            <td>${device.string_no || ''}</td>
+            <td>${device.connected_strings || ''}</td>
+            <td>${device.device_sub_group || ''}</td>
+            <td>${device.dc_cap ? device.dc_cap.toFixed(2) : ''}</td>
+            <td>${device.device_source || ''}</td>
+            <td>${device.location || ''}</td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editDevice('${device.device_id}')" title="Edit">
+                        ✏️
+                    </button>
+                    ${deleteButton}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function setupDevicePagination(totalPages, currentPage) {
+    const pagination = document.getElementById('devicePagination');
+    const paginationList = document.getElementById('devicePaginationList');
+    
+    if (totalPages <= 1) {
+        pagination.classList.add('d-none');
+        return;
+    }
+    
+    pagination.classList.remove('d-none');
+    paginationList.innerHTML = '';
+    
+    const search = document.getElementById('deviceSearch').value;
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadDeviceData(${currentPage - 1}, '${search}')">Previous</a>`;
+    paginationList.appendChild(prevLi);
+    
+    // Page numbers
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadDeviceData(${i}, '${search}')">${i}</a>`;
+        paginationList.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadDeviceData(${currentPage + 1}, '${search}')">Next</a>`;
+    paginationList.appendChild(nextLi);
+}
+
+function searchDevices() {
+    const search = document.getElementById('deviceSearch').value;
+    loadDeviceData(1, search);
+}
+
+function changeDevicePageSize() {
+    devicePageSize = parseInt(document.getElementById('devicePageSize').value);
+    loadDeviceData(1, document.getElementById('deviceSearch').value);
+}
+
+// Device Mapping Functions
+let allMappingsData = []; // Store all mappings for filtering
+let allUnfilteredMappingsData = []; // Store all mappings before filtering for dropdown population
+
+function loadMappingData(page = 1, search = '') {
+    showLoading('mapping');
+    currentMappingPage = page;
+    
+    const assetFilter = document.getElementById('mappingAssetFilter').value;
+    
+    // Build params with asset filter
+    const params = new URLSearchParams({
+        page: page,
+        page_size: mappingPageSize,
+        search: search
+    });
+    
+    // Add asset filter if selected
+    if (assetFilter) {
+        params.append('asset_code', assetFilter);
+    }
+    
+    fetch(`/api/site-onboarding/device-mapping/?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showAlert('Error loading mapping data: ' + data.error, 'danger');
+                return;
+            }
+            
+            // Store data
+            allMappingsData = data.data || [];
+            
+            // Load all mappings once to populate the asset filter dropdown
+            if (allUnfilteredMappingsData.length === 0) {
+                loadAllMappingsForFilter();
+            }
+            
+            displayMappingData(allMappingsData);
+            setupMappingPagination(data.total_pages, data.page);
+            hideLoading('mapping');
+        })
+        .catch(error => {
+            showAlert('Error loading mapping data: ' + error.message, 'danger');
+            hideLoading('mapping');
+        });
+}
+
+function loadAllMappingsForFilter() {
+    // Load all mappings without pagination to populate the filter dropdown
+    fetch(`/api/site-onboarding/device-mapping/?page=1&page_size=10000`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error && data.data) {
+                allUnfilteredMappingsData = data.data;
+                populateAssetFilter(allUnfilteredMappingsData);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading mappings for filter:', error);
+        });
+}
+
+function populateAssetFilter(mappings) {
+    const assetFilter = document.getElementById('mappingAssetFilter');
+    const currentValue = assetFilter.value;
+    
+    // Get unique asset codes
+    const assetCodes = [...new Set(mappings.map(m => m.asset_code))].filter(code => code).sort();
+    
+    // Only update if dropdown is empty (first load)
+    if (assetFilter.options.length === 1) {
+        assetCodes.forEach(code => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = code;
+            assetFilter.appendChild(option);
+        });
+        
+        // Restore selected value if it exists
+        if (currentValue) {
+            assetFilter.value = currentValue;
+        }
+    }
+}
+
+function filterMappingsByAsset() {
+    // Reload data with current filters
+    const search = document.getElementById('mappingSearch').value;
+    loadMappingData(1, search);
+}
+
+function clearMappingFilters() {
+    // Clear all filters
+    document.getElementById('mappingAssetFilter').value = '';
+    document.getElementById('mappingSearch').value = '';
+    
+    // Reload data
+    loadMappingData(1, '');
+}
+
+function displayMappingData(mappings) {
+    const tbody = document.getElementById('mappingTableBody');
+    tbody.innerHTML = '';
+    
+    // Update count badge
+    const countBadge = document.getElementById('mapping-count-badge');
+    countBadge.textContent = `${mappings.length} Mapping${mappings.length !== 1 ? 's' : ''}`;
+    
+    // Show/hide filter indicator
+    const assetFilter = document.getElementById('mappingAssetFilter').value;
+    const searchFilter = document.getElementById('mappingSearch').value;
+    const filterBadge = document.getElementById('mapping-filter-badge');
+    const clearFiltersBtn = document.getElementById('clearMappingFiltersBtn');
+    
+    if (assetFilter || searchFilter) {
+        filterBadge.style.display = 'inline-block';
+        clearFiltersBtn.style.display = 'inline-block';
+    } else {
+        filterBadge.style.display = 'none';
+        clearFiltersBtn.style.display = 'none';
+    }
+    
+    // Store data for editing
+    currentMappingData = mappings;
+    
+    mappings.forEach(mapping => {
+        const row = document.createElement('tr');
+        const deleteButton = isSuperuser ? 
+            `<button class="btn btn-outline-danger btn-sm" onclick="deleteMapping(${mapping.id})" title="Delete">
+                🗑️
+            </button>` : '';
+        
+        row.innerHTML = `
+            <td>${mapping.id}</td>
+            <td>${mapping.asset_code}</td>
+            <td>${mapping.device_type}</td>
+            <td>${mapping.oem_tag}</td>
+            <td>${mapping.description}</td>
+            <td>${mapping.data_type}</td>
+            <td>${mapping.units}</td>
+            <td>${mapping.metric}</td>
+            <td>${mapping.fault_code || '-'}</td>
+            <td>${mapping.module_no || '-'}</td>
+            <td>${mapping.default_value || '-'}</td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editMapping(${mapping.id})" title="Edit">
+                        ✏️
+                    </button>
+                    ${deleteButton}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function setupMappingPagination(totalPages, currentPage) {
+    const pagination = document.getElementById('mappingPagination');
+    const paginationList = document.getElementById('mappingPaginationList');
+    
+    if (totalPages <= 1) {
+        pagination.classList.add('d-none');
+        return;
+    }
+    
+    pagination.classList.remove('d-none');
+    paginationList.innerHTML = '';
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadMappingData(${currentPage - 1}, document.getElementById('mappingSearch').value)">Previous</a>`;
+    paginationList.appendChild(prevLi);
+    
+    // Page numbers
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadMappingData(${i}, document.getElementById('mappingSearch').value)">${i}</a>`;
+        paginationList.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadMappingData(${currentPage + 1}, document.getElementById('mappingSearch').value)">Next</a>`;
+    paginationList.appendChild(nextLi);
+}
+
+function searchMappings() {
+    const search = document.getElementById('mappingSearch').value;
+    loadMappingData(1, search);
+}
+
+function changeMappingPageSize() {
+    mappingPageSize = parseInt(document.getElementById('mappingPageSize').value);
+    loadMappingData(1, document.getElementById('mappingSearch').value);
+}
+
+// Budget Values Functions
+let allBudgetsData = []; // Store all budgets for filtering
+let allUnfilteredBudgetsData = []; // Store all budgets before filtering for dropdown population
+
+function loadBudgetData(page = 1, search = '') {
+    showLoading('budget');
+    currentBudgetPage = page;
+    
+    const assetFilter = document.getElementById('budgetAssetFilter').value;
+    
+    // Build params with asset filter
+    const params = new URLSearchParams({
+        page: page,
+        page_size: budgetPageSize,
+        search: search
+    });
+    
+    // Add asset filter if selected
+    if (assetFilter) {
+        params.append('asset_code', assetFilter);
+    }
+    
+    console.log('Loading budget data with params:', params.toString());
+    
+    fetch(`/api/site-onboarding/budget-values/?${params}`)
+        .then(response => {
+            console.log('Budget API response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Budget API response data:', data);
+            if (data.error) {
+                showAlert('Error loading budget data: ' + data.error, 'danger');
+                return;
+            }
+            
+            // Store data
+            currentBudgetData = data.data;
+            allBudgetsData = data.data || [];
+            
+            // Load all budgets once to populate the asset filter dropdown
+            if (allUnfilteredBudgetsData.length === 0) {
+                loadAllBudgetsForFilter();
+            }
+            
+            displayBudgetData(data.data);
+            setupBudgetPagination(data.total_pages, data.page);
+            hideLoading('budget');
+        })
+        .catch(error => {
+            console.error('Budget API error:', error);
+            showAlert('Error loading budget data: ' + error.message, 'danger');
+            hideLoading('budget');
+        });
+}
+
+function loadAllBudgetsForFilter() {
+    // Load all budgets without pagination to populate the filter dropdown
+    fetch(`/api/site-onboarding/budget-values/?page=1&page_size=10000`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error && data.data) {
+                allUnfilteredBudgetsData = data.data;
+                populateBudgetAssetFilter(allUnfilteredBudgetsData);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading budgets for filter:', error);
+        });
+}
+
+function populateBudgetAssetFilter(budgets) {
+    const assetFilter = document.getElementById('budgetAssetFilter');
+    const currentValue = assetFilter.value;
+    
+    // Get unique asset codes
+    const assetCodes = [...new Set(budgets.map(b => b.asset_code))].filter(code => code).sort();
+    
+    // Only update if dropdown is empty (first load)
+    if (assetFilter.options.length === 1) {
+        assetCodes.forEach(code => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = code;
+            assetFilter.appendChild(option);
+        });
+        
+        // Restore selected value if it exists
+        if (currentValue) {
+            assetFilter.value = currentValue;
+        }
+    }
+}
+
+function filterBudgetByAsset() {
+    // Reload data with current filters
+    const search = document.getElementById('budgetSearch').value;
+    loadBudgetData(1, search);
+}
+
+function clearBudgetFilters() {
+    // Clear all filters
+    document.getElementById('budgetAssetFilter').value = '';
+    document.getElementById('budgetSearch').value = '';
+    
+    // Reload data
+    loadBudgetData(1, '');
+}
+
+function displayBudgetData(budgets) {
+    const tbody = document.getElementById('budgetTableBody');
+    tbody.innerHTML = '';
+    
+    // Update count badge
+    const countBadge = document.getElementById('budget-count-badge');
+    countBadge.textContent = `${budgets.length} Budget Value${budgets.length !== 1 ? 's' : ''}`;
+    
+    // Show/hide filter indicator
+    const assetFilter = document.getElementById('budgetAssetFilter').value;
+    const searchFilter = document.getElementById('budgetSearch').value;
+    const filterBadge = document.getElementById('budget-filter-badge');
+    const clearFiltersBtn = document.getElementById('clearBudgetFiltersBtn');
+    
+    if (assetFilter || searchFilter) {
+        filterBadge.style.display = 'inline-block';
+        clearFiltersBtn.style.display = 'inline-block';
+    } else {
+        filterBadge.style.display = 'none';
+        clearFiltersBtn.style.display = 'none';
+    }
+    
+    budgets.forEach(budget => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${budget.id}</td>
+            <td>${budget.asset_number || ''}</td>
+            <td>${budget.asset_code}</td>
+            <td>${budget.month_str}</td>
+            <td>${budget.month_date || ''}</td>
+            <td>${budget.bd_production}</td>
+            <td>${budget.bd_ghi}</td>
+            <td>${budget.bd_gti}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editBudget(${budget.id})" title="Edit">
+                    ✏️
+                </button>
+                ${isSuperuser ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteBudget(${budget.id}, '${budget.asset_code}')" title="Delete (Superuser only)">🗑️</button>` : ''}
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+    
+    // Show empty state if no data
+    if (budgets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No budget values found</td></tr>';
+    }
+}
+
+function setupBudgetPagination(totalPages, currentPage) {
+    const pagination = document.getElementById('budgetPagination');
+    const paginationList = document.getElementById('budgetPaginationList');
+    
+    if (totalPages <= 1) {
+        pagination.classList.add('d-none');
+        return;
+    }
+    
+    pagination.classList.remove('d-none');
+    paginationList.innerHTML = '';
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadBudgetData(${currentPage - 1}, document.getElementById('budgetSearch').value)">Previous</a>`;
+    paginationList.appendChild(prevLi);
+    
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    for (let i = startPage; i <= endPage; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadBudgetData(${i}, document.getElementById('budgetSearch').value)">${i}</a>`;
+        paginationList.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadBudgetData(${currentPage + 1}, document.getElementById('budgetSearch').value)">Next</a>`;
+    paginationList.appendChild(nextLi);
+}
+
+function searchBudgetData() {
+    const search = document.getElementById('budgetSearch').value;
+    loadBudgetData(1, search);
+}
+
+function editBudget(budgetId) {
+    const budget = currentBudgetData.find(b => b.id === budgetId);
+    if (!budget) {
+        showAlert('Budget record not found', 'danger');
+        return;
+    }
+    
+    // For now, show a simple alert with budget data
+    // TODO: Implement proper edit modal
+    showAlert(`Edit Budget: ${budget.asset_code} - ${budget.month_str}`, 'info');
+}
+
+function deleteBudget(budgetId, assetCode) {
+    if (!isSuperuser) {
+        showAlert('Only superusers can delete records', 'danger');
+        return;
+    }
+    
+    // Show confirmation modal
+    const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+    document.getElementById('confirmDeleteModalLabel').textContent = 'Confirm Delete Budget Values';
+    document.getElementById('confirmDeleteText').textContent = `Are you sure you want to delete budget values for ${assetCode}? This action cannot be undone.`;
+    
+    // Set up the delete action
+    document.getElementById('confirmDeleteBtn').onclick = function() {
+        fetch(`/api/site-onboarding/budget-values/delete/${budgetId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                loadBudgetData(currentBudgetPage, document.getElementById('budgetSearch').value);
+            } else {
+                showAlert(data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error deleting budget values: ' + error.message, 'danger');
+        });
+        
+        modal.hide();
+    };
+    
+    modal.show();
+}
+
+function showAddBudgetModal() {
+    // For now, show a simple alert
+    // TODO: Implement proper add modal
+    showAlert('Add Budget Values functionality coming soon!', 'info');
+}
+
+// IC Budget Functions
+let currentIcBudgetPage = 1;
+const icBudgetPageSize = 25;
+let currentIcBudgetData = [];
+let allIcBudgetsData = []; // Store all IC budgets for filtering
+let allUnfilteredIcBudgetsData = []; // Store all IC budgets before filtering for dropdown population
+
+function loadIcBudgetData(page = 1, search = '') {
+    showLoading('icBudget');
+    currentIcBudgetPage = page;
+    
+    const assetFilter = document.getElementById('icBudgetAssetFilter').value;
+    
+    // Build params with asset filter
+    const params = new URLSearchParams({
+        page: page,
+        page_size: icBudgetPageSize,
+        search: search
+    });
+    
+    // Add asset filter if selected
+    if (assetFilter) {
+        params.append('asset_code', assetFilter);
+    }
+    
+    console.log('Loading IC budget data with params:', params.toString());
+    
+    fetch(`/api/site-onboarding/ic-budget/?${params}`)
+        .then(response => {
+            console.log('IC Budget API response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('IC Budget API response data:', data);
+            if (data.error) {
+                showAlert(data.error, 'danger');
+                return;
+            }
+            
+            currentIcBudgetData = data.ic_budgets || [];
+            allIcBudgetsData = data.ic_budgets || [];
+            
+            // Load all IC budgets once to populate the asset filter dropdown
+            if (allUnfilteredIcBudgetsData.length === 0) {
+                loadAllIcBudgetsForFilter();
+            }
+            
+            displayIcBudgetData(currentIcBudgetData);
+            setupIcBudgetPagination(data.pagination.total_pages, data.pagination.current_page);
+            hideLoading('icBudget');
+        })
+        .catch(error => {
+            console.error('Error loading IC budget data:', error);
+            showAlert('Error loading IC budget data: ' + error.message, 'danger');
+            hideLoading('icBudget');
+        });
+}
+
+function loadAllIcBudgetsForFilter() {
+    // Load all IC budgets without pagination to populate the filter dropdown
+    fetch(`/api/site-onboarding/ic-budget/?page=1&page_size=10000`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error && data.ic_budgets) {
+                allUnfilteredIcBudgetsData = data.ic_budgets;
+                populateIcBudgetAssetFilter(allUnfilteredIcBudgetsData);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading IC budgets for filter:', error);
+        });
+}
+
+function populateIcBudgetAssetFilter(icBudgets) {
+    const assetFilter = document.getElementById('icBudgetAssetFilter');
+    const currentValue = assetFilter.value;
+    
+    // Get unique asset codes
+    const assetCodes = [...new Set(icBudgets.map(b => b.asset_code))].filter(code => code).sort();
+    
+    // Only update if dropdown is empty (first load)
+    if (assetFilter.options.length === 1) {
+        assetCodes.forEach(code => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = code;
+            assetFilter.appendChild(option);
+        });
+        
+        // Restore selected value if it exists
+        if (currentValue) {
+            assetFilter.value = currentValue;
+        }
+    }
+}
+
+function filterIcBudgetByAsset() {
+    // Reload data with current filters
+    const search = document.getElementById('icBudgetSearch').value;
+    loadIcBudgetData(1, search);
+}
+
+function clearIcBudgetFilters() {
+    // Clear all filters
+    document.getElementById('icBudgetAssetFilter').value = '';
+    document.getElementById('icBudgetSearch').value = '';
+    
+    // Reload data
+    loadIcBudgetData(1, '');
+}
+
+function displayIcBudgetData(icBudgets) {
+    const tbody = document.getElementById('icBudgetTableBody');
+    tbody.innerHTML = '';
+    
+    // Update count badge
+    const countBadge = document.getElementById('ic-budget-count-badge');
+    countBadge.textContent = `${icBudgets.length} IC Budget${icBudgets.length !== 1 ? 's' : ''}`;
+    
+    // Show/hide filter indicator
+    const assetFilter = document.getElementById('icBudgetAssetFilter').value;
+    const searchFilter = document.getElementById('icBudgetSearch').value;
+    const filterBadge = document.getElementById('ic-budget-filter-badge');
+    const clearFiltersBtn = document.getElementById('clearIcBudgetFiltersBtn');
+    
+    if (assetFilter || searchFilter) {
+        filterBadge.style.display = 'inline-block';
+        clearFiltersBtn.style.display = 'inline-block';
+    } else {
+        filterBadge.style.display = 'none';
+        clearFiltersBtn.style.display = 'none';
+    }
+    
+    if (icBudgets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No IC budget data found</td></tr>';
+        return;
+    }
+    
+    icBudgets.forEach(icBudget => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${icBudget.id || ''}</td>
+            <td>${icBudget.asset_code || ''}</td>
+            <td>${icBudget.asset_number || ''}</td>
+            <td>${icBudget.month_str || ''}</td>
+            <td>${icBudget.month_date || ''}</td>
+            <td>${icBudget.ic_bd_production || ''}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editIcBudget(${icBudget.id})" title="Edit">
+                    ✏️
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteIcBudget(${icBudget.id}, '${icBudget.asset_code}')" title="Delete">
+                    🗑️
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function setupIcBudgetPagination(totalPages, currentPage) {
+    const pagination = document.getElementById('icBudgetPagination');
+    const paginationList = document.getElementById('icBudgetPaginationList');
+    
+    if (totalPages <= 1) {
+        pagination.classList.add('d-none');
+        return;
+    }
+    
+    pagination.classList.remove('d-none');
+    paginationList.innerHTML = '';
+    
+    // Previous button
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+    prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadIcBudgetData(${currentPage - 1})">Previous</a>`;
+    paginationList.appendChild(prevLi);
+    
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadIcBudgetData(${i})">${i}</a>`;
+        paginationList.appendChild(li);
+    }
+    
+    // Next button
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+    nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadIcBudgetData(${currentPage + 1})">Next</a>`;
+    paginationList.appendChild(nextLi);
+}
+
+function searchIcBudgetData() {
+    const searchTerm = document.getElementById('icBudgetSearch').value;
+    loadIcBudgetData(1, searchTerm);
+}
+
+function editIcBudget(icBudgetId) {
+    // For now, show a simple alert
+    // TODO: Implement proper edit modal
+    showAlert('Edit IC Budget functionality coming soon!', 'info');
+}
+
+function deleteIcBudget(icBudgetId, assetCode) {
+    // Show confirmation modal
+    document.getElementById('confirmDeleteModalLabel').textContent = 'Confirm Delete IC Budget';
+    document.getElementById('confirmDeleteText').textContent = `Are you sure you want to delete IC budget for ${assetCode}? This action cannot be undone.`;
+    
+    // Set up the delete action
+    document.getElementById('confirmDeleteBtn').onclick = function() {
+        fetch(`/api/site-onboarding/ic-budget/delete/${icBudgetId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                loadIcBudgetData(currentIcBudgetPage);
+            } else {
+                showAlert(data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting IC budget:', error);
+            showAlert('Error deleting IC budget: ' + error.message, 'danger');
+        });
+        
+        // Hide modal
+        bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal')).hide();
+    };
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+    modal.show();
+}
+
+function showAddIcBudgetModal() {
+    // For now, show a simple alert
+    // TODO: Implement proper add modal
+    showAlert('Add IC Budget functionality coming soon!', 'info');
+}
+
+// Data Collection / AssetAdapterConfig Functions
+let currentDataCollectionPage = 1;
+let dataCollectionPageSize = 25;
+let currentDataCollectionData = [];
+
+function loadDataCollectionData(page = 1, search = '') {
+    const adapterFilter = document.getElementById('dataCollectionAdapterFilter').value;
+    showLoading('dataCollection');
+    currentDataCollectionPage = page;
+    const params = new URLSearchParams({ page, page_size: dataCollectionPageSize, search });
+    if (adapterFilter) params.append('adapter_id', adapterFilter);
+    fetch(`/api/site-onboarding/asset-adapter-config/?${params}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { showAlert(data.error, 'danger'); return; }
+            currentDataCollectionData = data.data || [];
+            displayDataCollectionData(currentDataCollectionData);
+            setupDataCollectionPagination(data.total_pages || 0, page);
+            hideLoading('dataCollection');
+        })
+        .catch(err => { showAlert('Error: ' + err.message, 'danger'); hideLoading('dataCollection'); });
+}
+
+function displayDataCollectionData(items) {
+    const tbody = document.getElementById('dataCollectionTableBody');
+    tbody.innerHTML = '';
+    items.forEach(row => {
+        const tr = document.createElement('tr');
+        const configStr = row.config && typeof row.config === 'object' ? JSON.stringify(row.config).slice(0, 80) + '...' : (row.config || '');
+        tr.innerHTML = `
+            <td>${row.id || ''}</td>
+            <td>${(row.asset_code || '').escapeHtml()}</td>
+            <td>${(row.adapter_id || '').escapeHtml()}</td>
+            <td><code class="small">${configStr.escapeHtml()}</code></td>
+            <td>${row.acquisition_interval_minutes || 5} min</td>
+            <td>${row.enabled ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editDataCollection(${row.id})" title="Edit">✏️</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteDataCollection(${row.id}, ${JSON.stringify(row.asset_code || '')})" title="Delete (superuser)">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function setupDataCollectionPagination(totalPages, currentPage) {
+    const pag = document.getElementById('dataCollectionPagination');
+    const list = document.getElementById('dataCollectionPaginationList');
+    if (totalPages <= 1) { pag.classList.add('d-none'); return; }
+    pag.classList.remove('d-none');
+    list.innerHTML = '';
+    const prev = document.createElement('li');
+    prev.className = 'page-item ' + (currentPage === 1 ? 'disabled' : '');
+    prev.innerHTML = `<a class="page-link" href="#" onclick="loadDataCollectionData(${currentPage - 1}); return false;">Previous</a>`;
+    list.appendChild(prev);
+    for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement('li');
+        li.className = 'page-item ' + (i === currentPage ? 'active' : '');
+        li.innerHTML = `<a class="page-link" href="#" onclick="loadDataCollectionData(${i}); return false;">${i}</a>`;
+        list.appendChild(li);
+    }
+    const next = document.createElement('li');
+    next.className = 'page-item ' + (currentPage === totalPages ? 'disabled' : '');
+    next.innerHTML = `<a class="page-link" href="#" onclick="loadDataCollectionData(${currentPage + 1}); return false;">Next</a>`;
+    list.appendChild(next);
+}
+
+function searchDataCollectionData() {
+    const s = document.getElementById('dataCollectionSearch').value;
+    loadDataCollectionData(1, s);
+}
+
+function filterDataCollectionByAdapter() {
+    loadDataCollectionData(1, document.getElementById('dataCollectionSearch').value);
+}
+
+function changeDataCollectionPageSize() {
+    dataCollectionPageSize = parseInt(document.getElementById('dataCollectionPageSize').value, 10);
+    loadDataCollectionData(1, document.getElementById('dataCollectionSearch').value);
+}
+
+// Device State Mapping functions
+let currentDeviceStatePage = 1;
+let deviceStatePageSize = 25;
+let currentDeviceStateData = [];
+
+function loadDeviceStateData(page = 1, search = '') {
+    showLoading('deviceState');
+    currentDeviceStatePage = page;
+    const adapterFilter = document.getElementById('deviceStateAdapterFilter')?.value || '';
+    const deviceTypeFilter = document.getElementById('deviceStateDeviceTypeFilter')?.value || '';
+    const params = new URLSearchParams({ page, page_size: deviceStatePageSize, search });
+    if (adapterFilter) params.append('adapter_id', adapterFilter);
+    if (deviceTypeFilter) params.append('device_type', deviceTypeFilter);
+    fetch(`/api/site-onboarding/device-operating-state/?${params}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { showAlert(data.error, 'danger'); return; }
+            currentDeviceStateData = data.data || [];
+            displayDeviceStateData(currentDeviceStateData);
+            setupDeviceStatePagination(data.total_pages || 0, page);
+            hideLoading('deviceState');
+        })
+        .catch(err => { showAlert('Error: ' + err.message, 'danger'); hideLoading('deviceState'); });
+}
+
+function displayDeviceStateData(items) {
+    const tbody = document.getElementById('deviceStateTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    items.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.id || ''}</td>
+            <td>${(row.adapter_id || '').escapeHtml()}</td>
+            <td>${(row.device_type || '').escapeHtml()}</td>
+            <td>${(row.state_value || '').escapeHtml()}</td>
+            <td>${(row.oem_state_label || '').escapeHtml()}</td>
+            <td>${(row.internal_state || '').escapeHtml()}</td>
+            <td>${row.is_normal ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+            <td>${(row.fault_code || '').escapeHtml()}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editDeviceState(${row.id})" title="Edit">✏️</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteDeviceState(${row.id})" title="Delete (superuser only)">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    const pag = document.getElementById('deviceStatePagination');
+    if (pag) pag.classList.toggle('d-none', (items || []).length === 0);
+}
+
+function setupDeviceStatePagination(totalPages, currentPage) {
+    const ul = document.getElementById('deviceStatePaginationList');
+    const nav = document.getElementById('deviceStatePagination');
+    if (!ul || !nav) return;
+    ul.innerHTML = '';
+    if (!totalPages || totalPages <= 1) {
+        nav.classList.add('d-none');
+        return;
+    }
+    nav.classList.remove('d-none');
+    for (let p = 1; p <= totalPages; p++) {
+        const li = document.createElement('li');
+        li.className = 'page-item' + (p === currentPage ? ' active' : '');
+        li.innerHTML = `<button class="page-link" onclick="loadDeviceStateData(${p}, document.getElementById('deviceStateSearch').value)">${p}</button>`;
+        ul.appendChild(li);
+    }
+}
+
+function searchDeviceStateData() {
+    const s = document.getElementById('deviceStateSearch').value;
+    loadDeviceStateData(1, s);
+}
+
+function changeDeviceStatePageSize() {
+    deviceStatePageSize = parseInt(document.getElementById('deviceStatePageSize').value, 10);
+    loadDeviceStateData(1, document.getElementById('deviceStateSearch').value);
+}
+
+function showAddDeviceStateModal() {
+    document.getElementById('deviceStateModalTitle').textContent = 'Add Device State Mapping';
+    document.getElementById('deviceStateId').value = '';
+    document.getElementById('deviceStateAdapterId').value = '';
+    document.getElementById('deviceStateDeviceType').value = '';
+    document.getElementById('deviceStateValue').value = '';
+    document.getElementById('deviceStateOemLabel').value = '';
+    document.getElementById('deviceStateInternalState').value = '';
+    document.getElementById('deviceStateIsNormal').checked = false;
+    document.getElementById('deviceStateFaultCode').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('deviceStateModal'));
+    modal.show();
+}
+
+function editDeviceState(id) {
+    const row = currentDeviceStateData.find(x => x.id === id);
+    if (!row) {
+        showAlert('Could not find state row for editing', 'danger');
+        return;
+    }
+    document.getElementById('deviceStateModalTitle').textContent = 'Edit Device State Mapping';
+    document.getElementById('deviceStateId').value = row.id;
+    document.getElementById('deviceStateAdapterId').value = row.adapter_id || '';
+    document.getElementById('deviceStateDeviceType').value = row.device_type || '';
+    document.getElementById('deviceStateValue').value = row.state_value || '';
+    document.getElementById('deviceStateOemLabel').value = row.oem_state_label || '';
+    document.getElementById('deviceStateInternalState').value = row.internal_state || '';
+    document.getElementById('deviceStateIsNormal').checked = !!row.is_normal;
+    document.getElementById('deviceStateFaultCode').value = row.fault_code || '';
+    const modal = new bootstrap.Modal(document.getElementById('deviceStateModal'));
+    modal.show();
+}
+
+document.getElementById('deviceStateSaveBtn').addEventListener('click', () => {
+    const id = document.getElementById('deviceStateId').value;
+    const payload = {
+        adapter_id: document.getElementById('deviceStateAdapterId').value.trim(),
+        device_type: document.getElementById('deviceStateDeviceType').value.trim(),
+        state_value: document.getElementById('deviceStateValue').value.trim(),
+        oem_state_label: document.getElementById('deviceStateOemLabel').value.trim(),
+        internal_state: document.getElementById('deviceStateInternalState').value.trim(),
+        is_normal: document.getElementById('deviceStateIsNormal').checked,
+        fault_code: document.getElementById('deviceStateFaultCode').value.trim(),
+    };
+    const url = id ? '/api/site-onboarding/device-operating-state/update/' : '/api/site-onboarding/device-operating-state/create/';
+    if (id) payload.id = id;
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify(payload),
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success && data.error) {
+                showAlert(data.error, 'danger');
+                return;
+            }
+            showAlert(data.message || 'Saved successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('deviceStateModal')).hide();
+            loadDeviceStateData(currentDeviceStatePage, document.getElementById('deviceStateSearch').value);
+        })
+        .catch(err => showAlert('Error: ' + err.message, 'danger'));
+});
+
+function confirmDeleteDeviceState(id) {
+    const message = 'Are you sure you want to delete this device state mapping? (Superuser only)';
+    showConfirmDeleteModal(message, () => deleteDeviceState(id));
+}
+
+function deleteDeviceState(id) {
+    fetch(`/api/site-onboarding/device-operating-state/delete/${id}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+        },
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success && data.error) {
+                showAlert(data.error, 'danger');
+                return;
+            }
+            showAlert(data.message || 'Deleted successfully', 'success');
+            loadDeviceStateData(currentDeviceStatePage, document.getElementById('deviceStateSearch').value);
+        })
+        .catch(err => showAlert('Error: ' + err.message, 'danger'));
+}
+
+function showAddDataCollectionModal() {
+    document.getElementById('dataCollectionModalTitle').textContent = 'Add Data Collection Config';
+    document.getElementById('dataCollectionConfigId').value = '';
+    document.getElementById('dataCollectionAssetCode').value = '';
+    document.getElementById('dataCollectionAssetCode').disabled = false;
+    document.getElementById('dataCollectionAdapterId').value = 'solargis';
+    document.getElementById('dataCollectionConfigJson').value = '{"api_url": "https://solargis.info/ws/rest/datadelivery/request", "api_key": "", "summarization": "MIN_5", "processing_keys": "GHI DNI DIF GTI PVOUT TMOD TEMP WS WD RH", "terrain_shading": false, "time_stamp_type": "CENTER"}';
+    document.getElementById('dataCollectionInterval').value = '5';
+    document.getElementById('dataCollectionEnabled').checked = true;
+    new bootstrap.Modal(document.getElementById('dataCollectionModal')).show();
+}
+
+function editDataCollection(id) {
+    const row = currentDataCollectionData.find(r => r.id === id);
+    if (!row) { showAlert('Config not found', 'danger'); return; }
+    document.getElementById('dataCollectionModalTitle').textContent = 'Edit Data Collection Config';
+    document.getElementById('dataCollectionConfigId').value = id;
+    document.getElementById('dataCollectionAssetCode').value = row.asset_code || '';
+    document.getElementById('dataCollectionAssetCode').disabled = true;
+    document.getElementById('dataCollectionAdapterId').value = row.adapter_id || 'solargis';
+    document.getElementById('dataCollectionAdapterId').disabled = true;
+    document.getElementById('dataCollectionConfigJson').value = JSON.stringify(row.config || {}, null, 2);
+    document.getElementById('dataCollectionInterval').value = String(row.acquisition_interval_minutes || 5);
+    document.getElementById('dataCollectionEnabled').checked = !!row.enabled;
+    new bootstrap.Modal(document.getElementById('dataCollectionModal')).show();
+}
+
+document.getElementById('dataCollectionSaveBtn').addEventListener('click', function() {
+    const id = document.getElementById('dataCollectionConfigId').value;
+    const assetCode = document.getElementById('dataCollectionAssetCode').value.trim();
+    const adapterId = document.getElementById('dataCollectionAdapterId').value;
+    let configJson = document.getElementById('dataCollectionConfigJson').value.trim();
+    let config = {};
+    try {
+        config = configJson ? JSON.parse(configJson) : {};
+    } catch (e) {
+        showAlert('Invalid JSON in Config', 'danger');
+        return;
+    }
+    const interval = parseInt(document.getElementById('dataCollectionInterval').value, 10);
+    const enabled = document.getElementById('dataCollectionEnabled').checked;
+    const url = id ? '/api/site-onboarding/asset-adapter-config/update/' : '/api/site-onboarding/asset-adapter-config/create/';
+    const method = 'POST';
+    const body = id
+        ? JSON.stringify({ id: parseInt(id, 10), config, acquisition_interval_minutes: interval, enabled })
+        : JSON.stringify({ asset_code: assetCode, adapter_id: adapterId, config, acquisition_interval_minutes: interval, enabled });
+    fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { showAlert(data.error, 'danger'); return; }
+            showAlert(data.message || 'Saved', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('dataCollectionModal')).hide();
+            loadDataCollectionData(currentDataCollectionPage);
+        })
+        .catch(err => showAlert('Error: ' + err.message, 'danger'));
+});
+
+function deleteDataCollection(id, assetCode) {
+    const msgEl = document.getElementById('deleteConfirmMessage');
+    if (msgEl) msgEl.textContent = `Delete adapter config for ${assetCode}? Superuser only.`;
+    document.getElementById('confirmDeleteBtn').onclick = function() {
+        fetch(`/api/site-onboarding/asset-adapter-config/delete/${id}/`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': getCSRFToken() }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) { showAlert(data.message, 'success'); loadDataCollectionData(currentDataCollectionPage); }
+                else showAlert(data.error, 'danger');
+            })
+            .catch(err => showAlert('Error: ' + err.message, 'danger'));
+        bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal')).hide();
+    };
+    new bootstrap.Modal(document.getElementById('confirmDeleteModal')).show();
+}
+
+if (typeof String.prototype.escapeHtml !== 'function') {
+    String.prototype.escapeHtml = function() { return this.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+}
+
+// Utility Functions
+function showLoading(type) {
+    document.getElementById(`${type}Loading`).classList.remove('d-none');
+    document.getElementById(`${type}Table`).style.opacity = '0.5';
+}
+
+function hideLoading(type) {
+    document.getElementById(`${type}Loading`).classList.add('d-none');
+    document.getElementById(`${type}Table`).style.opacity = '1';
+}
+
+function showAlert(message, type = 'info') {
+    const alertContainer = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    alertContainer.appendChild(alert);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        if (alert.parentNode) {
+            alert.remove();
+        }
+    }, 5000);
+}
+
+// Download Functions
+function downloadData(tableName) {
+    let downloadUrl = `/site-onboarding/download/${tableName}/`;
+    let filterMsg = '';
+    
+    // Add filters for device_list
+    if (tableName === 'device_list') {
+        const siteFilter = document.getElementById('deviceSiteFilter').value;
+        const searchFilter = document.getElementById('deviceSearch').value;
+        
+        const params = new URLSearchParams();
+        if (siteFilter) {
+            params.append('parent_code', siteFilter);
+            filterMsg = ` (filtered by site: ${siteFilter})`;
+        }
+        if (searchFilter) {
+            params.append('search', searchFilter);
+        }
+        
+        if (params.toString()) {
+            downloadUrl += `?${params.toString()}`;
+        }
+    } 
+    // Add filters for device_mapping
+    else if (tableName === 'device_mapping') {
+        const assetFilter = document.getElementById('mappingAssetFilter').value;
+        const searchFilter = document.getElementById('mappingSearch').value;
+        
+        const params = new URLSearchParams();
+        if (assetFilter) {
+            params.append('asset_code', assetFilter);
+            filterMsg = ` (filtered by asset: ${assetFilter})`;
+        }
+        if (searchFilter) {
+            params.append('search', searchFilter);
+        }
+        
+        if (params.toString()) {
+            downloadUrl += `?${params.toString()}`;
+        }
+    }
+    // Add filters for budget_values
+    else if (tableName === 'budget_values') {
+        const assetFilter = document.getElementById('budgetAssetFilter').value;
+        const searchFilter = document.getElementById('budgetSearch').value;
+        
+        const params = new URLSearchParams();
+        if (assetFilter) {
+            params.append('asset_code', assetFilter);
+            filterMsg = ` (filtered by asset: ${assetFilter})`;
+        }
+        if (searchFilter) {
+            params.append('search', searchFilter);
+        }
+        
+        if (params.toString()) {
+            downloadUrl += `?${params.toString()}`;
+        }
+    }
+    // Add filters for ic_budget
+    else if (tableName === 'ic_budget') {
+        const assetFilter = document.getElementById('icBudgetAssetFilter').value;
+        const searchFilter = document.getElementById('icBudgetSearch').value;
+        
+        const params = new URLSearchParams();
+        if (assetFilter) {
+            params.append('asset_code', assetFilter);
+            filterMsg = ` (filtered by asset: ${assetFilter})`;
+        }
+        if (searchFilter) {
+            params.append('search', searchFilter);
+        }
+        
+        if (params.toString()) {
+            downloadUrl += `?${params.toString()}`;
+        }
+    }
+    
+    showAlert(`Downloading ${tableName} data${filterMsg}...`, 'info');
+    window.location.href = downloadUrl;
+}
+
+function downloadTemplate(tableName) {
+    showAlert(`Downloading ${tableName} template...`, 'info');
+    window.location.href = `/site-onboarding/template/${tableName}/`;
+}
+
+// Upload Functions
+function showUploadModal(tableName) {
+    document.getElementById('uploadTableName').value = tableName;
+    const displayName = tableName.replace('_', ' ').toUpperCase();
+    document.getElementById('uploadModalTitle').textContent = `Upload ${displayName} Data`;
+    
+    // Update the confirmation text
+    document.getElementById('uploadTableDisplayName').textContent = displayName;
+    
+    // Reset form validation
+    document.getElementById('confirmCorrectFile').checked = false;
+    document.getElementById('uploadForm').reset();
+    
+    const modal = new bootstrap.Modal(document.getElementById('uploadModal'));
+    modal.show();
+}
+
+function uploadFile() {
+    const form = document.getElementById('uploadForm');
+    
+    // Check if user confirmed they have the correct file
+    const confirmCheckbox = document.getElementById('confirmCorrectFile');
+    if (!confirmCheckbox.checked) {
+        showAlert('❌ Please confirm that you are uploading the correct CSV file for this table.', 'warning');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    const tableName = document.getElementById('uploadTableName').value;
+    
+    const uploadBtn = document.querySelector('#uploadModal .btn-primary');
+    const spinner = document.getElementById('uploadSpinner');
+    const progress = document.getElementById('uploadProgress');
+    
+    // Show loading state
+    uploadBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    progress.classList.remove('d-none');
+    
+    // Add CSRF token
+    try {
+        formData.append('csrfmiddlewaretoken', getCSRFToken());
+    } catch (error) {
+        showAlert(error.message, 'danger');
+        return;
+    }
+    
+    fetch('/api/site-onboarding/upload/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(async response => {
+        // Check if we got redirected to login page (authentication issue)
+        if (response.url.includes('/accounts/login/')) {
+            throw new Error('Session expired. Please refresh the page and log in again.');
+        }
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server returned invalid response format. Please refresh the page.');
+        }
+        
+        // Parse JSON response regardless of status code
+        const data = await response.json();
+        
+        // If response is not ok, throw error with detailed server message
+        if (!response.ok) {
+            if (data.error) {
+                // Create detailed error message from server response
+                let errorMessage = data.error;
+                
+                if (data.details) {
+                    errorMessage += '\n\n📋 Details:';
+                    if (data.details.missing_required_fields && data.details.missing_required_fields.length > 0) {
+                        errorMessage += `\n❌ Missing required fields: ${data.details.missing_required_fields.join(', ')}`;
+                    }
+                    if (data.details.unexpected_fields && data.details.unexpected_fields.length > 0) {
+                        errorMessage += `\n⚠️ Unexpected fields: ${data.details.unexpected_fields.join(', ')}`;
+                    }
+                    if (data.details.table_expected) {
+                        errorMessage += `\n🎯 Expected table: ${data.details.table_expected.replace('_', ' ')}`;
+                    }
+                    if (data.details.csv_columns) {
+                        errorMessage += `\n📄 Your CSV columns: ${data.details.csv_columns.join(', ')}`;
+                    }
+                    if (data.details.suggestion) {
+                        errorMessage += `\n\n💡 ${data.details.suggestion}`;
+                    }
+                }
+                
+                if (data.validation_errors && data.validation_errors.length > 0) {
+                    errorMessage += '\n\n❌ Validation Errors:';
+                    data.validation_errors.slice(0, 5).forEach(error => {
+                        errorMessage += `\n• ${error}`;
+                    });
+                    if (data.validation_errors.length > 5) {
+                        errorMessage += `\n• ... and ${data.validation_errors.length - 5} more errors`;
+                    }
+                }
+                
+                if (data.validation_warnings && data.validation_warnings.length > 0) {
+                    errorMessage += '\n\n⚠️ Validation Warnings:';
+                    data.validation_warnings.slice(0, 3).forEach(warning => {
+                        errorMessage += `\n• ${warning}`;
+                    });
+                    if (data.validation_warnings.length > 3) {
+                        errorMessage += `\n• ... and ${data.validation_warnings.length - 3} more warnings`;
+                    }
+                }
+                
+                if (data.file_statistics) {
+                    errorMessage += `\n\n📊 File Statistics:`;
+                    errorMessage += `\n• Total rows: ${data.file_statistics.total_rows}`;
+                    errorMessage += `\n• Total columns: ${data.file_statistics.total_columns}`;
+                    errorMessage += `\n• Empty rows: ${data.file_statistics.empty_rows}`;
+                    errorMessage += `\n• Missing data count: ${data.file_statistics.missing_data_count}`;
+                }
+                
+                throw new Error(errorMessage);
+            } else {
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            }
+        }
+        
+        return data;
+    })
+    .then(data => {
+        if (data.success) {
+            // Create detailed success message
+            let successMessage = `✅ Upload successful!<br>`;
+            successMessage += `📊 <strong>Processing Summary:</strong><br>`;
+            successMessage += `• Total rows in CSV: ${data.total_rows_processed || 0}<br>`;
+            successMessage += `• Successfully processed: ${data.records_imported || 0} records<br>`;
+            successMessage += `• Empty rows skipped: ${data.empty_rows_skipped || 0}<br>`;
+            if (data.records_skipped > 0) {
+                successMessage += `• Failed rows: ${data.records_skipped}<br>`;
+            }
+            successMessage += `<br>🎉 All valid data has been imported successfully!`;
+            
+            showAlert(successMessage, 'success');
+            
+            // Reload the appropriate table
+            if (tableName === 'asset_list') {
+                loadAssetData();
+            } else if (tableName === 'device_list') {
+                loadDeviceData();
+            } else if (tableName === 'device_mapping') {
+                loadMappingData();
+            }
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+        } else if (data.records_imported > 0) {
+            // Partial success - some records imported but there were errors
+            let partialMessage = `⚠️ Partial success!<br>`;
+            partialMessage += `📊 <strong>Processing Summary:</strong><br>`;
+            partialMessage += `• Total rows in CSV: ${data.total_rows_processed || 0}<br>`;
+            partialMessage += `• Successfully processed: ${data.records_imported || 0} records<br>`;
+            partialMessage += `• Failed rows: ${data.records_skipped || 0}<br>`;
+            partialMessage += `• Empty rows skipped: ${data.empty_rows_skipped || 0}<br>`;
+            partialMessage += `<br>⚠️ Some rows failed to import. Check the details below.`;
+            
+            showAlert(partialMessage, 'warning');
+            
+            // Still reload the table to show the imported data
+            if (tableName === 'asset_list') {
+                loadAssetData();
+            } else if (tableName === 'device_list') {
+                loadDeviceData();
+            } else if (tableName === 'device_mapping') {
+                loadMappingData();
+            }
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('uploadModal')).hide();
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        showAlert(`Upload failed: ${error.message}`, 'danger');
+    })
+    .finally(() => {
+        // Reset loading state
+        uploadBtn.disabled = false;
+        spinner.classList.add('d-none');
+        progress.classList.add('d-none');
+        form.reset();
+    });
+}
+
+function showHelpModal() {
+    const modal = new bootstrap.Modal(document.getElementById('helpModal'));
+    modal.show();
+}
+
+
+// Utility function to handle API responses with authentication check
+function handleApiResponse(response) {
+    // Check if we got redirected to login page (authentication issue)
+    if (response.url.includes('/accounts/login/')) {
+        throw new Error('Session expired. Please refresh the page and log in again.');
+    }
+    
+    // Check if response is ok
+    if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server returned invalid response format. Please refresh the page.');
+    }
+    
+    return response.json();
+}
+
+// Function to get current CSRF token
+function getCSRFToken() {
+    const csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfElement) {
+        throw new Error('CSRF token not found. Please refresh the page.');
+    }
+    return csrfElement.value;
+}
+
+// Load API name suggestions from database
+function loadApiNameSuggestions() {
+    fetch('/api/site-onboarding/api-names/', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCSRFToken()
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const datalist = document.getElementById('apiNameList');
+            datalist.innerHTML = ''; // Clear existing options
+            
+            // Add each unique API name as an option
+            data.api_names.forEach(apiName => {
+                if (apiName) { // Only add non-empty names
+                    const option = document.createElement('option');
+                    option.value = apiName;
+                    datalist.appendChild(option);
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error loading API name suggestions:', error);
+    });
+}
+
+// Asset CRUD Functions
+function showAddAssetModal() {
+    document.getElementById('assetModalTitle').textContent = 'Add New Asset';
+    document.getElementById('assetForm').reset();
+    document.getElementById('assetOriginalCode').value = '';
+    
+    // Load API name suggestions
+    loadApiNameSuggestions();
+    
+    const modal = new bootstrap.Modal(document.getElementById('assetModal'));
+    modal.show();
+}
+
+function editAsset(assetCode) {
+    document.getElementById('assetModalTitle').textContent = 'Edit Asset';
+    document.getElementById('assetOriginalCode').value = assetCode;
+    
+    // Find the asset data from the current view
+    const asset = currentAssetData.find(a => a.asset_code === assetCode);
+    if (asset) {
+        // Populate form with existing data
+        document.getElementById('assetCode').value = asset.asset_code || '';
+        document.getElementById('assetName').value = asset.asset_name || '';
+        document.getElementById('assetCapacity').value = asset.capacity || '';
+        document.getElementById('assetCountry').value = asset.country || '';
+        document.getElementById('assetPortfolio').value = asset.portfolio || '';
+        document.getElementById('assetLatitude').value = asset.latitude || '';
+        document.getElementById('assetLongitude').value = asset.longitude || '';
+        document.getElementById('assetAddress').value = asset.address || '';
+        document.getElementById('assetContactPerson').value = asset.contact_person || '';
+        document.getElementById('assetContactMethod').value = asset.contact_method || '';
+        document.getElementById('assetTimezone').value = asset.timezone || '';
+        document.getElementById('assetNumber').value = asset.asset_number || '';
+        document.getElementById('assetNameOem').value = asset.asset_name_oem || '';
+        document.getElementById('assetY1Degradation').value = asset.y1_degradation || '';
+        document.getElementById('assetAnualDegradation').value = asset.anual_degradation || '';
+        document.getElementById('assetApiName').value = asset.api_name || '';
+        document.getElementById('assetApiKey').value = asset.api_key || '';
+        
+        // Load API name suggestions for edit modal
+        loadApiNameSuggestions();
+        
+        // Handle grid connection date
+        if (asset.grid_connection_date) {
+            const date = new Date(asset.grid_connection_date);
+            if (!isNaN(date)) {
+                document.getElementById('assetGridConnection').value = date.toISOString().slice(0, 16);
+            }
+        }
+        
+        // Handle COD date
+        if (asset.cod) {
+            const date = new Date(asset.cod);
+            if (!isNaN(date)) {
+                document.getElementById('assetCod').value = date.toISOString().slice(0, 16);
+            }
+        }
+        
+        // Handle Operational COD date
+        if (asset.operational_cod) {
+            const date = new Date(asset.operational_cod);
+            if (!isNaN(date)) {
+                document.getElementById('assetOperationalCod').value = date.toISOString().slice(0, 16);
+            }
+        }
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('assetModal'));
+    modal.show();
+}
+
+function deleteAsset(assetCode) {
+    // Use custom confirmation modal instead of browser confirm()
+    const modal = document.getElementById('confirmDeleteModal');
+    const messageEl = document.getElementById('deleteConfirmMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    messageEl.textContent = `Are you sure you want to delete asset "${assetCode}"?`;
+    
+    // Set up the confirm button click handler
+    confirmBtn.onclick = function() {
+        // Close modal first
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        bootstrapModal.hide();
+        
+        // Show loading state
+        showAlert('Deleting asset...', 'info');
+        
+        fetch(`/api/site-onboarding/asset-list/delete/${assetCode}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                loadAssetData(); // Reload data
+            } else {
+                showAlert(data.error || 'Failed to delete asset', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Failed to delete asset', 'danger');
+        });
+    };
+    
+    // Show the modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+}
+
+function saveAsset() {
+    const form = document.getElementById('assetForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    const isEdit = document.getElementById('assetOriginalCode').value !== '';
+    const url = isEdit ? '/api/site-onboarding/asset-list/update/' : '/api/site-onboarding/asset-list/create/';
+    
+    const saveBtn = document.querySelector('#assetModal .btn-primary');
+    const spinner = document.getElementById('assetSaveSpinner');
+    
+    saveBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('assetModal')).hide();
+            loadAssetData();
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert(`Save failed: ${error.message}`, 'danger');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        spinner.classList.add('d-none');
+    });
+}
+
+// Device CRUD Functions
+function showAddDeviceModal() {
+    document.getElementById('deviceModalTitle').textContent = 'Add New Device';
+    document.getElementById('deviceForm').reset();
+    document.getElementById('deviceOriginalId').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('deviceModal'));
+    modal.show();
+}
+
+function editDevice(deviceId) {
+    document.getElementById('deviceModalTitle').textContent = 'Edit Device';
+    document.getElementById('deviceOriginalId').value = deviceId;
+    
+    // Find the device data from the current view
+    const device = currentDeviceData.find(d => d.device_id === deviceId);
+    if (device) {
+        // Populate form with existing data
+        document.getElementById('deviceId').value = device.device_id || '';
+        document.getElementById('deviceName').value = device.device_name || '';
+        document.getElementById('deviceCode').value = device.device_code || '';
+        document.getElementById('deviceTypeId').value = device.device_type_id || '';
+        document.getElementById('deviceSerial').value = device.device_serial || '';
+        document.getElementById('deviceModel').value = device.device_model || '';
+        document.getElementById('deviceMake').value = device.device_make || '';
+        document.getElementById('deviceLatitude').value = device.latitude || '';
+        document.getElementById('deviceLongitude').value = device.longitude || '';
+        document.getElementById('deviceOptimizerNo').value = device.optimizer_no || '';
+        document.getElementById('deviceParentCode').value = device.parent_code || '';
+        document.getElementById('deviceType').value = device.device_type || '';
+        document.getElementById('deviceSoftwareVersion').value = device.software_version || '';
+        document.getElementById('deviceCountry').value = device.country || '';
+        document.getElementById('deviceStringNo').value = device.string_no || '';
+        document.getElementById('deviceConnectedStrings').value = device.connected_strings || '';
+        document.getElementById('deviceSubGroup').value = device.device_sub_group || '';
+        document.getElementById('deviceDcCap').value = device.dc_cap || '';
+        document.getElementById('deviceSource').value = device.device_source || '';
+        // New fields
+        document.getElementById('deviceAcCapacity').value = device.ac_capacity || '';
+        document.getElementById('deviceBessCapacity').value = device.bess_capacity || '';
+        document.getElementById('deviceYom').value = device.yom || '';
+        document.getElementById('deviceNomenclature').value = device.nomenclature || '';
+        document.getElementById('deviceLocation').value = device.location || '';
+        document.getElementById('deviceCalibrationFrequency').value = device.calibration_frequency || '';
+        document.getElementById('devicePmFrequency').value = device.pm_frequency || '';
+        document.getElementById('deviceVisualInspectionFrequency').value = device.visual_inspection_frequency || '';
+        
+        // Date fields - convert ISO format to datetime-local format
+        if (device.equipment_warranty_start_date) {
+            const eqStartDate = new Date(device.equipment_warranty_start_date);
+            document.getElementById('deviceEquipmentWarrantyStart').value = eqStartDate.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('deviceEquipmentWarrantyStart').value = '';
+        }
+        if (device.equipment_warranty_expire_date) {
+            const eqExpireDate = new Date(device.equipment_warranty_expire_date);
+            document.getElementById('deviceEquipmentWarrantyExpire').value = eqExpireDate.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('deviceEquipmentWarrantyExpire').value = '';
+        }
+        if (device.epc_warranty_start_date) {
+            const epcStartDate = new Date(device.epc_warranty_start_date);
+            document.getElementById('deviceEpcWarrantyStart').value = epcStartDate.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('deviceEpcWarrantyStart').value = '';
+        }
+        if (device.epc_warranty_expire_date) {
+            const epcExpireDate = new Date(device.epc_warranty_expire_date);
+            document.getElementById('deviceEpcWarrantyExpire').value = epcExpireDate.toISOString().slice(0, 16);
+        } else {
+            document.getElementById('deviceEpcWarrantyExpire').value = '';
+        }
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('deviceModal'));
+    modal.show();
+}
+
+function deleteDevice(deviceId) {
+    // Use custom confirmation modal instead of browser confirm()
+    const modal = document.getElementById('confirmDeleteModal');
+    const messageEl = document.getElementById('deleteConfirmMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    messageEl.textContent = `Are you sure you want to delete device "${deviceId}"?`;
+    
+    // Set up the confirm button click handler
+    confirmBtn.onclick = function() {
+        // Close modal first
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        bootstrapModal.hide();
+        
+        // Show loading state
+        showAlert('Deleting device...', 'info');
+        
+        fetch(`/api/site-onboarding/device-list/delete/${deviceId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                loadDeviceData(); // Reload data
+            } else {
+                showAlert(data.error || 'Failed to delete device', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Failed to delete device', 'danger');
+        });
+    };
+    
+    // Show the modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+}
+
+function saveDevice() {
+    const form = document.getElementById('deviceForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    const isEdit = document.getElementById('deviceOriginalId').value !== '';
+    const url = isEdit ? '/api/site-onboarding/device-list/update/' : '/api/site-onboarding/device-list/create/';
+    
+    const saveBtn = document.querySelector('#deviceModal .btn-primary');
+    const spinner = document.getElementById('deviceSaveSpinner');
+    
+    saveBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('deviceModal')).hide();
+            loadDeviceData();
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert(`Save failed: ${error.message}`, 'danger');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        spinner.classList.add('d-none');
+    });
+}
+
+// Device Mapping CRUD Functions
+function showAddMappingModal() {
+    document.getElementById('mappingModalTitle').textContent = 'Add New Device Mapping';
+    document.getElementById('mappingForm').reset();
+    document.getElementById('mappingId').value = '';
+    
+    const modal = new bootstrap.Modal(document.getElementById('mappingModal'));
+    modal.show();
+}
+
+function editMapping(mappingId) {
+    document.getElementById('mappingModalTitle').textContent = 'Edit Device Mapping';
+    document.getElementById('mappingId').value = mappingId;
+    
+    // Find mapping data from current view and populate form
+    const mapping = currentMappingData.find(m => m.id === mappingId);
+    if (mapping) {
+        // Populate form with existing data
+        document.getElementById('mappingAssetCode').value = mapping.asset_code || '';
+        document.getElementById('mappingDeviceType').value = mapping.device_type || '';
+        document.getElementById('mappingOemTag').value = mapping.oem_tag || '';
+        document.getElementById('mappingDataType').value = mapping.data_type || '';
+        document.getElementById('mappingUnits').value = mapping.units || '';
+        document.getElementById('mappingMetric').value = mapping.metric || '';
+        document.getElementById('mappingDescription').value = mapping.description || '';
+        document.getElementById('mappingFaultCode').value = mapping.fault_code || '';
+        document.getElementById('mappingModuleNo').value = mapping.module_no || '';
+        document.getElementById('mappingDefaultValue').value = mapping.default_value || '';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('mappingModal'));
+    modal.show();
+}
+
+function deleteMapping(mappingId) {
+    // Use custom confirmation modal instead of browser confirm()
+    const modal = document.getElementById('confirmDeleteModal');
+    const messageEl = document.getElementById('deleteConfirmMessage');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    
+    messageEl.textContent = `Are you sure you want to delete mapping ID "${mappingId}"?`;
+    
+    // Set up the confirm button click handler
+    confirmBtn.onclick = function() {
+        // Close modal first
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        bootstrapModal.hide();
+        
+        // Show loading state
+        showAlert('Deleting mapping...', 'info');
+        
+        fetch(`/api/site-onboarding/device-mapping/delete/${mappingId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                loadMappingData(); // Reload data
+            } else {
+                showAlert(data.error || 'Failed to delete mapping', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Failed to delete mapping', 'danger');
+        });
+    };
+    
+    // Show the modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+}
+
+function saveMapping() {
+    const form = document.getElementById('mappingForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    
+    const isEdit = document.getElementById('mappingId').value !== '';
+    const url = isEdit ? '/api/site-onboarding/device-mapping/update/' : '/api/site-onboarding/device-mapping/create/';
+    
+    const saveBtn = document.querySelector('#mappingModal .btn-primary');
+    const spinner = document.getElementById('mappingSaveSpinner');
+    
+    saveBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('mappingModal')).hide();
+            loadMappingData();
+        } else {
+            showAlert(data.error, 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert(`Save failed: ${error.message}`, 'danger');
+    })
+    .finally(() => {
+        saveBtn.disabled = false;
+        spinner.classList.add('d-none');
+    });
+}
+</script>
+
+<style>
+.table th {
+    white-space: nowrap;
+}
+
+.table td {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-tabs .nav-link {
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.card-header h5 {
+    color: #0d6efd;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.alert {
+    margin-bottom: 1rem;
+}
+
+#alertContainer {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.progress {
+    height: 4px;
+}
+
+/* Sticky table headers */
+.sticky-table-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.sticky-header-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #212529 !important;
+    border-bottom: 2px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.sticky-header-table thead th:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.1), transparent);
+}
+</style>
+
+{% endblock %}

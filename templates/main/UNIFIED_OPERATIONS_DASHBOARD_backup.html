@@ -1,0 +1,2663 @@
+{% load static %}
+{% load permission_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Peak Energy Unified Operations Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.1, minimum-scale=0.8, user-scalable=no">
+  <!-- Bootstrap CSS - using local fallback -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" data-fallback="{% static 'css/bootstrap.min.css' %}" onerror="this.onerror=null; this.href=this.getAttribute('data-fallback');">
+  <!-- Google Fonts - using system fonts as fallback -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" onerror="this.onerror=null;">
+  <!-- PDF Export Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    /* Fallback font stack if Google Fonts fails to load */
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>  
+  <style>
+    :root {
+      --sidebar-bg: rgba(2, 22, 43, 0.85);
+      --main-bg: #f8fbff;
+      --text-color: #222;
+      --accent: #00A3FF;
+      --header-bg: rgba(2, 22, 43, 0.92);
+      --sidebar-divider: rgba(255,255,255,0.08);
+      --header-height: 50px;
+    }
+    [data-theme='dark'] {
+      --sidebar-bg: rgba(10, 20, 40, 0.98);
+      --main-bg: #1a2233;
+      --text-color: #f3f6fa;
+      --accent: #FFD700;
+      --header-bg: #101a2b;
+      --sidebar-divider: rgba(255,255,255,0.18);
+    }
+    html, body {
+      background: var(--main-bg);
+      color: var(--text-color);
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      width: 100vw;
+      overflow-x: hidden;
+      /* Prevent zoom on touch devices */
+      touch-action: pan-x pan-y;
+      /* Prevent text selection that might trigger zoom */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    
+    /* Prevent zoom on specific elements */
+    * {
+      /* Disable zoom on double-tap for mobile */
+      touch-action: manipulation;
+    }
+    
+    /* Allow text selection in input fields and text areas */
+    input, textarea, [contenteditable] {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+
+    /* TOP HEADER */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      background: var(--header-bg);
+      color: #fff;
+      z-index: 1100;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .topbar-inner {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar-logo img {
+      height: 32px;
+      width: auto;
+      border-radius: 6px;
+    }
+    .topbar-menu-btn {
+      background: transparent;
+      color: #fff;
+      border: none;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .topbar-menu-btn:hover { color: #00c6ff; }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 60%;
+    }
+    .topbar-page-title {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 60vw;
+      text-align: center;
+      pointer-events: none;
+    }
+    .topbar-username {
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 320px;
+      font-size: 14px;
+    }
+    .topbar-logout-btn {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ce 100%);
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .topbar-logout-btn:hover { opacity: 0.9; }
+    .topbar-export-btn {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    .topbar-export-btn:hover { 
+      opacity: 0.9; 
+      transform: scale(1.05);
+    }
+    .topbar-role {
+      margin-left: 8px;
+      color: rgba(255,255,255,0.85);
+      font-weight: 600;
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 6px;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
+    /* Push layout below header */
+    .dashboard-root { padding-top: var(--header-height); }
+
+    /* Sidebar and main area below header */
+    .sidebar { top: var(--header-height); height: calc(100vh - var(--header-height)); }
+    .main-area { height: calc(100vh - var(--header-height)); }
+
+    /* Floating toggle/pin removed in favor of header menu button */
+
+    /* SIDEBAR BASE - START HIDDEN BY DEFAULT */
+    .sidebar {
+      width: 250px;
+      min-width: 120px;
+      max-width: 350px;
+      background: linear-gradient(180deg, #0d1b2a 0%, #1b263b 50%, #2c3e50 100%);
+      position: fixed;
+      z-index: 1000;
+      height: calc(100vh - var(--header-height));
+      overflow: auto;
+      transition: transform 0.3s cubic-bezier(.68,-0.01,.29,1.06);
+      transform: translateX(-100%); /* START HIDDEN */
+      left: 0;
+      top: var(--header-height);
+      box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* SHOW SIDEBAR ONLY WHEN EXPLICITLY SHOWN OR PINNED */
+    .sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Subtle indicator when sidebar is visible due to hover */
+    .sidebar.show:not(.pinned) {
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Pinned behavior removed */
+    
+    @media (max-width: 1024px) {
+      .sidebar-toggle-btn { top: calc(10px + var(--header-height)) !important; }
+      .sidebar-pin-btn { top: calc(56px + var(--header-height)) !important; }
+    }
+    @media (max-width: 768px) {
+      .sidebar-toggle-btn { top: calc(8px + var(--header-height)) !important; }
+      .sidebar-pin-btn { top: calc(48px + var(--header-height)) !important; }
+    }
+
+    /* MAIN AREA */
+    .dashboard-root {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .main-area {
+      flex: 1;
+      /* height is already set above to account for header */
+      overflow: hidden;
+      transition: margin-left 0.3s cubic-bezier(.68,-0.01,.29,1.06);
+      position: relative;
+    }
+
+    /* Sidebar logo removed */
+
+    .sidebar-title {
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 20px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      letter-spacing: 0.5px;
+    }
+
+    /* User Information Section removed as requested */
+
+    /* SIDEBAR GROUPS */
+    .sidebar-group {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sidebar-group.open .sidebar-label {
+      background: rgba(255,255,255,0.08);
+      border-left-color: #00c6ff;
+    }
+
+    .sidebar-links {
+      display: none;
+      background: rgba(0,0,0,0.15);
+      border-radius: 8px;
+      margin: 0 8px 8px 8px;
+      overflow: hidden;
+    }
+    
+    .sidebar-links .sidebar-link {
+      padding: 12px 18px 12px 36px;
+    }
+
+    .sidebar-group.open .sidebar-links {
+      display: block;
+    }
+
+    .sidebar-link {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      padding: 12px 18px;
+      display: block;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 6px;
+      margin: 2px 8px;
+      position: relative;
+    }
+
+    .sidebar-link:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .sidebar-link.active {
+      color: #fff;
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ce 100%);
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,198,255,0.3);
+      transform: translateX(4px);
+    }
+
+    .sidebar-link.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #fff;
+      border-radius: 0 2px 2px 0;
+    }
+    
+    .sidebar-links .sidebar-link.active::before {
+      left: 18px;
+    }
+
+    .sidebar-icon {
+      margin-right: 12px;
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+      transition: transform 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .sidebar-link:hover .sidebar-icon {
+      transform: scale(1.1);
+    }
+
+    .sidebar-link.active .sidebar-icon {
+      transform: scale(1.1);
+    }
+
+    /* Visual distinction between folders and pages */
+    .sidebar-label {
+      color: #e0e0e0;
+      padding: 14px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      border-radius: 8px;
+      margin: 4px 8px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid transparent;
+    }
+    
+    .sidebar-label .sidebar-icon {
+      margin-right: 12px;
+    }
+
+    .sidebar-label:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transform: translateX(4px);
+      border-left-color: rgba(255,255,255,0.3);
+    }
+
+    .sidebar-label .arrow {
+      transition: transform 0.3s ease;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.6);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-group.open .arrow {
+      transform: rotate(90deg);
+      color: #00c6ff;
+    }
+
+    .sidebar-group.open .sidebar-label {
+      background: rgba(255,255,255,0.08);
+      border-left-color: #00c6ff;
+    }
+
+    /* Individual page links styling */
+    .sidebar-link.sidebar-single {
+      margin: 2px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+      border-left: 3px solid transparent;
+      padding: 12px 18px;
+    }
+
+    .sidebar-link.sidebar-single:hover {
+      background: rgba(255,255,255,0.1);
+      border-left-color: rgba(255,255,255,0.3);
+    }
+
+    .sidebar-link.sidebar-single.active {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ce 100%);
+      border-left-color: #fff;
+    }
+
+    /* Modern scrollbar styling */
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      transition: background 0.3s ease;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Enhanced focus states for accessibility */
+    .sidebar-link:focus,
+    .sidebar-label:focus {
+      outline: 2px solid #00c6ff;
+      outline-offset: 2px;
+    }
+
+    /* Smooth transitions for all interactive elements */
+    .sidebar * {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Loading state improvements */
+    .sidebar-link.loading {
+      pointer-events: none;
+      opacity: 0.6;
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .sidebar-link.loading::after {
+      content: '';
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top: 2px solid #00c6ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* Floating toggle/pin styles removed */
+
+    /* TAB CONTENT */
+    .tab-content {
+      height: 100%;
+      position: relative;
+    }
+
+    .tab-pane {
+      height: 100%;
+      position: relative;
+    }
+
+    .tab-pane iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      transition: opacity 0.3s;
+    }
+
+    /* Loader for Iframes */
+    .iframe-loader {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      display: none;
+    }
+    
+    .tab-pane.loading .iframe-loader { 
+      display: block; 
+    }
+    
+    .tab-pane.loading iframe { 
+      opacity: 0.7; 
+      pointer-events: none; 
+    }
+    
+    .tab-pane:not(.loading) iframe { 
+      opacity: 1; 
+      pointer-events: auto; 
+    }
+    
+    .iframe-loader .spinner {
+      border: 4px solid #e0eafc;
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    
+    /* Overlay for mobile when sidebar is open */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+    
+    @media (max-width: 600px) {
+      .sidebar.show ~ .sidebar-overlay {
+        display: block;
+      }
+    }
+
+    /* Sidebar divider */
+    .sidebar-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+      margin: 15px 18px;
+    }
+
+    .sidebar-section-title {
+      color: rgba(255,255,255,0.7);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      padding: 20px 18px 8px;
+      margin: 0;
+      position: relative;
+    }
+
+    .sidebar-section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 18px;
+      right: 18px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    }
+
+    .sidebar-single {
+      padding-left: 18px !important;
+    }
+
+    /* SIDEBAR PIN BUTTON */
+    .sidebar-pin-btn {
+      position: fixed;
+      top: 20px;
+      left: 80px;
+      z-index: 1001;
+      background: var(--header-bg);
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .sidebar-pin-btn:hover {
+      background: var(--accent);
+      transform: scale(1.05);
+    }
+
+    .sidebar.pinned ~ .sidebar-pin-btn {
+      left: 330px;
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 260px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 230px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 200px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .sidebar-pin-btn {
+        left: 140px;
+      }
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 80%;
+      }
+    }
+  </style>
+  <link rel="icon" href="{% static 'PEAK_LOGO.jpg' %}">
+</head>
+<body>
+  <header class="topbar" role="banner" aria-label="Top Navigation">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <button class="topbar-menu-btn" id="headerMenuBtn" title="Menu" aria-label="Toggle Sidebar"><span id="headerToggleIcon">☰</span></button>
+        <div class="topbar-logo">
+          <img src="{% static 'PEAK_LOGO.jpg' %}" alt="Peak Energy Logo"/>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-page-title" id="topbarPageTitle"></div>
+        <div class="topbar-username">
+          {{ request.user.get_full_name|default:request.user.username }}
+          <span class="topbar-role">
+            {% if request.user.userprofile.role == 'admin' %}
+              Admin
+            {% elif request.user.userprofile.role == 'om' %}
+              O&M
+            {% elif request.user.userprofile.role == 'customer' %}
+              Customer
+            {% elif request.user.userprofile.role == 'management' %}
+              Management
+            {% elif request.user.userprofile.role == 'others' %}
+              Others
+            {% else %}
+              User
+            {% endif %}
+          </span>
+        </div>
+        <button class="topbar-export-btn" id="exportPdfBtn" title="Export as PDF" aria-label="Export current page as PDF">
+          📄
+        </button>
+        <form method="post" action="{% url 'accounts:logout' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="topbar-logout-btn">Logout</button>
+        </form>
+      </div>
+    </div>
+  </header>
+  <div class="dashboard-root">
+    <!-- Sidebar Overlay (mobile only) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
+      
+      <!-- User Information Section removed as requested -->
+      
+      <!-- Portfolio Section -->
+      {% if request.user|has_permission_for:'portfolio_map' or request.user|has_permission_for:'kpi_dashboard' or request.user|has_permission_for:'sales' %}
+        {% if request.user|has_permission_for:'portfolio_map' and request.user|has_permission_for:'kpi_dashboard' and request.user|has_permission_for:'sales' %}
+          <!-- Multiple items - use folder structure -->
+          <div class="sidebar-group">
+            <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+              <span class="sidebar-icon">📁</span> Portfolio <span class="arrow">▶</span>
+            </div>
+            <div class="sidebar-links">
+              {% if request.user|has_permission_for:'portfolio_map' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-portfolio-map',this);return false;">
+                  <span class="sidebar-icon">🗺️</span> Portfolio Map
+                </a>
+              {% endif %}
+              {% if request.user|has_permission_for:'kpi_dashboard' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-kpi-dashboard',this);return false;">
+                  <span class="sidebar-icon">📊</span> KPI Dashboard
+                </a>
+              {% endif %}
+              {% if request.user|has_permission_for:'sales' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-sales',this);return false;">
+                  <span class="sidebar-icon">💰</span> Sales
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <!-- Single items - show directly without section title -->
+          {% if request.user|has_permission_for:'portfolio_map' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-portfolio-map',this);return false;">
+              <span class="sidebar-icon">🗺️</span> Portfolio Map
+            </a>
+          {% endif %}
+          {% if request.user|has_permission_for:'kpi_dashboard' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-kpi-dashboard',this);return false;">
+              <span class="sidebar-icon">📊</span> KPI Dashboard
+            </a>
+          {% endif %}
+          {% if request.user|has_permission_for:'sales' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-sales',this);return false;">
+              <span class="sidebar-icon">💰</span> Sales
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- Performance Section -->
+      {% if request.user|has_permission_for:'yield_report' or request.user|has_permission_for:'pr_gap' or request.user|has_permission_for:'revenue_loss' or request.user|has_permission_for:'areas_of_concern' or request.user|has_permission_for:'bess_performance' or request.user|has_permission_for:'minamata_typhoon_damage' or request.user|has_permission_for:'ic_budget_vs_expected' %}
+        <!-- PV Performance Subsection -->
+        {% if request.user|has_permission_for:'yield_report' or request.user|has_permission_for:'pr_gap' or request.user|has_permission_for:'revenue_loss' or request.user|has_permission_for:'areas_of_concern' %}
+          {% if request.user|has_permission_for:'yield_report' and request.user|has_permission_for:'pr_gap' and request.user|has_permission_for:'revenue_loss' and request.user|has_permission_for:'areas_of_concern' %}
+            <!-- Multiple items - use folder structure -->
+            <div class="sidebar-group">
+              <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+                <span class="sidebar-icon">☀️</span> PV Performance <span class="arrow">▶</span>
+              </div>
+              <div class="sidebar-links">
+                {% if request.user|has_permission_for:'yield_report' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-yield-report',this);return false;">
+                    <span class="sidebar-icon">📊</span> Yield Report
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'pr_gap' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-pr-gap',this);return false;">
+                    <span class="sidebar-icon">📈</span> PR Gap (%)
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'revenue_loss' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-revenue-loss',this);return false;">
+                    <span class="sidebar-icon">💸</span> Revenue Loss
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'areas_of_concern' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-areas-of-concern',this);return false;">
+                    <span class="sidebar-icon">⚠️</span> Areas of Concern
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <!-- Single items - show directly -->
+            {% if request.user|has_permission_for:'yield_report' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-yield-report',this);return false;">
+                <span class="sidebar-icon">📊</span> Yield Report
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'pr_gap' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-pr-gap',this);return false;">
+                <span class="sidebar-icon">📈</span> PR Gap (%)
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'revenue_loss' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-revenue-loss',this);return false;">
+                <span class="sidebar-icon">💸</span> Revenue Loss
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'areas_of_concern' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-areas-of-concern',this);return false;">
+                <span class="sidebar-icon">⚠️</span> Areas of Concern
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+
+        <!-- BESS Performance Subsection -->
+        {% if request.user|has_permission_for:'bess_performance' %}
+          <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-bess-performance',this);return false;">
+            <span class="sidebar-icon">⚡</span> BESS Performance
+          </a>
+        {% endif %}
+
+        <!-- Generic Subsection -->
+        {% if request.user|has_permission_for:'minamata_typhoon_damage' or request.user|has_permission_for:'ic_budget_vs_expected' %}
+          {% if request.user|has_permission_for:'minamata_typhoon_damage' and request.user|has_permission_for:'ic_budget_vs_expected' %}
+            <!-- Multiple items - use folder structure -->
+            <div class="sidebar-group">
+              <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+                <span class="sidebar-icon">📋</span> Generic <span class="arrow">▶</span>
+              </div>
+              <div class="sidebar-links">
+                {% if request.user|has_permission_for:'minamata_typhoon_damage' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-minamata-typhoon-damage',this);return false;">
+                    <span class="sidebar-icon">🌪️</span> Minamata Typhoon Damage
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'ic_budget_vs_expected' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-ic-budget-vs-expected',this);return false;">
+                    <span class="sidebar-icon">📊</span> IC Budget Vs Expected
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <!-- Single items - show directly -->
+            {% if request.user|has_permission_for:'minamata_typhoon_damage' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-minamata-typhoon-damage',this);return false;">
+                <span class="sidebar-icon">🌪️</span> Minamata Typhoon Damage
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'ic_budget_vs_expected' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-ic-budget-vs-expected',this);return false;">
+                <span class="sidebar-icon">📊</span> IC Budget Vs Expected
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- Generation Report Section -->
+      {% if request.user|has_permission_for:'generation_report' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-generation-report',this);return false;">
+          <span class="sidebar-icon">📊</span> Generation Report
+        </a>
+      {% endif %}
+
+      <!-- Energy Monitoring Section -->
+      {% if request.user|has_permission_for:'time_series_dashboard' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-time-series-dashboard',this);return false;">
+          <span class="sidebar-icon">📈</span> Energy Monitoring
+        </a>
+      {% endif %}
+
+      <!-- Data Management Section -->
+      {% if request.user|has_permission_for:'data_upload' or request.user.userprofile.role == 'admin' %}
+        {% if request.user|has_permission_for:'data_upload' and request.user|has_permission_for:'data_upload_help' or request.user.userprofile.role == 'admin' %}
+          <!-- Multiple items - use folder structure -->
+          <div class="sidebar-divider"></div>
+          <div class="sidebar-group">
+            <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+              <span class="sidebar-icon">📁</span> Data Management <span class="arrow">▶</span>
+            </div>
+            <div class="sidebar-links">
+              {% if request.user|has_permission_for:'data_upload' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-data-upload',this);return false;">
+                  <span class="sidebar-icon">📤</span> Data Upload
+                </a>
+              {% endif %}
+              {% if request.user|has_permission_for:'data_upload_help' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-data-upload-help',this);return false;">
+                  <span class="sidebar-icon">📋</span> Upload Help
+                </a>
+              {% endif %}
+              {% if request.user.userprofile.role == 'admin' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-site-onboarding',this);return false;">
+                  <span class="sidebar-icon">🏗️</span> Site Onboarding
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <!-- Single items - show directly -->
+          <div class="sidebar-divider"></div>
+          {% if request.user|has_permission_for:'data_upload' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-data-upload',this);return false;">
+              <span class="sidebar-icon">📤</span> Data Upload
+            </a>
+          {% endif %}
+          {% if request.user|has_permission_for:'data_upload_help' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-data-upload-help',this);return false;">
+              <span class="sidebar-icon">📋</span> Upload Help
+            </a>
+          {% endif %}
+          {% if request.user.userprofile.role == 'admin' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-site-onboarding',this);return false;">
+              <span class="sidebar-icon">🏗️</span> Site Onboarding
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- User Management Section -->
+      {% if request.user|has_permission_for:'user_management' %}
+        <div class="sidebar-divider"></div>
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-user-management',this);return false;">
+          <span class="sidebar-icon">👤</span> User Management
+        </a>
+      {% endif %}
+
+      <!-- Feedback Section -->
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">💬 Feedback</div>
+      {% if request.user|has_permission_for:'feedback_submit' %}
+        <a class="sidebar-link sidebar-single" href="{% url 'main:feedback_submit' %}" target="_blank" rel="noopener noreferrer">
+          <span class="sidebar-icon">💬</span> Submit Feedback
+        </a>
+      {% endif %}
+      {% if request.user|has_permission_for:'feedback_list' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-feedback-list',this);return false;">
+          <span class="sidebar-icon">📋</span> Manage Feedback
+        </a>
+      {% endif %}
+
+      <!-- Logout removed from sidebar as requested -->
+    </div>
+    
+    <!-- Floating toggle/pin removed; header menu button is used -->
+    
+    <!-- Main Content Area -->
+    <div class="main-area" id="mainContent">
+      <div class="tab-content" id="sideTabContent">
+        <!-- Portfolio Map -->
+        {% if request.user|has_permission_for:'portfolio_map' %}
+          <div class="tab-pane fade show active" id="dash-portfolio-map" role="tabpanel">
+            <div class="iframe-loader" id="loader-portfolio-map"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:portfolio_map' %}" loading="lazy" aria-label="Portfolio Map" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- KPI Dashboard -->
+        {% if request.user|has_permission_for:'kpi_dashboard' %}
+          <div class="tab-pane fade" id="dash-kpi-dashboard" role="tabpanel">
+            <div class="iframe-loader" id="loader-kpi-dashboard"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:kpi_dashboard' %}" loading="lazy" aria-label="KPI Dashboard" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Sales -->
+        {% if request.user|has_permission_for:'sales' %}
+          <div class="tab-pane fade" id="dash-sales" role="tabpanel">
+            <div class="iframe-loader" id="loader-sales"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:sales' %}" loading="lazy" aria-label="Sales" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Yield Report -->
+        {% if request.user|has_permission_for:'yield_report' %}
+          <div class="tab-pane fade" id="dash-yield-report" role="tabpanel">
+            <div class="iframe-loader" id="loader-yield-report"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:yield_report' %}" loading="lazy" aria-label="Yield Report" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- PR Gap -->
+        {% if request.user|has_permission_for:'pr_gap' %}
+          <div class="tab-pane fade" id="dash-pr-gap" role="tabpanel">
+            <div class="iframe-loader" id="loader-pr-gap"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:pr_gap' %}" loading="lazy" aria-label="PR Gap (%)" sandbox="allow-scripts allow-forms allow-popups allow-top-navigation allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Revenue Loss -->
+        {% if request.user|has_permission_for:'revenue_loss' %}
+          <div class="tab-pane fade" id="dash-revenue-loss" role="tabpanel">
+            <div class="iframe-loader" id="loader-revenue-loss"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:revenue_loss' %}" loading="lazy" aria-label="Revenue Loss" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Areas of Concern -->
+        {% if request.user|has_permission_for:'areas_of_concern' %}
+          <div class="tab-pane fade" id="dash-areas-of-concern" role="tabpanel">
+            <div class="iframe-loader" id="loader-areas-of-concern"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:areas_of_concern' %}" loading="lazy" aria-label="Areas of Concern" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- BESS Performance -->
+        {% if request.user|has_permission_for:'bess_performance' %}
+          <div class="tab-pane fade" id="dash-bess-performance" role="tabpanel">
+            <div class="iframe-loader" id="loader-bess-performance"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:bess_performance' %}" loading="lazy" aria-label="BESS Performance" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Minamata Typhoon Damage -->
+        {% if request.user|has_permission_for:'minamata_typhoon_damage' %}
+          <div class="tab-pane fade" id="dash-minamata-typhoon-damage" role="tabpanel">
+            <div class="iframe-loader" id="loader-minamata-typhoon-damage"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:minamata_typhoon_damage' %}" loading="lazy" aria-label="Minamata Typhoon Damage" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- IC Budget Vs Expected -->
+        {% if request.user|has_permission_for:'ic_budget_vs_expected' %}
+          <div class="tab-pane fade" id="dash-ic-budget-vs-expected" role="tabpanel">
+            <div class="iframe-loader" id="loader-ic-budget-vs-expected"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:ic_budget_vs_expected' %}" loading="lazy" aria-label="IC Budget Vs Expected" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Generation Report -->
+        {% if request.user|has_permission_for:'generation_report' %}
+          <div class="tab-pane fade" id="dash-generation-report" role="tabpanel">
+            <div class="iframe-loader" id="loader-generation-report"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:generation_report' %}" loading="lazy" aria-label="Generation Report" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Time Series Dashboard -->
+        {% if request.user|has_permission_for:'time_series_dashboard' %}
+          <div class="tab-pane fade" id="dash-time-series-dashboard" role="tabpanel">
+            <div class="iframe-loader" id="loader-time-series-dashboard"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:time_series_dashboard' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Data Upload iframes -->
+        {% if request.user|has_permission_for:'data_upload' %}
+          <div class="tab-pane fade" id="dash-data-upload" role="tabpanel">
+            <div class="iframe-loader" id="loader-data-upload"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:data_upload' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads"></iframe>
+          </div>
+          <div class="tab-pane fade" id="dash-data-upload-help" role="tabpanel">
+            <div class="iframe-loader" id="loader-data-upload-help"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:data_upload_help' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Site Onboarding (Admin Only) -->
+        {% if request.user.userprofile.role == 'admin' %}
+          <div class="tab-pane fade" id="dash-site-onboarding" role="tabpanel">
+            <div class="iframe-loader" id="loader-site-onboarding"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:site_onboarding' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals" aria-label="Site Onboarding"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- User Management -->
+        {% if request.user|has_permission_for:'user_management' %}
+          <div class="tab-pane fade" id="dash-user-management" role="tabpanel">
+            <div class="iframe-loader" id="loader-user-management"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:user_management' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Feedback Submit -->
+        {% if request.user|has_permission_for:'feedback_submit' %}
+          <div class="tab-pane fade" id="dash-feedback-submit" role="tabpanel">
+            <div class="iframe-loader" id="loader-feedback-submit"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:feedback_submit' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Feedback Management -->
+        {% if request.user|has_permission_for:'feedback_list' %}
+          <div class="tab-pane fade" id="dash-feedback-list" role="tabpanel">
+            <div class="iframe-loader" id="loader-feedback-list"><div class="spinner"></div></div>
+            <iframe src="{% url 'main:feedback_list' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation allow-top-navigation-by-user-activation" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Error handling for network issues
+    window.addEventListener('error', function(e) {
+      if (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT') {
+        console.warn('Failed to load external resource:', e.target.src || e.target.href);
+      }
+    });
+    
+    // Enhanced error handling for various message channel and promise errors
+    window.addEventListener('unhandledrejection', function(event) {
+      const reason = event.reason;
+      const message = reason && reason.message ? reason.message : '';
+      
+      // Handle message channel errors
+      if (message.includes('message channel closed') || 
+          message.includes('listener indicated an asynchronous response') ||
+          message.includes('Extension context invalidated') ||
+          message.includes('Receiving end does not exist')) {
+        console.warn('Message channel/extension error suppressed:', message);
+        event.preventDefault();
+        return;
+      }
+      
+      // Handle other common iframe-related errors
+      if (message.includes('Blocked a frame with origin') ||
+          message.includes('Permission denied') ||
+          message.includes('Cannot read properties of null')) {
+        console.warn('Iframe communication error suppressed:', message);
+        event.preventDefault();
+        return;
+      }
+      
+      // Log other unhandled rejections for debugging
+      console.error('Unhandled promise rejection:', reason);
+    });
+    
+    // Additional error handling for general errors
+    window.addEventListener('error', function(event) {
+      const message = event.message || '';
+      
+      // Suppress common extension and iframe errors
+      if (message.includes('message channel closed') ||
+          message.includes('Extension context invalidated') ||
+          message.includes('Receiving end does not exist') ||
+          message.includes('Blocked a frame with origin')) {
+        console.warn('Error suppressed:', message);
+        event.preventDefault();
+        return;
+      }
+    });
+    
+    // Sidebar functionality
+    const sidebar = document.getElementById('sidebar');
+    const headerMenuBtn = document.getElementById('headerMenuBtn');
+    const headerToggleIcon = document.getElementById('headerToggleIcon');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const mainContent = document.getElementById('mainContent');
+    const topbarPageTitle = document.getElementById('topbarPageTitle');
+
+    // Start hidden by default
+    sidebar.classList.remove('show');
+
+    // Toggle sidebar
+    function toggleSidebar() {
+      // Toggle show/hide
+      sidebar.classList.toggle('show');
+      updateToggleIcon();
+      // Track manual toggle state
+      isManuallyToggled = sidebar.classList.contains('show');
+      // No auto-hide - sidebar stays open until menu button is clicked again
+    }
+ 
+    // Pin behavior removed
+
+    // Update toggle icon
+    function updateToggleIcon() {
+      if (sidebar.classList.contains('show')) {
+        headerToggleIcon.textContent = '✕';
+      } else {
+        headerToggleIcon.textContent = '☰';
+      }
+    }
+
+    // Toggle sidebar groups
+    function toggleSidebarGroup(element) {
+      const group = element.parentElement;
+      group.classList.toggle('open');
+    }
+
+    // Set the header page title text
+    function setHeaderPageTitle(title) {
+      if (!topbarPageTitle) return;
+      topbarPageTitle.textContent = title || '';
+    }
+
+    // Show tab content
+    function showTab(tabId, element) {
+      // Prevent multiple rapid clicks
+      if (element.classList.contains('loading')) {
+        return;
+      }
+
+      // Remove loading class from all links
+      document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('loading');
+      });
+
+      // Add loading class to clicked link
+      element.classList.add('loading');
+
+      // Hide all tab panes
+      const tabPanes = document.querySelectorAll('.tab-pane');
+      tabPanes.forEach(pane => {
+        pane.classList.remove('show', 'active');
+        pane.classList.add('fade');
+      });
+
+      // Remove active class from all links
+      document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('active');
+      });
+
+      // Show selected tab
+      const selectedTab = document.getElementById(tabId);
+      if (selectedTab) {
+        selectedTab.classList.add('show', 'active');
+        selectedTab.classList.remove('fade');
+
+        // Add loading state
+        selectedTab.classList.add('loading');
+
+        // Set header page title from clicked link text (not iframe)
+        const linkText = element ? element.textContent.trim() : '';
+        if (linkText) {
+          setHeaderPageTitle(linkText);
+        }
+
+        // Get the iframe in this tab
+        const iframe = selectedTab.querySelector('iframe');
+        const loader = selectedTab.querySelector('.iframe-loader');
+
+        if (iframe && loader) {
+          // Clear any existing onload handlers
+          iframe.onload = null;
+
+          // Set new onload handler with enhanced error handling
+          iframe.onload = function() {
+            try {
+              selectedTab.classList.remove('loading');
+              element.classList.remove('loading');
+              
+              // Set header title from the iframe's own page title when available
+              try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const pageTitle = (iframeDoc && iframeDoc.title) ? iframeDoc.title.trim() : '';
+                if (pageTitle) {
+                  setHeaderPageTitle(pageTitle);
+                }
+
+                // Hide common in-page title elements to reclaim vertical space
+                try {
+                  const candidateSelectors = [
+                    '.dashboard-header .title', '.dashboard-header',
+                    'h1.page-title', 'header .page-title', '.page-title', '.header-title', '.page-header h1', '.page-header',
+                    'h1', 'h2.page-title', '.card-title.page-title'
+                  ];
+                  let hidden = false;
+                  for (const sel of candidateSelectors) {
+                    const el = iframeDoc.querySelector(sel);
+                    if (el) {
+                      // Only hide if near the top to avoid hiding chart sub-titles
+                      const rect = el.getBoundingClientRect();
+                      if (rect && rect.top < 150) {
+                        el.style.display = 'none';
+                        hidden = true;
+                        break;
+                      }
+                    }
+                  }
+                } catch (e) {
+                  // Silently handle CORS or other access errors
+                }
+              } catch (e) {
+                // Ignore if cross-origin restrictions apply
+              }
+
+              // Try to hide any internal dashboard links to prevent recursive loading
+              try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const internalLinks = iframeDoc.querySelectorAll('a[href*="unified_operations_dashboard"]');
+                internalLinks.forEach(link => {
+                  link.style.display = 'none';
+                });
+              } catch (e) {
+                // CORS restrictions may prevent this
+                console.log('Could not modify iframe content due to CORS restrictions');
+              }
+            } catch (error) {
+              console.error('Error in iframe onload handler:', error);
+              // Ensure loading state is cleared even if there's an error
+              selectedTab.classList.remove('loading');
+              element.classList.remove('loading');
+            }
+          };
+
+          // Fallback timeout with error handling
+          setTimeout(() => {
+            try {
+              if (selectedTab.classList.contains('loading')) {
+                selectedTab.classList.remove('loading');
+                element.classList.remove('loading');
+                console.log('Iframe loading timeout - cleared loading state');
+              }
+            } catch (error) {
+              console.error('Error in iframe timeout handler:', error);
+            }
+          }, 3000);
+        } else {
+          // No iframe found, remove loading state immediately
+          selectedTab.classList.remove('loading');
+          element.classList.remove('loading');
+        }
+      } else {
+        // Tab not found, remove loading state
+        element.classList.remove('loading');
+        console.error('Tab not found:', tabId);
+      }
+
+      // Add active class to clicked link
+      element.classList.add('active');
+
+      // Keep sidebar open after tab selection - no auto-hide
+    }
+
+    // Event listeners
+    headerMenuBtn.addEventListener('click', toggleSidebar);
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+    
+    // Export PDF functionality
+    document.getElementById('exportPdfBtn').addEventListener('click', function() {
+      // Show loading indicator
+      const originalText = this.innerHTML;
+      this.innerHTML = '⏳';
+      this.disabled = true;
+      
+      console.log('PDF Export button clicked');
+      
+      // Get the current active iframe content
+      const activeTab = document.querySelector('.tab-pane.show.active');
+      console.log('Active tab found:', activeTab);
+      
+      if (activeTab) {
+        const iframe = activeTab.querySelector('iframe');
+        console.log('Iframe found:', iframe);
+        
+        if (iframe) {
+          // Try the simplest approach first - direct iframe capture
+          console.log('Attempting direct iframe capture...');
+          exportIframeDirectly(iframe);
+        } else {
+          // No iframe found, export the main page
+          console.log('No iframe found, exporting main page');
+          exportMainPageAsPDF();
+        }
+      } else {
+        // No active tab, export the main page
+        console.log('No active tab found, exporting main page');
+        exportMainPageAsPDF();
+      }
+      
+      // Reset button after a delay
+      setTimeout(() => {
+        this.innerHTML = originalText;
+        this.disabled = false;
+      }, 5000);
+    });
+
+    // Simple direct iframe capture function (fixed for same-domain iframes)
+    async function exportIframeDirectly(iframe) {
+      try {
+        console.log('Starting direct iframe capture...');
+        showPDFLoadingMessage();
+
+        // Wait a bit for iframe to finish rendering
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        if (!iframeDoc || !iframeDoc.body) {
+          throw new Error('Unable to access iframe content');
+        }
+
+        console.log('Iframe document body found, capturing content...');
+
+        // Create a container that includes the main page header + iframe content
+        const tempContainer = document.createElement('div');
+        tempContainer.style.cssText = `
+          position: absolute;
+          top: -9999px;
+          left: -9999px;
+          width: ${window.innerWidth}px;
+          background: white;
+          font-family: 'Inter', Arial, sans-serif;
+        `;
+        
+        // Add the main page header (topbar)
+        const topbar = document.querySelector('.topbar');
+        console.log('Topbar found for iframe export:', topbar);
+        if (topbar) {
+          const clonedTopbar = topbar.cloneNode(true);
+          console.log('Cloned topbar for iframe:', clonedTopbar);
+          tempContainer.appendChild(clonedTopbar);
+        }
+        
+        // Clone the iframe body content
+        const clonedIframeContent = iframeDoc.body.cloneNode(true);
+        
+        // Remove any export buttons or navigation elements from iframe content
+        const elementsToRemove = clonedIframeContent.querySelectorAll(
+          '.export-btn, .title-export-btn, .topbar, .sidebar, .dashboard-header, button[onclick*="export"], .btn-export, .navbar, .header, nav'
+        );
+        elementsToRemove.forEach(el => el.remove());
+        
+        // Ensure all iframe styles are preserved
+        const allStyles = iframeDoc.querySelectorAll('style, link[rel="stylesheet"]');
+        const styleContainer = document.createElement('div');
+        styleContainer.style.display = 'none';
+        
+        allStyles.forEach(style => {
+          if (style.tagName === 'STYLE') {
+            const newStyle = document.createElement('style');
+            newStyle.textContent = style.textContent;
+            styleContainer.appendChild(newStyle);
+          } else if (style.tagName === 'LINK') {
+            const newLink = document.createElement('link');
+            newLink.rel = 'stylesheet';
+            newLink.href = style.href;
+            styleContainer.appendChild(newLink);
+          }
+        });
+        
+        tempContainer.appendChild(styleContainer);
+        tempContainer.appendChild(clonedIframeContent);
+        document.body.appendChild(tempContainer);
+        
+        // Wait for styles to apply
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Capture the temporary container with header + iframe content
+        const canvas = await html2canvas(tempContainer, {
+          scale: 1.5,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: true,
+          imageTimeout: 30000
+        });
+        
+        // Clean up
+        document.body.removeChild(tempContainer);
+
+        console.log('Canvas created:', canvas.width, 'x', canvas.height);
+
+        if (canvas.width === 0 || canvas.height === 0) {
+          throw new Error('Canvas is empty');
+        }
+
+        // Create PDF
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png', 0.95);
+
+        // Calculate dimensions to fit content to single page
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const pdfWidth = 297; // A4 landscape width in mm
+        const pdfHeight = 210; // A4 landscape height in mm
+        
+        // Add margins for better presentation
+        const margin = 10; // 10mm margin on all sides
+        const availableWidth = pdfWidth - (2 * margin);
+        const availableHeight = pdfHeight - (2 * margin);
+        
+        // Calculate scaling to fit content to available space while maintaining aspect ratio
+        const scaleX = availableWidth / imgWidth;
+        const scaleY = availableHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY); // Use smaller scale to ensure content fits
+        
+        const finalWidth = imgWidth * scale;
+        const finalHeight = imgHeight * scale;
+        
+        // Center the content on the page with margins
+        const xOffset = margin + (availableWidth - finalWidth) / 2;
+        const yOffset = margin + (availableHeight - finalHeight) / 2;
+
+        const pdf = new jsPDF({
+          orientation: 'landscape', // Always use landscape for better dashboard display
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        // Add watermark
+        addWatermark(pdf, pdfWidth, pdfHeight);
+
+        // Add the dashboard image, fitted to page
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `Dashboard_Export_${timestamp}.pdf`;
+
+        pdf.save(filename);
+        hidePDFLoadingMessage();
+
+        console.log('PDF exported successfully:', filename);
+
+      } catch (error) {
+        console.error('Direct iframe capture failed:', error);
+        hidePDFLoadingMessage();
+
+        // Fallback to main page export
+        console.log('Trying fallback to main page...');
+        exportMainPageAsPDF();
+      }
+    }
+
+    // Function to export iframe content as PDF
+    function exportIframeAsPDF(iframeDoc, title) {
+      // Wait for iframe to be fully loaded and rendered
+      const iframe = document.querySelector('.tab-pane.show.active iframe');
+      if (!iframe) {
+        exportMainPageAsPDF();
+        return;
+      }
+
+      // Check if iframe is accessible
+      try {
+        const iframeBody = iframeDoc.body;
+        if (!iframeBody || iframeBody.children.length === 0) {
+          console.log('Iframe body is empty, falling back to main page export');
+          exportMainPageAsPDF();
+          return;
+        }
+
+        // Wait a bit more for any dynamic content to load
+                setTimeout(() => {
+          try {
+            // Create a temporary container to hold the iframe content
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+              position: absolute;
+              top: -9999px;
+              left: -9999px;
+              width: ${iframeBody.scrollWidth || 1200}px;
+              min-height: ${iframeBody.scrollHeight || 800}px;
+              background: white;
+              font-family: 'Inter', Arial, sans-serif;
+              overflow: visible;
+            `;
+            
+            // Clone the iframe body content (not the entire document)
+            const clonedContent = iframeBody.cloneNode(true);
+            
+            // Remove any export buttons or navigation elements that shouldn't be in PDF
+            const elementsToRemove = clonedContent.querySelectorAll(
+              '.export-btn, .title-export-btn, .topbar, .sidebar, .dashboard-header, button[onclick*="export"], .btn-export, .navbar, .header, nav'
+            );
+            elementsToRemove.forEach(el => el.remove());
+            
+            // Ensure all styles are preserved by copying them
+            const allStyles = iframeDoc.querySelectorAll('style, link[rel="stylesheet"]');
+            const styleContainer = document.createElement('div');
+            styleContainer.style.display = 'none';
+            
+            allStyles.forEach(style => {
+              if (style.tagName === 'STYLE') {
+                const newStyle = document.createElement('style');
+                newStyle.textContent = style.textContent;
+                styleContainer.appendChild(newStyle);
+              } else if (style.tagName === 'LINK') {
+                const newLink = document.createElement('link');
+                newLink.rel = 'stylesheet';
+                newLink.href = style.href;
+                styleContainer.appendChild(newLink);
+              }
+            });
+            
+            tempContainer.appendChild(styleContainer);
+            tempContainer.appendChild(clonedContent);
+            document.body.appendChild(tempContainer);
+            
+            // Wait a bit more for styles to apply
+                  setTimeout(() => {
+              generatePDF(tempContainer, title).finally(() => {
+                if (tempContainer.parentNode) {
+                  document.body.removeChild(tempContainer);
+                }
+              });
+                }, 500);
+            
+          } catch (error) {
+            console.error('Error in iframe PDF export:', error);
+            exportMainPageAsPDF();
+          }
+        }, 1000); // Wait 1 second for content to fully load
+        
+          } catch (error) {
+        console.error('Cross-origin or access error:', error);
+        exportMainPageAsPDF();
+      }
+    }
+
+    // Function to export main page as PDF
+    async function exportMainPageAsPDF() {
+      try {
+        console.log('Starting main page export...');
+        showPDFLoadingMessage();
+        
+        // Wait a bit for page to be fully rendered
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Capture the entire page including the original header
+        const topbar = document.querySelector('.topbar');
+        const mainArea = document.querySelector('.main-area');
+        
+        console.log('Topbar found:', topbar);
+        console.log('Main area found:', mainArea);
+        
+        // Create a container that includes both topbar and main area
+        const tempContainer = document.createElement('div');
+        tempContainer.style.cssText = `
+          position: absolute;
+          top: -9999px;
+          left: -9999px;
+          width: ${window.innerWidth}px;
+          background: white;
+          font-family: 'Inter', Arial, sans-serif;
+        `;
+        
+        // Clone the topbar (header) with original styling
+        if (topbar) {
+          const clonedTopbar = topbar.cloneNode(true);
+          console.log('Cloned topbar:', clonedTopbar);
+          tempContainer.appendChild(clonedTopbar);
+        }
+        
+        // Clone the main area content
+        if (mainArea) {
+          const clonedMainArea = mainArea.cloneNode(true);
+          console.log('Cloned main area:', clonedMainArea);
+          tempContainer.appendChild(clonedMainArea);
+        }
+        
+        document.body.appendChild(tempContainer);
+        
+        let targetElement = tempContainer;
+        
+        console.log('Target element dimensions:', targetElement.offsetWidth, 'x', targetElement.offsetHeight);
+        
+        // Capture the element
+        const canvas = await html2canvas(targetElement, {
+          scale: 1.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: true,
+          imageTimeout: 30000,
+          width: targetElement.offsetWidth,
+          height: targetElement.offsetHeight
+        });
+        
+        console.log('Canvas created:', canvas.width, 'x', canvas.height);
+        
+        if (canvas.width === 0 || canvas.height === 0) {
+          throw new Error('Canvas is empty');
+        }
+        
+        // Create PDF
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png', 0.95);
+        
+        // Calculate dimensions to fit content to single page
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const pdfWidth = 297; // A4 landscape width in mm
+        const pdfHeight = 210; // A4 landscape height in mm
+        
+        // Add margins for better presentation
+        const margin = 10; // 10mm margin on all sides
+        const availableWidth = pdfWidth - (2 * margin);
+        const availableHeight = pdfHeight - (2 * margin);
+        
+        // Calculate scaling to fit content to available space while maintaining aspect ratio
+        const scaleX = availableWidth / imgWidth;
+        const scaleY = availableHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY); // Use smaller scale to ensure content fits
+        
+        const finalWidth = imgWidth * scale;
+        const finalHeight = imgHeight * scale;
+        
+        // Center the content on the page with margins
+        const xOffset = margin + (availableWidth - finalWidth) / 2;
+        const yOffset = margin + (availableHeight - finalHeight) / 2;
+        
+        const pdf = new jsPDF({
+          orientation: 'landscape', // Always use landscape for better dashboard display
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Add watermark
+        addWatermark(pdf, pdfWidth, pdfHeight);
+        
+        // Add the dashboard image, fitted to page
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+        
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `Dashboard_Main_${timestamp}.pdf`;
+        
+        pdf.save(filename);
+        hidePDFLoadingMessage();
+        
+        // Clean up temporary container
+        if (tempContainer && tempContainer.parentNode) {
+          document.body.removeChild(tempContainer);
+        }
+        
+        console.log('Main page PDF exported successfully:', filename);
+        
+      } catch (error) {
+        console.error('Main page export failed:', error);
+        hidePDFLoadingMessage();
+        
+        // Clean up temporary container on error
+        if (tempContainer && tempContainer.parentNode) {
+          document.body.removeChild(tempContainer);
+        }
+        
+        alert('Error generating PDF. Please try refreshing the page and try again.');
+      }
+    }
+
+    // Function to generate PDF using html2canvas and jsPDF
+    async function generatePDF(element, title) {
+      try {
+        // Show loading message
+        showPDFLoadingMessage();
+        
+        // Validate element has content
+        if (!element || element.children.length === 0) {
+          throw new Error('No content to export');
+        }
+
+        // Check if element has visible content
+        const hasVisibleContent = element.offsetWidth > 0 && element.offsetHeight > 0;
+        if (!hasVisibleContent) {
+          console.warn('Element has no visible content, trying alternative approach');
+          // Try to capture the iframe directly
+          const iframe = document.querySelector('.tab-pane.show.active iframe');
+          if (iframe) {
+            return await generatePDFFromIframe(iframe, title);
+          }
+        }
+
+        // Configure html2canvas options for high quality and color preservation
+        const canvas = await html2canvas(element, {
+          scale: 1.5, // Reduced scale to avoid memory issues
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          width: element.scrollWidth || element.offsetWidth,
+          height: element.scrollHeight || element.offsetHeight,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: element.scrollWidth || element.offsetWidth,
+          windowHeight: element.scrollHeight || element.offsetHeight,
+          // Preserve colors and styling
+          logging: true, // Enable logging for debugging
+          imageTimeout: 30000, // Increased timeout
+          removeContainer: false,
+          foreignObjectRendering: true,
+          // Additional options for better rendering
+          ignoreElements: (element) => {
+            // Ignore elements that might cause issues
+            return element.classList.contains('export-btn') || 
+                   element.classList.contains('sidebar') ||
+                   element.classList.contains('topbar');
+          }
+        });
+
+        // Check if canvas has content
+        if (canvas.width === 0 || canvas.height === 0) {
+          throw new Error('Canvas is empty - no content captured');
+        }
+
+        // Create PDF with jsPDF
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png', 0.95); // Slightly reduced quality for better compatibility
+        
+        // Calculate PDF dimensions
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const pdfWidth = 210; // A4 width in mm
+        const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
+        
+        // Create PDF document
+        const pdf = new jsPDF({
+          orientation: pdfHeight > 297 ? 'portrait' : 'landscape',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Add image to PDF
+        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        
+        // Generate filename with timestamp
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.pdf`;
+        
+        // Download the PDF
+        pdf.save(filename);
+        
+        // Hide loading message
+        hidePDFLoadingMessage();
+        
+        console.log('PDF exported successfully:', filename);
+        
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        hidePDFLoadingMessage();
+        
+        // Try fallback method
+        try {
+          console.log('Attempting fallback PDF generation...');
+          await generateFallbackPDF(title);
+        } catch (fallbackError) {
+          console.error('Fallback PDF generation also failed:', fallbackError);
+          alert('Error generating PDF. The page content may not be accessible for export. Please try refreshing the page and try again.');
+        }
+      }
+    }
+
+    // Fallback PDF generation method
+    async function generateFallbackPDF(title) {
+      // Try to capture the entire viewport with original header
+      const canvas = await html2canvas(document.body, {
+        scale: 1,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: true,
+        imageTimeout: 30000
+      });
+
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Fallback canvas is also empty');
+      }
+
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png', 0.9);
+        
+        // Calculate dimensions to fit content to single page
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const pdfWidth = 297; // A4 landscape width in mm
+        const pdfHeight = 210; // A4 landscape height in mm
+        
+        // Add margins for better presentation
+        const margin = 10; // 10mm margin on all sides
+        const availableWidth = pdfWidth - (2 * margin);
+        const availableHeight = pdfHeight - (2 * margin);
+        
+        // Calculate scaling to fit content to available space while maintaining aspect ratio
+        const scaleX = availableWidth / imgWidth;
+        const scaleY = availableHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY); // Use smaller scale to ensure content fits
+        
+        const finalWidth = imgWidth * scale;
+        const finalHeight = imgHeight * scale;
+        
+        // Center the content on the page with margins
+        const xOffset = margin + (availableWidth - finalWidth) / 2;
+        const yOffset = margin + (availableHeight - finalHeight) / 2;
+        
+        const pdf = new jsPDF({
+          orientation: 'landscape', // Always use landscape for better dashboard display
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Add watermark
+        addWatermark(pdf, pdfWidth, pdfHeight);
+        
+        // Add the dashboard image, fitted to page
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+      
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_fallback_${timestamp}.pdf`;
+      
+      pdf.save(filename);
+      console.log('Fallback PDF exported successfully:', filename);
+    }
+
+    // Alternative method to capture iframe directly
+    async function generatePDFFromIframe(iframe, title) {
+      try {
+        const canvas = await html2canvas(iframe, {
+          scale: 1.5,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff',
+          logging: true,
+          imageTimeout: 30000
+        });
+
+        if (canvas.width === 0 || canvas.height === 0) {
+          throw new Error('Iframe canvas is empty');
+        }
+
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/png', 0.95);
+        
+        // Calculate dimensions to fit content to single page
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const pdfWidth = 297; // A4 landscape width in mm
+        const pdfHeight = 210; // A4 landscape height in mm
+        
+        // Add margins for better presentation
+        const margin = 10; // 10mm margin on all sides
+        const availableWidth = pdfWidth - (2 * margin);
+        const availableHeight = pdfHeight - (2 * margin);
+        
+        // Calculate scaling to fit content to available space while maintaining aspect ratio
+        const scaleX = availableWidth / imgWidth;
+        const scaleY = availableHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY); // Use smaller scale to ensure content fits
+        
+        const finalWidth = imgWidth * scale;
+        const finalHeight = imgHeight * scale;
+        
+        // Center the content on the page with margins
+        const xOffset = margin + (availableWidth - finalWidth) / 2;
+        const yOffset = margin + (availableHeight - finalHeight) / 2;
+        
+        const pdf = new jsPDF({
+          orientation: 'landscape', // Always use landscape for better dashboard display
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Add watermark
+        addWatermark(pdf, pdfWidth, pdfHeight);
+        
+        // Add the dashboard image, fitted to page
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+        
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_iframe_${timestamp}.pdf`;
+        
+        pdf.save(filename);
+        console.log('Iframe PDF exported successfully:', filename);
+        
+      } catch (error) {
+        console.error('Iframe PDF generation failed:', error);
+        throw error;
+      }
+    }
+
+    // Function to show PDF loading message
+    function showPDFLoadingMessage() {
+      const loadingDiv = document.createElement('div');
+      loadingDiv.id = 'pdf-loading-message';
+      loadingDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        z-index: 10000;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+      `;
+      loadingDiv.innerHTML = `
+        <div style="margin-bottom: 10px; font-size: 24px;">📄</div>
+        <div>Generating PDF...</div>
+        <div style="font-size: 12px; margin-top: 8px; opacity: 0.8;">Please wait while we capture the dashboard</div>
+      `;
+      document.body.appendChild(loadingDiv);
+    }
+
+    // Function to hide PDF loading message
+    function hidePDFLoadingMessage() {
+      const loadingDiv = document.getElementById('pdf-loading-message');
+      if (loadingDiv) {
+        loadingDiv.remove();
+      }
+    }
+
+    // Function to add PEAK ENERGY watermark to PDF
+    function addWatermark(pdf, pdfWidth, pdfHeight) {
+      // Save current graphics state
+      pdf.saveGraphicsState();
+      
+      // Set watermark properties
+      pdf.setGState(new pdf.GState({opacity: 0.1})); // Very light opacity
+      pdf.setTextColor(128, 128, 128); // Light gray color
+      pdf.setFontSize(48);
+      pdf.setFont('helvetica', 'bold');
+      
+      // Calculate center position
+      const textWidth = pdf.getTextWidth('PEAK ENERGY');
+      const x = (pdfWidth - textWidth) / 2;
+      const y = pdfHeight / 2;
+      
+      // Rotate text for diagonal watermark effect
+      pdf.text('PEAK ENERGY', x, y, {angle: 45});
+      
+      // Add additional smaller watermarks in corners
+      pdf.setFontSize(24);
+      pdf.setGState(new pdf.GState({opacity: 0.05}));
+      
+      // Top-left corner
+      pdf.text('PEAK ENERGY', 20, 30, {angle: 45});
+      
+      // Top-right corner
+      pdf.text('PEAK ENERGY', pdfWidth - 60, 30, {angle: 45});
+      
+      // Bottom-left corner
+      pdf.text('PEAK ENERGY', 20, pdfHeight - 20, {angle: 45});
+      
+      // Bottom-right corner
+      pdf.text('PEAK ENERGY', pdfWidth - 60, pdfHeight - 20, {angle: 45});
+      
+      // Restore graphics state
+      pdf.restoreGraphicsState();
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', function(event) {
+      if (window.innerWidth <= 600) {
+        if (!sidebar.contains(event.target) && !headerMenuBtn.contains(event.target)) {
+          // Only auto-hide on mobile when clicking outside
+          sidebar.classList.remove('show');
+          updateToggleIcon();
+          isManuallyToggled = false; // Reset manual toggle state
+        }
+      }
+    });
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        sidebar.classList.remove('show');
+        updateToggleIcon();
+        isManuallyToggled = false; // Reset manual toggle state
+      }
+    });
+
+    // Auto-hide sidebar when iframe loads (for navigation)
+    document.addEventListener('DOMContentLoaded', function() {
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach(iframe => {
+        iframe.addEventListener('load', function() {
+          // Keep sidebar open after iframe loads - no auto-hide
+        });
+      });
+
+      // Initialize header title based on the active tab by finding its corresponding sidebar link
+      const activeTab = document.querySelector('.tab-pane.show.active');
+      if (activeTab) {
+        const activeIframe = activeTab.querySelector('iframe');
+        let initialized = false;
+        if (activeIframe) {
+          try {
+            const doc = activeIframe.contentDocument || activeIframe.contentWindow.document;
+            if (doc && doc.title) {
+              setHeaderPageTitle(doc.title.trim());
+              initialized = true;
+
+              // Hide common in-page title elements on initial load if available
+              try {
+                const candidateSelectors = [
+                  '.dashboard-header .title', '.dashboard-header',
+                  'h1.page-title', 'header .page-title', '.page-title', '.header-title', '.page-header h1', '.page-header',
+                  'h1', 'h2.page-title', '.card-title.page-title'
+                ];
+                for (const sel of candidateSelectors) {
+                  const el = doc.querySelector(sel);
+                  if (el) {
+                    const rect = el.getBoundingClientRect();
+                    if (rect && rect.top < 150) { el.style.display = 'none'; break; }
+                  }
+                }
+              } catch (e) {}
+            }
+          } catch (e) {
+            // ignore
+          }
+          if (!initialized) {
+            // If not available yet, set after it loads
+            activeIframe.addEventListener('load', function() {
+              try {
+                const doc2 = activeIframe.contentDocument || activeIframe.contentWindow.document;
+                if (doc2 && doc2.title) {
+                  setHeaderPageTitle(doc2.title.trim());
+                }
+                try {
+                  const candidateSelectors = [
+                    '.dashboard-header .title', '.dashboard-header',
+                    'h1.page-title', 'header .page-title', '.page-title', '.header-title', '.page-header h1', '.page-header',
+                    'h1', 'h2.page-title', '.card-title.page-title'
+                  ];
+                  for (const sel of candidateSelectors) {
+                    const el = doc2.querySelector(sel);
+                    if (el) {
+                      const rect = el.getBoundingClientRect();
+                      if (rect && rect.top < 150) { el.style.display = 'none'; break; }
+                    }
+                  }
+                } catch (e) {}
+              } catch (e) {}
+            });
+          }
+        }
+        // Fallback to sidebar link text if title cannot be read
+        if (!initialized) {
+          const matchLink = document.querySelector(`a.sidebar-link[onclick*="${activeTab.id}"]`);
+          if (matchLink) {
+            setHeaderPageTitle(matchLink.textContent.trim());
+          }
+        }
+      }
+    });
+
+    // Initialize
+    updateToggleIcon();
+    
+    // Enhanced hover detection to keep sidebar visible while hovering
+    let isHoveringSidebar = false;
+    let autoHideTimeout = null;
+    let hoverCheckInterval = null;
+    let isManuallyToggled = false; // Track if sidebar was manually opened
+    
+    // Function to check if mouse is actually over sidebar (with buffer zone)
+    function isMouseOverSidebar(event) {
+      const rect = sidebar.getBoundingClientRect();
+      const bufferZone = 10; // 10px buffer for better UX
+      return (
+        event.clientX >= (rect.left - bufferZone) &&
+        event.clientX <= (rect.right + bufferZone) &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      );
+    }
+    
+    // Clear any auto-hide timeout
+    function clearAutoHideTimeout() {
+      if (autoHideTimeout) {
+        clearTimeout(autoHideTimeout);
+        autoHideTimeout = null;
+      }
+    }
+    
+    // Show sidebar and mark as hovering
+    function showSidebarOnHover() {
+      if (!isHoveringSidebar) {
+        isHoveringSidebar = true;
+        sidebar.classList.add('show');
+        updateToggleIcon();
+        clearAutoHideTimeout();
+      }
+    }
+    
+    // Hide sidebar after delay if not hovering and not manually toggled
+    function hideSidebarIfNotHovering() {
+      if (!isHoveringSidebar && !isManuallyToggled) {
+        autoHideTimeout = setTimeout(() => {
+          if (!isHoveringSidebar && !isManuallyToggled) {
+            sidebar.classList.remove('show');
+            updateToggleIcon();
+          }
+        }, 500); // Longer delay for better UX
+      }
+    }
+    
+    // Mouse enter - show sidebar and keep it visible
+    sidebar.addEventListener('mouseenter', function(e) {
+      isHoveringSidebar = true;
+      sidebar.classList.add('show');
+      updateToggleIcon();
+      clearAutoHideTimeout();
+    });
+    
+    // Mouse leave - start auto-hide timer only if not manually toggled
+    sidebar.addEventListener('mouseleave', function(e) {
+      isHoveringSidebar = false;
+      if (!isManuallyToggled) {
+        hideSidebarIfNotHovering();
+      }
+    });
+    
+    // Track mouse movement over entire document for hover detection
+    document.addEventListener('mousemove', function(event) {
+      const wasHovering = isHoveringSidebar;
+      const isOverSidebar = isMouseOverSidebar(event);
+      
+      if (isOverSidebar && !wasHovering) {
+        // Mouse entered sidebar area
+        showSidebarOnHover();
+      } else if (!isOverSidebar && wasHovering) {
+        // Mouse left sidebar area - only set flag, don't hide immediately
+        // The mouseleave event will handle hiding with proper delay
+        isHoveringSidebar = false;
+      }
+    });
+    
+    // Additional check to ensure sidebar stays visible when hovering over child elements
+    sidebar.addEventListener('mouseover', function(e) {
+      // Always ensure we're marked as hovering when mouse is over sidebar
+      if (!isHoveringSidebar) {
+        isHoveringSidebar = true;
+        sidebar.classList.add('show');
+        updateToggleIcon();
+        clearAutoHideTimeout();
+      }
+    });
+    
+    // Function to safely hide sidebar with hover check
+    function safeHideSidebar() {
+      if (!isHoveringSidebar && !isManuallyToggled) {
+        sidebar.classList.remove('show');
+        updateToggleIcon();
+      }
+    }
+    
+    // Replace the existing auto-hide calls with the safe version
+    window.safeHideSidebar = safeHideSidebar;
+    
+    // Listen for navigation requests from iframes (for sandboxed iframe navigation)
+    window.addEventListener('message', function(event) {
+      try {
+        // Validate event data exists and is from expected source
+        if (!event.data || typeof event.data !== 'object') {
+          return;
+        }
+        
+        console.log('Received postMessage:', event.data);
+        
+        // Check if this is a navigation request from an iframe
+        if (event.data.type === 'navigate_request') {
+          const requestedUrl = event.data.url;
+          console.log('Navigation request received for:', requestedUrl);
+          
+          // Handle the navigation in the parent window
+          if (requestedUrl && requestedUrl !== '#' && !requestedUrl.startsWith('javascript:')) {
+            console.log('Navigating parent window to:', requestedUrl);
+            
+            // Add a small delay to ensure any ongoing operations complete
+            setTimeout(() => {
+              try {
+                window.location.href = requestedUrl;
+                console.log('Navigation initiated via iframe postMessage');
+              } catch (navError) {
+                console.error('Navigation failed:', navError);
+              }
+            }, 100);
+          } else {
+            console.warn('Invalid navigation URL received:', requestedUrl);
+          }
+        } else if (event.data.type === 'download_request') {
+          // Handle download requests from iframes
+          const downloadUrl = event.data.url;
+          const filename = event.data.filename;
+          
+          console.log('Download request received for:', downloadUrl);
+          
+          // Create a download link in the parent window
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          if (filename) {
+            link.download = filename;
+          }
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          console.log('Download initiated via iframe postMessage');
+        }
+      } catch (error) {
+        console.error('Error handling postMessage:', error);
+        // Don't re-throw to prevent unhandled promise rejections
+      }
+    });
+    
+    console.log('Unified Operations Dashboard: postMessage listeners registered for iframe communication');
+    
+    // Zoom prevention and restrictions
+    function preventZoom() {
+      // Block keyboard zoom shortcuts
+      document.addEventListener('keydown', function(event) {
+        // Block Ctrl + Plus (zoom in)
+        if ((event.ctrlKey || event.metaKey) && (event.key === '+' || event.key === '=')) {
+          event.preventDefault();
+          event.stopPropagation();
+          showZoomBlockedMessage('Zoom In');
+          return false;
+        }
+        
+        // Block Ctrl + Minus (zoom out)
+        if ((event.ctrlKey || event.metaKey) && event.key === '-') {
+          event.preventDefault();
+          event.stopPropagation();
+          showZoomBlockedMessage('Zoom Out');
+          return false;
+        }
+        
+        // Block Ctrl + 0 (reset zoom)
+        if ((event.ctrlKey || event.metaKey) && event.key === '0') {
+          event.preventDefault();
+          event.stopPropagation();
+          showZoomBlockedMessage('Reset Zoom');
+          return false;
+        }
+        
+        // Block Ctrl + Mouse Wheel (zoom)
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          return false;
+        }
+      });
+      
+      // Block mouse wheel zoom
+      document.addEventListener('wheel', function(event) {
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          showZoomBlockedMessage('Mouse Wheel Zoom');
+          return false;
+        }
+      }, { passive: false });
+      
+      // Block touch zoom gestures
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(event) {
+        const now = (new Date()).getTime();
+        if (now - lastTouchEnd <= 300) {
+          event.preventDefault();
+          showZoomBlockedMessage('Double Tap Zoom');
+        }
+        lastTouchEnd = now;
+      }, false);
+      
+      // Block pinch zoom
+      document.addEventListener('gesturestart', function(event) {
+        event.preventDefault();
+        showZoomBlockedMessage('Pinch Zoom');
+      });
+      
+      document.addEventListener('gesturechange', function(event) {
+        event.preventDefault();
+      });
+      
+      document.addEventListener('gestureend', function(event) {
+        event.preventDefault();
+      });
+    }
+    
+    function showZoomBlockedMessage(action) {
+      // Remove existing message if any
+      const existingMessage = document.getElementById('zoom-blocked-message');
+      if (existingMessage) {
+        existingMessage.remove();
+      }
+      
+      // Create temporary message
+      const message = document.createElement('div');
+      message.id = 'zoom-blocked-message';
+      message.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ff6b6b;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-family: 'Inter', Arial, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 10001;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        animation: slideInRight 0.3s ease-out;
+      `;
+      message.textContent = `${action} blocked - Zoom restricted to 80%-110%`;
+      
+      // Add animation CSS
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideInRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      document.body.appendChild(message);
+      
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        if (message.parentNode) {
+          message.style.animation = 'slideOutRight 0.3s ease-in';
+          setTimeout(() => {
+            if (message.parentNode) {
+              message.remove();
+            }
+          }, 300);
+        }
+      }, 3000);
+    }
+    
+    // Initialize zoom prevention
+    document.addEventListener('DOMContentLoaded', function() {
+      preventZoom();
+    });
+    
+    // Zoom level restrictions and detection
+    function detectZoomLevel() {
+      // Method 1: Using window.devicePixelRatio and screen dimensions
+      const screenWidth = window.screen.width;
+      const windowWidth = window.innerWidth;
+      const zoomLevel = Math.round((screenWidth / windowWidth) * 100);
+      
+      // Method 2: Using visual viewport API (more accurate for modern browsers)
+      let zoomLevel2 = 100;
+      if (window.visualViewport) {
+        zoomLevel2 = Math.round((window.visualViewport.width / window.innerWidth) * 100);
+      }
+      
+      // Use the more accurate method, fallback to method 1
+      return window.visualViewport ? zoomLevel2 : zoomLevel;
+    }
+    
+    function checkZoomLevel() {
+      const currentZoom = detectZoomLevel();
+      const minZoom = 80;
+      const maxZoom = 110;
+      
+      if (currentZoom < minZoom || currentZoom > maxZoom) {
+        showZoomWarning(currentZoom, minZoom, maxZoom);
+        return false;
+      }
+      return true;
+    }
+    
+    function showZoomWarning(currentZoom, minZoom, maxZoom) {
+      // Remove existing warning if any
+      const existingWarning = document.getElementById('zoom-warning');
+      if (existingWarning) {
+        existingWarning.remove();
+      }
+      
+      // Create warning overlay
+      const warningOverlay = document.createElement('div');
+      warningOverlay.id = 'zoom-warning';
+      warningOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Inter', Arial, sans-serif;
+      `;
+      
+      const warningContent = document.createElement('div');
+      warningContent.style.cssText = `
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        max-width: 500px;
+        margin: 20px;
+      `;
+      
+      const warningIcon = document.createElement('div');
+      warningIcon.style.cssText = `
+        font-size: 48px;
+        margin-bottom: 20px;
+        color: #ff6b6b;
+      `;
+      warningIcon.textContent = '🔍';
+      
+      const warningTitle = document.createElement('h2');
+      warningTitle.style.cssText = `
+        color: #333;
+        margin: 0 0 16px 0;
+        font-size: 24px;
+        font-weight: 700;
+      `;
+      warningTitle.textContent = 'Zoom Level Not Supported';
+      
+      const warningMessage = document.createElement('p');
+      warningMessage.style.cssText = `
+        color: #666;
+        margin: 0 0 24px 0;
+        font-size: 16px;
+        line-height: 1.5;
+      `;
+      warningMessage.innerHTML = `
+        Your current zoom level is <strong>${currentZoom}%</strong>.<br>
+        This dashboard restricts zoom levels to between <strong>${minZoom}%</strong> and <strong>${maxZoom}%</strong> for optimal display.
+      `;
+      
+      const instructionText = document.createElement('p');
+      instructionText.style.cssText = `
+        color: #888;
+        margin: 0 0 24px 0;
+        font-size: 14px;
+        line-height: 1.4;
+      `;
+      instructionText.innerHTML = `
+        <strong>To adjust zoom:</strong><br>
+        • Use your browser's zoom controls in the address bar<br>
+        • Or use the browser menu: View → Zoom<br>
+        • Keyboard shortcuts are disabled for security
+      `;
+      
+      const continueButton = document.createElement('button');
+      continueButton.style.cssText = `
+        background: linear-gradient(135deg, #00c6ff 0%, #0072ce 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-right: 12px;
+        transition: all 0.3s ease;
+      `;
+      continueButton.textContent = 'Continue Anyway';
+      continueButton.onmouseover = () => continueButton.style.opacity = '0.9';
+      continueButton.onmouseout = () => continueButton.style.opacity = '1';
+      continueButton.onclick = () => {
+        warningOverlay.remove();
+        // Store user preference to not show warning again this session
+        sessionStorage.setItem('zoom-warning-dismissed', 'true');
+      };
+      
+      const refreshButton = document.createElement('button');
+      refreshButton.style.cssText = `
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      `;
+      refreshButton.textContent = 'Refresh Page';
+      refreshButton.onmouseover = () => refreshButton.style.opacity = '0.9';
+      refreshButton.onmouseout = () => refreshButton.style.opacity = '1';
+      refreshButton.onclick = () => {
+        window.location.reload();
+      };
+      
+      // Add keyboard shortcut info
+      const keyboardInfo = document.createElement('div');
+      keyboardInfo.style.cssText = `
+        margin-top: 20px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-size: 12px;
+        color: #666;
+      `;
+      keyboardInfo.innerHTML = `
+        <strong>Quick Fix:</strong> Use browser zoom controls to set to 100%, then refresh the page
+      `;
+      
+      warningContent.appendChild(warningIcon);
+      warningContent.appendChild(warningTitle);
+      warningContent.appendChild(warningMessage);
+      warningContent.appendChild(instructionText);
+      warningContent.appendChild(continueButton);
+      warningContent.appendChild(refreshButton);
+      warningContent.appendChild(keyboardInfo);
+      warningOverlay.appendChild(warningContent);
+      
+      document.body.appendChild(warningOverlay);
+      
+      // Add escape key handler
+      const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+          warningOverlay.remove();
+          document.removeEventListener('keydown', escapeHandler);
+          sessionStorage.setItem('zoom-warning-dismissed', 'true');
+        }
+      };
+      document.addEventListener('keydown', escapeHandler);
+    }
+    
+    // Check zoom level on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if user has already dismissed the warning this session
+      const warningDismissed = sessionStorage.getItem('zoom-warning-dismissed');
+      if (!warningDismissed) {
+        // Small delay to ensure page is fully loaded
+        setTimeout(() => {
+          checkZoomLevel();
+        }, 500);
+      }
+    });
+    
+    // Monitor zoom changes (for browsers that support it)
+    let zoomCheckInterval = null;
+    
+    function startZoomMonitoring() {
+      // Check zoom level every 2 seconds
+      zoomCheckInterval = setInterval(() => {
+        const warningDismissed = sessionStorage.getItem('zoom-warning-dismissed');
+        if (!warningDismissed) {
+          checkZoomLevel();
+        }
+      }, 2000);
+    }
+    
+    function stopZoomMonitoring() {
+      if (zoomCheckInterval) {
+        clearInterval(zoomCheckInterval);
+        zoomCheckInterval = null;
+      }
+    }
+    
+    // Start monitoring after page load
+    document.addEventListener('DOMContentLoaded', function() {
+      startZoomMonitoring();
+    });
+    
+    // Stop monitoring when page is unloaded
+    window.addEventListener('beforeunload', function() {
+      stopZoomMonitoring();
+    });
+    
+    // Handle visual viewport changes (for modern browsers)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function() {
+        const warningDismissed = sessionStorage.getItem('zoom-warning-dismissed');
+        if (!warningDismissed) {
+          setTimeout(() => {
+            checkZoomLevel();
+          }, 100);
+        }
+      });
+    }
+    
+    // Handle window resize events
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const warningDismissed = sessionStorage.getItem('zoom-warning-dismissed');
+        if (!warningDismissed) {
+          checkZoomLevel();
+        }
+      }, 300);
+    });
+    
+    // Add CSS for keyboard key styling
+    const style = document.createElement('style');
+    style.textContent = `
+      kbd {
+        background: #f1f3f4;
+        border: 1px solid #dadce0;
+        border-radius: 4px;
+        box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+        color: #3c4043;
+        display: inline-block;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1;
+        padding: 2px 4px;
+        white-space: nowrap;
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>

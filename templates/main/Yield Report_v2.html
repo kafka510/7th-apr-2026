@@ -1,0 +1,3448 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yield Report</title>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" onerror="this.onerror=null; this.src='https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.32.0/plotly.min.js';"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+
+  <script src="{% static "bestcalendar.js" %}"></script>
+  <script src="{% static "js/multi-select.js" %}"></script>
+  <script>
+    if (typeof BestCalendar === 'undefined') {
+      // BestCalendar not loaded, trying alternative path
+      const script = document.createElement('script');
+      script.src = "{% static "bestcalendar.js" %}";
+      script.onload = () => {
+        // BestCalendar loaded from alternative path
+        if (typeof BestCalendar !== 'undefined') {
+          // BestCalendar is now available
+        }
+      };
+      script.onerror = () => {
+        // Failed to load BestCalendar from alternative path
+      };
+      document.head.appendChild(script);
+    } else {
+      // BestCalendar loaded successfully
+    }
+  </script>
+  <style>
+/* ----------------------------------
+   DASHBOARD GLOBAL VARIABLES
+---------------------------------- */
+:root {
+  --primary-color: #0072CE;
+  --secondary-color: #87ceeb;
+  --success-color: #4CAF50;
+  --danger-color: #FF4136;
+  --warning-color: #FF7043;
+  --text-color: #222;
+  --bg-color: #f8fbff;
+  --card-bg: #fff;
+  --border-radius: 10px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ----------------------------------
+   BASE STYLES
+---------------------------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html {
+  font-size: calc(12px + 0.3vw);
+  height: 100%;
+}
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: linear-gradient(135deg, #f5faff, #eaf4ff);
+  color: #222;
+  line-height: 1.5;
+  min-height: 100%;
+  padding: 4px;
+}
+
+h1, h2, h3 {
+  color: var(--primary-color);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.dashboard-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 20px 1px 20px;
+  background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  border-radius: 0 0 16px 16px;
+  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(12px);
+  border: none;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.dashboard-title .title-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.dashboard-title span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: 0;
+  display: block;
+  text-align: center;
+  width: 100%;
+  background: linear-gradient(90deg, #0a73d1, #10b981);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+
+
+/* Removed title-left-spacer as it's no longer needed with the new layout */
+
+
+
+/* ----------------------------------
+   LAYOUT WRAPPERS
+---------------------------------- */
+.main-container {
+  max-width: 100%;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0;
+  overflow: visible;
+  min-height: 100vh;
+  max-height: 100vh;
+}
+
+.dashboard-charts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
+  align-items: flex-start;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Add a little separation between Waterfall (left) and Breakdown (right) */
+.dashboard-charts .chart-card:last-child {
+  margin-left: 16px; /* gap between the two cards only */
+}
+
+.chart-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  flex: 1 1 420px;
+  min-width: 340px;
+  max-width: 100%;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  max-height: 600px;
+  overflow: visible;
+  z-index: 1;
+  transition: box-shadow 0.2s ease;
+  width: 100%;
+  align-self: flex-start;
+}
+
+.chart-card:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.plotly-graph-div {
+  width: 100% !important;
+  min-height: 400px;
+  max-height: 500px;
+  overflow: visible;
+  z-index: 1;
+}
+
+/* Make waterfall chart bars appear clickable */
+#waterfall .plotly .bar {
+  cursor: pointer !important;
+}
+
+#waterfall .plotly .bar:hover {
+  opacity: 0.8 !important;
+}
+
+/* Make data labels (text elements) non-clickable - clicks should pass through to bars */
+#waterfall .plotly text {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+/* Make connectors and other non-bar elements non-clickable */
+/* Only target paths that are definitely connectors (stroke but no fill or fill="none") */
+#waterfall .plotly path[stroke][fill="none"],
+#waterfall .plotly path[stroke]:not([fill]) {
+  pointer-events: none !important;
+}
+
+/* Make annotation text non-clickable */
+#waterfall .plotly .annotation {
+  pointer-events: none !important;
+}
+
+/* Only allow clicks on actual bar elements (paths with fill attribute) */
+#waterfall .plotly path[fill]:not([stroke-only]) {
+  cursor: pointer !important;
+}
+
+/* ----------------------------------
+   SIMPLE FILTERS STYLING
+---------------------------------- */
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #ffffff;
+  padding: 12px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  margin: 0;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.filter-item .icon {
+  font-size: 1rem;
+  color: var(--primary-color);
+}
+
+.filters select,
+.filters .month-trigger-btn {
+  border-radius: 8px;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  background: #f9f9f9;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filters select:hover,
+.filters .month-trigger-btn:hover {
+  border-color: #0072CE;
+  background: #f0f8ff;
+}
+
+.filters select:focus,
+.filters .month-trigger-btn:focus {
+  outline: none;
+  border-color: #0072CE;
+}
+
+.filters .clear-btn {
+  background: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.filters .clear-btn:hover {
+  background: #e63939;
+}
+
+/* Multi-Select Styles */
+.multi-select-container {
+  position: relative;
+  min-width: 180px;
+  max-width: 280px;
+  width: auto;
+}
+
+
+
+.multi-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  transition: border-color 0.2s;
+  min-height: 32px;
+}
+
+.multi-select-trigger:hover {
+  border-color: var(--primary-color);
+}
+
+.multi-select-trigger.active {
+  border-color: var(--primary-color);
+}
+
+.multi-select-arrow {
+  font-size: 12px;
+  color: var(--primary-color);
+  transition: transform 0.2s;
+}
+
+.multi-select-trigger.active .multi-select-arrow {
+  transform: rotate(180deg);
+}
+
+.multi-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  max-height: 250px;
+  overflow-y: auto;
+  overflow-x: visible;
+  display: none;
+  padding: 4px 0;
+  margin-top: 2px;
+  min-width: 100%;
+  width: auto;
+  white-space: nowrap;
+}
+
+/* Asset filter dropdown specific styling - HIGH PRIORITY */
+.filters .filter-item .asset-filter-container .multi-select-dropdown {
+  min-width: 225px !important;
+  max-width: 400px !important;
+  width: auto !important;
+  overflow-x: visible !important;
+  white-space: nowrap !important;
+}
+
+/* Force asset filter container to be wider - HIGH PRIORITY */
+.filters .filter-item .asset-filter-container {
+  min-width: 225px !important;
+  max-width: 400px !important;
+  width: auto !important;
+}
+
+/* Ensure asset filter options don't wrap */
+.asset-filter-container .multi-select-option {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  min-width: 225px !important;
+}
+
+.asset-filter-container .checkbox-label {
+  white-space: nowrap !important;
+  overflow: visible !important;
+  min-width: 210px !important;
+}
+
+.multi-select-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.multi-select-option:hover {
+  background-color: #f8f9fa;
+}
+
+.multi-select-option.select-all-option {
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.multi-select-separator {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 4px 0;
+}
+
+/* Checkbox styling */
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.checkbox-container input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  min-width: 0;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.checkbox-custom {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #ccc;
+  border-radius: 3px;
+  margin-right: 8px;
+  position: relative;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.selected-items {
+  display: none; /* Hide selected items display for Yield Report */
+}
+
+.selected-item {
+  background: var(--primary-color);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.selected-item .remove {
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.selected-item .remove:hover {
+  opacity: 0.8;
+}
+
+.multi-select-placeholder {
+  color: #6c757d;
+}
+
+/* KPI Cards Styling */
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  z-index: 50;
+  padding: 0 20px;
+}
+/* Removed old filter-kpi-container styles - now using simple filters */
+
+.kpi-card {
+  flex: 1;
+  min-width: 140px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #eaf6ff, #f9f9f9);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-direction: row;
+  justify-content: flex-start;
+  height: 60px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.kpi-icon-block {
+  display: flex;
+  align-items: left;
+  justify-content: left;
+  min-width: 32px;
+  margin-right: 8px;
+}
+
+.kpi-icon {
+  margin: 0;
+  color: #0072CE;
+  font-size: 2rem;
+}
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.kpi-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0072CE;
+  margin: 0;
+  line-height: 1.2;
+  flex: 1;
+}
+
+.kpi-value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  white-space: nowrap;
+  margin: 0;
+  color: #222;
+  text-align: right;
+}
+
+/* ----------------------------------
+   UTILITIES & COMPONENTS
+---------------------------------- */
+#resetFiltersBtn {
+  margin-left: auto;
+  min-width: 40px;
+  font-size: 0.675rem;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--danger-color);
+  color: #fff;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  height: 24px;
+  transition: background 0.2s;
+  display: inline-block;
+}
+
+/* Force reset button positioning */
+.filters > div:last-child {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Specific reset button container styling */
+.reset-button-container {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+  position: relative;
+  right: auto !important;
+  display: flex;
+  align-items: center;
+}
+#resetFiltersBtn:hover {
+  background: #e60000;
+}
+
+.choices {
+  width: 100% !important;
+}
+.choices__inner {
+  padding: 4px 8px !important;
+  font-size: 0.9rem !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+.choices__list--dropdown {
+  min-width: 250px !important;
+  font-size: 0.9rem !important;
+  background-color: absolute !important;
+}
+
+/* ----------------------------------
+   EXPORT BUTTONS & CHART HEADERS
+---------------------------------- */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px 8px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 8px;
+}
+
+.chart-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #0a73d1, #10b981);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+#waterfall-chart-title {
+  font-size: 1.2rem !important;
+  font-weight: 800 !important;
+}
+
+
+
+
+
+/* ----------------------------------
+   RESPONSIVE BREAKPOINTS
+---------------------------------- */
+/* Dashboard header responsiveness */
+@media (max-width: 1200px) {
+  .dashboard-title {
+    padding: 1px 12px 0.5px 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+  
+  .dashboard-title span {
+    font-size: 0.9rem !important;
+  }
+  
+  .filters {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  
+  .filter-item {
+    gap: 6px !important;
+  }
+  
+  .filters select, .filters .month-trigger-btn {
+    font-size: 0.85rem !important;
+    padding: 4px 8px !important;
+  }
+  
+  .multi-select-container {
+    min-width: 160px;
+    max-width: 240px;
+  }
+  
+  .asset-filter-container {
+    min-width: 200px !important;
+    max-width: 300px !important;
+  }
+  
+  .asset-filter-container .multi-select-dropdown {
+    min-width: 200px !important;
+    max-width: 300px !important;
+  }
+  
+  .asset-filter-container .multi-select-option {
+    min-width: 200px !important;
+  }
+  
+  .asset-filter-container .checkbox-label {
+    min-width: 185px !important;
+  }
+  
+  .multi-select-trigger {
+    font-size: 0.85rem !important;
+    padding: 4px 8px !important;
+  }
+  
+  .multi-select-option {
+    font-size: 0.8rem !important;
+    padding: 6px 10px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-title {
+    flex-direction: column;
+    gap: 1px;
+    padding: 1px 12px 0.5px 12px !important;
+  }
+  
+  .dashboard-title .title-content {
+    order: 1;
+  }
+  
+  .filters {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    margin: 0 !important;
+  }
+  
+  .filter-item {
+    gap: 4px !important;
+  }
+  
+  .filters select, .filters .month-trigger-btn {
+    font-size: 0.8rem !important;
+    padding: 3px 6px !important;
+  }
+  
+  .multi-select-container {
+    min-width: 100%;
+    max-width: 100%;
+  }
+  
+  .multi-select-trigger {
+    font-size: 0.8rem !important;
+    padding: 3px 6px !important;
+  }
+  
+  .multi-select-option {
+    font-size: 0.75rem !important;
+    padding: 5px 8px !important;
+  }
+  
+  .selected-items {
+    margin-top: 2px;
+  }
+  
+  .selected-item {
+    font-size: 0.65rem !important;
+    padding: 1px 4px !important;
+  }
+}
+@media (max-width: 1440px) {
+  .filter-half {
+    flex: 0 0 58%;
+    max-width: 58%;
+  }
+  .kpi-half {
+    flex: 0 0 42%;
+    max-width: 42%;
+  }
+  .chart-card {
+    min-height: 300px;
+    padding: 6px;
+    align-self: flex-start;
+  }
+  .plotly-graph-div {
+    min-height: 250px;
+    max-height: 400px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .filter-row.single-row {
+    display: flex !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+  #resetFiltersBtn {
+    width: auto;
+    margin-left: auto;
+    margin-top: 0;
+  }
+  .filter-kpi-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-half,
+  .kpi-half,
+  .filter-section,
+  .kpi-row,
+  .filter-row.single-row {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
+  .filter-row.single-row {
+    gap: 4px !important;
+  }
+  .filter-pill {
+    width: 120px !important;
+    min-width: 0 !important;
+    max-width: 120px !important;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .kpi-row {
+    gap: 4px !important;
+  }
+  .kpi-card {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    height: 50px !important;
+  }
+  .kpi-title {
+    flex: 1 !important;
+    font-size: 0.8rem !important;
+  }
+  .kpi-value {
+    font-size: 1.2rem !important;
+  }
+  .filter-section {
+    margin-bottom: 16px !important;
+  }
+  .filter-half {
+    margin-bottom: 16px;
+  }
+  .dashboard-charts {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .chart-card {
+    min-height: 400px;
+    padding: 4px;
+    align-self: flex-start;
+  }
+  .plotly-graph-div {
+    min-height: 350px;
+    max-height: 500px;
+  }
+}
+@media (max-width: 1024px) {
+  .kpi-card {
+    min-width: 120px;
+  }
+  .kpi-cards {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+  .dashboard-charts {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Ultra-wide Monitor Optimizations */
+@media (min-width: 1920px) {
+  .chart-title {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    padding: 4px;
+  }
+  .filter-kpi-container {
+    flex-direction: column !important;
+  }
+  .filter-half,
+  .kpi-half {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .kpi-card {
+    min-width: calc(33.3% - 8px);
+    height: 56px;
+  }
+  .choices__list--dropdown {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+  .dashboard-title,
+  .filters,
+  .kpi-cards,
+  .dashboard-charts {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+  .breakdown-table {
+    font-size: 0.65em;
+  }
+  .breakdown-table th,
+  .breakdown-table td {
+    padding: 4px 6px;
+  }
+  .breakdown-table th:first-child,
+  .breakdown-table td:first-child {
+    min-width: 120px;
+    max-width: 180px;
+  }
+  .breakdown-table th.failure-col {
+    min-height: 35px;
+    font-size: 0.6em;
+  }
+  .breakdown-table th, .breakdown-table td {
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+    padding: 0;
+    font-size: 10pt;
+  }
+  .filter-bar, #resetFiltersBtn {
+    display: none;
+  }
+  .dashboard-charts {
+    flex-direction: column;
+    height: auto;
+    gap: 12px;
+  }
+  .chart-card {
+    page-break-inside: avoid;
+    height: auto;
+    min-height: 500px;
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+  .plotly-graph-div {
+    height: 500px !important;
+  }
+}
+</style>
+<style>
+    /* BestCalendar positioning fixes */
+    .filter-date {
+      position: relative;
+    }
+    
+    .month-matrix-picker {
+      position: absolute !important;
+      z-index: 9999 !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      background: white !important;
+      border: 1px solid #ccc !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      margin-top: 4px !important;
+      min-width: 280px !important;
+      max-width: 400px !important;
+    }
+    
+    /* BestCalendar compatibility styles */
+    .bc-picker {
+      position: absolute !important;
+      z-index: 9999 !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      background: white !important;
+      border: 1px solid #ccc !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      margin-top: 4px !important;
+      min-width: 280px !important;
+      max-width: 400px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 16px !important;
+      padding: 20px !important;
+    }
+    
+    .bc-hidden {
+      display: none !important;
+    }
+    
+    /* BestCalendar picker default state - hidden */
+    #monthMatrixPicker.bc-picker,
+    #monthMatrixPicker.bc-hidden {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      z-index: 1000 !important;
+    }
+    
+    /* Show picker when explicitly shown */
+    #monthMatrixPicker.bc-picker.show-picker {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    .month-trigger-btn {
+      width: 100%;
+      background: #f8fbff;
+      border: 1px solid #b3d7f2;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 1rem;
+      color: #0072CE;
+      cursor: pointer;
+      text-align: left;
+    }
+    
+
+    
+
+    .filter-pill {
+      position: relative;
+      display: inline-block;
+    }
+</style>
+<style>
+.kpi-icon {
+  margin-right: 8px;
+  color: #0072CE;
+  font-size: 1.3rem;
+  vertical-align: middle;
+}
+</style>
+<style>
+.kpi-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+.kpi-icon-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+.kpi-icon {
+  margin: 0;
+  color: #0072CE;
+  font-size: 1.2rem;
+  vertical-align: middle;
+}
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+</style>
+<style>
+  /* Default (desktop) */
+  /* 1440px and below */
+  @media (max-width: 1440px) {
+    #breakdown {
+      max-height: 320px;
+    }
+  }
+  /* 1200px and below */
+  @media (max-width: 1200px) {
+    #breakdown {
+      max-height: 250px;
+    }
+  }
+  /* 767px and below (mobile) */
+  @media (max-width: 767px) {
+    #breakdown {
+      max-height: 180px;
+    }
+  }
+  @media (max-width: 1200px) {
+  .kpi-content, .kpi-content * {
+    white-space: normal !important;
+    word-break: break-word !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    text-align: center !important;
+  }
+}
+/* Wider month picker filter pill for desktop */
+.filter-row.single-row .filter-pill:first-child {
+  min-width: 220px;
+  max-width: 260px;
+  width: 220px;
+}
+
+/* Wider month picker button */
+.month-trigger-btn {
+  min-width: 120px;
+  width: auto;
+  max-width: 180px;
+}
+</style>
+<style>
+.breakdown-table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  margin-top: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.75em;
+  table-layout: fixed; /* fixed layout allows manual column width control */
+  word-wrap: break-word;
+}
+
+/* Breakdown table container specific styling */
+#breakdown-table {
+  width: 100%;
+  height: auto;
+  min-height: 400px;
+  max-height: 600px;
+  overflow-x: auto;  /* enable horizontal scroll */
+  overflow-y: auto;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.breakdown-table th.failure-col,
+.breakdown-table td.breakdown-bar-cell {
+  min-width: 50px;
+  width: auto;
+  box-sizing: border-box;
+}
+
+/* Asset column specific styling */
+.breakdown-table th:first-child,
+.breakdown-table td:first-child {
+  min-width: 40px;
+  max-width: 50px;
+  width: auto;
+}
+/* Blue shades for breakdown table rows */
+.breakdown-table tr.country-row {
+  background: #1565c0;
+  color: #fff;
+}
+.breakdown-table tr.portfolio-row {
+  background: #42a5f5;
+  color: #fff;
+}
+.breakdown-table tr.asset-row {
+  background: #e3f2fd;
+  color: #222;
+}
+.breakdown-table th, .breakdown-table td {
+  border: 1px solid #b3d7f2;
+  padding: 6px 8px;
+  text-align: center;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: nowrap;
+  resize: horizontal; /* allow manual resize */
+  min-width: 40px;
+}
+
+/* Failure columns base */
+.breakdown-table th.failure-col {
+  line-height: 1.2;
+  min-height: 40px;
+  vertical-align: middle;
+}
+
+/* Specific minimums for loss columns */
+.breakdown-table th.failure-col.string, .breakdown-table td.failure-col.string { min-width: 50px; }
+.breakdown-table th.failure-col.inverter, .breakdown-table td.failure-col.inverter { min-width: 50px; }
+.breakdown-table th.failure-col.ac, .breakdown-table td.failure-col.ac { min-width: 45px; }
+.breakdown-table th.failure-col.scheduled, .breakdown-table td.failure-col.scheduled { min-width: 50px; }
+
+/* Total column (last column) */
+.breakdown-table th:last-child, .breakdown-table td:last-child { min-width: 40px; }
+
+.breakdown-table td {
+  border-bottom: 1px solid #eaeaea;
+}
+
+.breakdown-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.breakdown-table tr:hover {
+  background: #eef6ff;
+}
+.breakdown-table th {
+  background: #f5f8ff;
+  color: #0072CE;
+  font-weight: 700;
+  text-align: center !important;
+  padding: 6px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+/* Enforce Country column min width */
+.breakdown-table th:first-child {
+  min-width: 80px !important;
+  max-width: 120px !important;
+  width: auto;
+  text-align: center !important;
+}
+.breakdown-table td:first-child {
+  min-width: 80px !important;
+  max-width: 120px !important;
+  width: auto;
+}
+/* Keep first column (Country) left-aligned for data, center for headers */
+.breakdown-table td:first-child {
+  text-align: left;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+}
+.breakdown-table th:first-child {
+  text-align: center !important;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Second column (Portfolio) - left-aligned for data, center for headers */
+.breakdown-table td:nth-child(2) {
+  text-align: left;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+  min-width: 60px;
+  max-width: 120px;
+}
+.breakdown-table th:nth-child(2) {
+  text-align: center !important;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+  min-width: 60px;
+  max-width: 120px;
+}
+
+/* Third column (Asset) - left-aligned for data, center for headers */
+.breakdown-table td:nth-child(3) {
+  text-align: left;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+  min-width: 50px;
+  max-width: 100px;
+}
+.breakdown-table th:nth-child(3) {
+  text-align: center !important;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+  min-width: 50px;
+  max-width: 100px;
+}
+/* Center align grand total row */
+.grand-total-row td {
+  text-align: center !important;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+}
+/* Remove row-wide background, apply only to first column */
+.breakdown-table tr.country-row td:first-child {
+  background: #1565c0 !important;
+  color: #fff !important;
+}
+.breakdown-table tr.portfolio-row td:first-child {
+  background: #42a5f5 !important;
+  color: #fff !important;
+}
+.breakdown-table tr.asset-row td:first-child {
+  background: #e3f2fd !important;
+  color: #222 !important;
+}
+.breakdown-table tr.country-row, .breakdown-table tr.portfolio-row, .breakdown-table tr.asset-row {
+  background: none !important;
+  color: inherit !important;
+}
+.breakdown-table .accordion-btn {
+  margin-right: 6px;
+  margin-left: 0;
+  float: left;
+}
+
+/*@media (min-width: 1440px) {
+  .dashboard-charts > .chart-card:last-child {
+    height: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  #breakdown, #breakdown-table {
+    height: 80% !important;
+    max-height: 80% !important;
+  }
+}*/
+</style>
+<style>
+.bar-indicator {
+  display: inline-block;
+  height: 12px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.bar-value {
+  font-weight: bold;
+  vertical-align: middle;
+}
+</style>
+<style>
+.breakdown-bar-cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 60px;
+  min-height: 28px;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.bar-indicator-bg {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  height: 100%;
+  border-radius: 6px;
+  opacity: 0.5;
+  border: 1px solid #b3b3b3;
+  z-index: 1;
+  transition: width 0.3s;
+}
+.bar-indicator-value {
+  position: relative;
+  z-index: 2;
+  font-weight: bold;
+  color: #222;
+  font-size: 1em;
+  line-height: 28px;
+}
+
+/* Column Resize Handle Styles */
+.breakdown-table th {
+  position: relative;
+}
+
+.column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 10;
+  user-select: none;
+  touch-action: none;
+}
+
+.column-resize-handle:hover {
+  background: #0072CE;
+  opacity: 0.6;
+}
+
+.column-resize-handle.active {
+  background: #0072CE;
+  opacity: 1;
+  width: 3px;
+}
+
+.breakdown-table th:last-child .column-resize-handle {
+  display: none;
+}
+</style>
+</head>
+<body>
+  <div class="main-container">
+    
+    <!-- Multi-Select Filters Section -->
+    <div class="filters">
+      <label class="filter-item" title="Country">
+        <span class="icon" aria-hidden="true">🌍</span>
+        <div class="multi-select-container">
+          <div id="filterCountryTrigger" class="multi-select-trigger">
+            <span id="filterCountryPlaceholder" data-default="All Countries">All Countries</span>
+            <span class="multi-select-arrow">▼</span>
+          </div>
+          <div id="filterCountryDropdown" class="multi-select-dropdown">
+            <!-- Options will be populated dynamically -->
+          </div>
+          <div id="filterCountrySelectedItems" class="selected-items"></div>
+        </div>
+      </label>
+      <label class="filter-item" title="Portfolio">
+        <span class="icon" aria-hidden="true">📂</span>
+        <div class="multi-select-container">
+          <div id="filterPortfolioTrigger" class="multi-select-trigger">
+            <span id="filterPortfolioPlaceholder" data-default="All Portfolios">All Portfolios</span>
+            <span class="multi-select-arrow">▼</span>
+          </div>
+          <div id="filterPortfolioDropdown" class="multi-select-dropdown">
+            <!-- Options will be populated dynamically -->
+          </div>
+          <div id="filterPortfolioSelectedItems" class="selected-items"></div>
+        </div>
+      </label>
+      <label class="filter-item" title="Asset No">
+        <span class="icon" aria-hidden="true">🏭</span>
+        <div class="multi-select-container asset-filter-container" style="min-width: 225px !important; max-width: 400px !important; width: auto !important;">
+          <div id="filterAssetTrigger" class="multi-select-trigger">
+            <span id="filterAssetPlaceholder" data-default="All Assets">All Assets</span>
+            <span class="multi-select-arrow">▼</span>
+          </div>
+          <div id="filterAssetDropdown" class="multi-select-dropdown" style="min-width: 225px !important; max-width: 400px !important; width: auto !important;">
+            <!-- Options will be populated dynamically -->
+          </div>
+          <div id="filterAssetSelectedItems" class="selected-items"></div>
+        </div>
+      </label>
+      <div class="filter-period" style="position: relative; display: inline-block; z-index: 200;">
+        <label class="filter-item" title="Period">
+          <span class="icon" aria-hidden="true">⏳</span>
+          <button id="monthMatrixTrigger" type="button" class="month-trigger-btn">
+            <span id="selectedMonthLabel">Select Period</span>
+          </button>
+        </label>
+        <div id="monthMatrixPicker" class="month-matrix-picker bc-hidden" style="display: none;"></div>
+      </div>
+      <div class="reset-button-container" style="margin-left: 8px; margin-right: 0; position: relative; right: auto;">
+        <button id="resetFiltersBtn" type="button" class="clear-btn">Reset</button>
+      </div>
+    </div>
+
+    <!-- KPI Cards Section -->
+    <div class="kpi-cards">
+      <div class="kpi-card dc">
+        <div class="kpi-icon-block"><span class="kpi-icon"><i class="fas fa-solar-panel"></i></span></div>
+        <div class="kpi-title">PV Capacity (MWp)</div>
+        <div class="kpi-value">228.93</div>
+      </div>
+      <div class="kpi-card ac">
+        <div class="kpi-icon-block"><span class="kpi-icon"><i class="fas fa-bolt"></i></span></div>
+        <div class="kpi-title">AC Capacity (MW)</div>
+        <div class="kpi-value">205.75</div>
+      </div>
+      <div class="kpi-card bess">
+        <div class="kpi-icon-block"><span class="kpi-icon"><i class="fas fa-battery-full"></i></span></div>
+        <div class="kpi-title">BESS Capacity (MWh)</div>
+        <div class="kpi-value">33.79</div>
+      </div>
+    </div>
+    
+    <div class="dashboard-charts">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title" id="waterfall-chart-title">Yield Analysis</div>
+        </div>
+        <div id="waterfall" class="plotly-graph-div"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Breakdown Loss (MWh) by Asset/Portfolio/Country</div>
+        </div>
+        <div id="breakdown-table"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    let allData = [];
+    let selectedMonth = null;
+    let selectedYear = null;
+    
+    // Multi-select instances
+    let countryMultiSelect = null;
+    let portfolioMultiSelect = null;
+    let assetMultiSelect = null;
+
+    // Remove YTD toggle button from HTML
+    // Remove this block from the filter-pill:
+    // <div class="ytd-toggle">
+    //   <input type="checkbox" id="ytdToggle">
+    //   <label for="ytdToggle">YTD</label>
+    // </div>
+
+    // BestCalendar month picker logic
+    let yieldCalendar = null;
+    const monthMatrixTrigger = document.getElementById('monthMatrixTrigger');
+    const monthMatrixPicker = document.getElementById('monthMatrixPicker');
+    const selectedMonthLabel = document.getElementById('selectedMonthLabel');
+
+    function populateMultiSelect(multiSelect, values) {
+      if (!multiSelect) return;
+      
+      const options = values.map(val => ({
+        value: val,
+        label: val
+      }));
+      
+      multiSelect.setOptions(options);
+    }
+
+    function getSelectedValues(multiSelect) {
+      if (!multiSelect) return [];
+      return multiSelect.getSelectedValues();
+    }
+
+    function getUnique(data, key) {
+      return [...new Set(data.map(row => {
+        let val = row[key];
+        if (typeof val === 'string') return val.trim();
+        if (val !== undefined && val !== null) return String(val).trim();
+        return '';
+      }).filter(Boolean))].sort((a, b) => a.toString().localeCompare(b.toString()));
+    }
+
+    function formatLabel(value, expected) {
+      const percent = expected && expected !== 0 ? Math.round((value / expected) * 100) : 0;
+      return `${formatNumber(value)} (${percent}%)`;
+    }
+
+    function formatNumber(val) {
+      return typeof val === "number" ? val.toLocaleString('en-US', { maximumFractionDigits: 0 }) : val;
+    }
+
+    // Update formatMonthLabel to be robust
+    function formatMonthLabel(ym) {
+      if (!ym) return '';
+      const [y, m] = ym.split('-');
+      if (!y || !m) return ym; // fallback for year-only or invalid
+      const date = new Date(Number(y), Number(m) - 1, 1);
+      return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    }
+
+    // --- Enhanced Cascading Filter Logic for Multi-Select ---
+    function getActiveFilters(excludeFilter = null) {
+      const filters = {};
+      
+      if (excludeFilter !== 'country' && countryMultiSelect) {
+        const countries = countryMultiSelect.getSelectedValues();
+        if (countries.length > 0) {
+          filters.country = countries;
+        }
+      }
+      
+      if (excludeFilter !== 'portfolio' && portfolioMultiSelect) {
+        const portfolios = portfolioMultiSelect.getSelectedValues();
+        if (portfolios.length > 0) {
+          filters.portfolio = portfolios;
+        }
+      }
+      
+      if (excludeFilter !== 'asset' && assetMultiSelect) {
+        const assets = assetMultiSelect.getSelectedValues();
+        if (assets.length > 0) {
+          filters.assetno = assets;
+        }
+      }
+      
+      return filters;
+    }
+
+    function updateCascadingFilters(changedFilter = null) {
+      // updateCascadingFilters called
+      let subset = allData;
+      
+      // Get current country selections
+      const selectedCountries = countryMultiSelect ? countryMultiSelect.getSelectedValues() : [];
+      // Selected countries logged
+      
+      // Filter subset based on country selection
+      if (selectedCountries.length > 0) {
+        subset = allData.filter(r => {
+          return selectedCountries.includes(String(r.country || '').trim());
+        });
+      }
+      
+      // Update portfolio options based on country selection
+      const portfolioOptions = [...new Set(subset.map(row => row.portfolio).filter(Boolean))].sort();
+      // Available portfolio options logged
+      
+      // Only update portfolio options if country filter changed
+      if (changedFilter === 'country') {
+        populateMultiSelect(portfolioMultiSelect, portfolioOptions);
+        
+        // Clear portfolio selections if they're no longer valid
+        if (portfolioMultiSelect) {
+          const currentPortfolioSelections = portfolioMultiSelect.getSelectedValues();
+          const validPortfolioSelections = currentPortfolioSelections.filter(portfolio => 
+            portfolioOptions.includes(portfolio)
+          );
+          if (validPortfolioSelections.length !== currentPortfolioSelections.length) {
+            // Clearing invalid portfolio selections
+            portfolioMultiSelect.setSelectedValues(validPortfolioSelections);
+          }
+        }
+      }
+      
+      // Get current portfolio selections
+      const selectedPortfolios = portfolioMultiSelect ? portfolioMultiSelect.getSelectedValues() : [];
+      // Selected portfolios logged
+      
+      // Filter subset based on portfolio selection
+      if (selectedPortfolios.length > 0) {
+        subset = subset.filter(r => {
+          return selectedPortfolios.includes(String(r.portfolio || '').trim());
+        });
+      }
+      
+      // Update asset options based on country and portfolio selection
+      const assetOptions = [...new Set(subset.map(row => String(row.assetno)).filter(Boolean))].sort();
+      // Available asset options logged
+      
+      // Only update asset options if country or portfolio filter changed
+      if (changedFilter === 'country' || changedFilter === 'portfolio') {
+        populateMultiSelect(assetMultiSelect, assetOptions);
+        
+        // Clear asset selections if they're no longer valid
+        if (assetMultiSelect) {
+          const currentAssetSelections = assetMultiSelect.getSelectedValues();
+          const validAssetSelections = currentAssetSelections.filter(asset => 
+            assetOptions.includes(asset)
+          );
+          if (validAssetSelections.length !== currentAssetSelections.length) {
+            // Clearing invalid asset selections
+            assetMultiSelect.setSelectedValues(validAssetSelections);
+          }
+        }
+      }
+    }
+
+    // Debounce function for better performance
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    const debouncedUpdateCascading = debounce(updateCascadingFilters, 200);
+    const debouncedUpdateChart = debounce(updateChart, 200);
+
+    // --- Multi-Select Event Listeners ---
+    function initializeMultiSelects() {
+      // Initialize country multi-select
+      countryMultiSelect = new MultiSelect(
+        'filterCountryTrigger',
+        'filterCountryDropdown',
+        'filterCountryPlaceholder',
+        'filterCountrySelectedItems',
+        function(selectedValues) {
+          // Country selection changed
+          debouncedUpdateCascading('country');
+          debouncedUpdateChart();
+        }
+      );
+
+      // Initialize portfolio multi-select
+      portfolioMultiSelect = new MultiSelect(
+        'filterPortfolioTrigger',
+        'filterPortfolioDropdown',
+        'filterPortfolioPlaceholder',
+        'filterPortfolioSelectedItems',
+        function(selectedValues) {
+          // Portfolio selection changed
+          debouncedUpdateCascading('portfolio');
+          debouncedUpdateChart();
+        }
+      );
+
+      // Initialize asset multi-select
+      assetMultiSelect = new MultiSelect(
+        'filterAssetTrigger',
+        'filterAssetDropdown',
+        'filterAssetPlaceholder',
+        'filterAssetSelectedItems',
+        function(selectedValues) {
+          // Asset selection changed
+          debouncedUpdateCascading('asset');
+          debouncedUpdateChart();
+        }
+      );
+      
+      // Override the renderSelectedItems method to prevent showing selected items as tags
+      if (countryMultiSelect) {
+        countryMultiSelect.renderSelectedItems = function() {
+          // Don't render selected items as tags
+          this.selectedItemsContainer.innerHTML = '';
+        };
+        
+        // Override toggleDropdown to ensure options are re-rendered with correct state
+        const originalToggleDropdown = countryMultiSelect.toggleDropdown;
+        countryMultiSelect.toggleDropdown = function() {
+          if (!this.isOpen()) {
+            // When opening, re-render options to ensure correct checkbox states
+            this.renderOptions();
+          }
+          originalToggleDropdown.call(this);
+        };
+        
+              // Override updateDisplay to ensure trigger text is updated properly
+      const originalUpdateDisplay = countryMultiSelect.updateDisplay;
+      countryMultiSelect.updateDisplay = function() {
+        if (this.selectedValues.length === 0) {
+          this.placeholder.textContent = this.placeholder.dataset.default || 'Select options';
+        } else if (this.selectedValues.length === 1) {
+          // Show the single selected item name
+          const option = this.options.find(opt => opt.value === this.selectedValues[0]);
+          this.placeholder.textContent = option ? option.label : '1 selected';
+        } else {
+          // Show count for multiple selections
+          this.placeholder.textContent = `${this.selectedValues.length} selected`;
+        }
+        // Don't call renderSelectedItems since we don't want tags
+      };
+      
+      // Override selectAll to prevent automatic selection of all countries
+      const originalSelectAll = countryMultiSelect.selectAll;
+      countryMultiSelect.selectAll = function() {
+        // Select All called for country - preventing automatic selection
+        // Don't automatically select all - let user make explicit choices
+        return;
+      };
+      }
+      
+      if (portfolioMultiSelect) {
+        portfolioMultiSelect.renderSelectedItems = function() {
+          // Don't render selected items as tags
+          this.selectedItemsContainer.innerHTML = '';
+        };
+        
+        // Override toggleDropdown to ensure options are re-rendered with correct state
+        const originalToggleDropdown = portfolioMultiSelect.toggleDropdown;
+        portfolioMultiSelect.toggleDropdown = function() {
+          if (!this.isOpen()) {
+            // When opening, re-render options to ensure correct checkbox states
+            this.renderOptions();
+          }
+          originalToggleDropdown.call(this);
+        };
+        
+        // Override updateDisplay to ensure trigger text is updated properly
+        const originalUpdateDisplay = portfolioMultiSelect.updateDisplay;
+        portfolioMultiSelect.updateDisplay = function() {
+          if (this.selectedValues.length === 0) {
+            this.placeholder.textContent = this.placeholder.dataset.default || 'Select options';
+          } else if (this.selectedValues.length === 1) {
+            // Show the single selected item name
+            const option = this.options.find(opt => opt.value === this.selectedValues[0]);
+            this.placeholder.textContent = option ? option.label : '1 selected';
+          } else {
+            // Show count for multiple selections
+            this.placeholder.textContent = `${this.selectedValues.length} selected`;
+          }
+          // Don't call renderSelectedItems since we don't want tags
+        };
+        
+        // Override selectAll to prevent automatic selection of all portfolios
+        const originalSelectAll = portfolioMultiSelect.selectAll;
+        portfolioMultiSelect.selectAll = function() {
+          // Select All called for portfolio - preventing automatic selection
+          // Don't automatically select all - let user make explicit choices
+          return;
+        };
+      }
+      
+      if (assetMultiSelect) {
+        assetMultiSelect.renderSelectedItems = function() {
+          // Don't render selected items as tags
+          this.selectedItemsContainer.innerHTML = '';
+        };
+        
+        // Override toggleDropdown to ensure options are re-rendered with correct state
+        const originalToggleDropdown = assetMultiSelect.toggleDropdown;
+        assetMultiSelect.toggleDropdown = function() {
+          if (!this.isOpen()) {
+            // When opening, re-render options to ensure correct checkbox states
+            this.renderOptions();
+          }
+          originalToggleDropdown.call(this);
+        };
+        
+        // Override updateDisplay to ensure trigger text is updated properly
+        const originalUpdateDisplay = assetMultiSelect.updateDisplay;
+        assetMultiSelect.updateDisplay = function() {
+          if (this.selectedValues.length === 0) {
+            this.placeholder.textContent = this.placeholder.dataset.default || 'Select options';
+          } else if (this.selectedValues.length === 1) {
+            // Show the single selected item name
+            const option = this.options.find(opt => opt.value === this.selectedValues[0]);
+            this.placeholder.textContent = option ? option.label : '1 selected';
+          } else {
+            // Show count for multiple selections
+            this.placeholder.textContent = `${this.selectedValues.length} selected`;
+          }
+          // Don't call renderSelectedItems since we don't want tags
+        };
+        
+        // Override selectAll to prevent automatic selection of all assets
+        const originalSelectAll = assetMultiSelect.selectAll;
+        assetMultiSelect.selectAll = function() {
+          // Select All called for asset - preventing automatic selection
+          // Don't automatically select all - let user make explicit choices
+          return;
+        };
+      }
+    }
+
+
+
+    function updateChart() {
+      // Check if Plotly is loaded before proceeding
+      if (typeof Plotly === 'undefined' || !window.Plotly) {
+        // If Plotly is not loaded, wait for it and retry
+        let retryCount = 0;
+        const maxRetries = 50; // 5 seconds max wait (50 * 100ms)
+        const checkPlotly = setInterval(() => {
+          retryCount++;
+          if (typeof Plotly !== 'undefined' && window.Plotly) {
+            clearInterval(checkPlotly);
+            // Retry updateChart once Plotly is loaded
+            updateChart();
+          } else if (retryCount >= maxRetries) {
+            clearInterval(checkPlotly);
+            console.error('Plotly failed to load. Please refresh the page.');
+            const waterfallDiv = document.getElementById('waterfall');
+            if (waterfallDiv) {
+              waterfallDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #FF4136;">Error: Plotly library failed to load. Please refresh the page.</div>';
+            }
+          }
+        }, 100);
+        return; // Exit early, will retry when Plotly loads
+      }
+
+      const countries = getSelectedValues(countryMultiSelect);
+      const portfolios = getSelectedValues(portfolioMultiSelect);
+      const assets = getSelectedValues(assetMultiSelect);
+      const availableMonths = [...new Set(allData.map(row => row.month))].sort();
+
+      // Determine if a month, year, or range is selected
+      const monthSelected = !!selectedMonth;
+      const yearSelected = !!selectedYear;
+      const rangeSelected = !!(window.currentBestCalendar && window.currentBestCalendar.selectedRange && 
+                              window.currentBestCalendar.selectedRange.start && 
+                              window.currentBestCalendar.selectedRange.end);
+      // Determine if any filters are selected
+      const filtersSelected = countries.length > 0 || portfolios.length > 0 || assets.length > 0;
+
+      let filteredRows;
+      if (rangeSelected) {
+        // Range selected: show data for the selected month range
+        const range = window.currentBestCalendar.selectedRange;
+        filteredRows = allData.filter(r => {
+          const monthValue = r.month;
+          return monthValue >= range.start && monthValue <= range.end &&
+            (countries.length === 0 || countries.includes(r.country)) &&
+            (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+            (assets.length === 0 || assets.includes(String(r.assetno)));
+        });
+      } else if (monthSelected) {
+        // Month selected: show only that month for everything
+        filteredRows = allData.filter(r => r.month === selectedMonth &&
+          (countries.length === 0 || countries.includes(r.country)) &&
+          (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+          (assets.length === 0 || assets.includes(String(r.assetno)))
+        );
+      } else if (yearSelected) {
+        // Year selected but no specific month: show all months for that year
+        filteredRows = allData.filter(r => {
+          const [rowYear] = r.month.split('-');
+          return rowYear === selectedYear.toString() &&
+            (countries.length === 0 || countries.includes(r.country)) &&
+            (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+            (assets.length === 0 || assets.includes(String(r.assetno)));
+        });
+      } else {
+        // No month or year selected: show YTD (Jan to latest month), with or without filters
+        const latestMonth = availableMonths.length > 0 ? availableMonths[availableMonths.length - 1] : null;
+        if (latestMonth) {
+          const [selectedYearYTD, selectedMonthNumYTD] = latestMonth.split('-');
+          filteredRows = allData.filter(r => {
+            const [rowYear, rowMonth] = r.month.split('-');
+            return rowYear === selectedYearYTD && rowMonth <= selectedMonthNumYTD &&
+              (countries.length === 0 || countries.includes(r.country)) &&
+              (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+              (assets.length === 0 || assets.includes(String(r.assetno)));
+          });
+        } else {
+          filteredRows = [];
+        }
+      }
+
+      // --- Helper for budget sum including zero values ---
+      function sumBudget(key) {
+        return filteredRows.reduce((acc, r) => {
+          return acc + (+r[key] || 0);
+        }, 0);
+      }
+      // --- END ---
+
+      const sum = key => filteredRows.reduce((acc, r) => acc + (+r[key] || 0), 0);
+      const steps = [
+        { name: "IC<br>Approved<br>Budget", value: sumBudget('ic_approved_budget'), type: "absolute" },
+        { name: "Expected<br>Budget", value: sumBudget('expected_budget'), type: "absolute" },
+        { name: "Weather<br>Loss or<br>Gain", value: sum('weather_loss_or_gain'), type: "relative" },
+        { name: "Grid<br>Curtailment<br>Loss or Gain", value: sum('grid_curtailment'), type: "relative" },
+        { name: "Grid<br>Outage", value: sum('grid_outage'), type: "relative" },
+        { name: "Operation<br>Budget", value: sumBudget('operation_budget'), type: "absolute" },
+        { name: "Breakdown<br>Loss", value: sum('breakdown_loss'), type: "relative" },
+        { name: "Scheduled<br>Outage<br>Loss", value: sum('scheduled_outage_loss'), type: "relative" },
+        { name: "&nbsp;<br>Unclassified<br>Loss or Gain", value: sum('unclassified_loss'), type: "relative" },
+        { name: "Actual<br>Generation", value: sum('actual_generation'), type: "absolute" }
+      ];
+
+      const colors = steps.map((s, index) => {
+        // IC Approved Budget should always be green (#4CAF50 is Material Design green 500)
+        if (s.name === "IC<br>Approved<br>Budget") return "#4CAF50";
+        // Actual Generation should be blue
+        if (s.name === "Actual<br>Generation") return "#1976D2";
+        // Relative values: red for negative, light green for positive
+        if (s.type === "relative") return s.value < 0 ? "#FF4136" : "#8BC34A";
+        // All other absolute values (like Expected Budget, Operation Budget) should be blue
+        return "#1976D2";
+      });
+      
+      // Explicitly ensure first color is green for IC Approved Budget
+      if (steps[0] && steps[0].name === "IC<br>Approved<br>Budget") {
+        colors[0] = "#4CAF50";
+      }
+      
+      let monthsForTitle = [];
+      if (rangeSelected) {
+        // Range selected: show the range in the title
+        const range = window.currentBestCalendar.selectedRange;
+        monthsForTitle = [formatMonthLabel(range.start) + ' – ' + formatMonthLabel(range.end)];
+      } else if (selectedMonth) {
+        if (countries.length === 0 && portfolios.length === 0 && assets.length === 0) {
+          // If no filters are selected, show YTD for the latest month
+          const allMonths = [...new Set(filteredRows.map(r => r.month).filter(Boolean))].sort();
+          if (allMonths.length === 1) {
+            monthsForTitle = [formatMonthLabel(allMonths[0])];
+          } else if (allMonths.length > 1) {
+            monthsForTitle = [formatMonthLabel(allMonths[0]) + ' – ' + formatMonthLabel(allMonths[allMonths.length - 1])];
+          } else {
+            // fallback to just the year
+            const year = selectedMonth.split('-')[0];
+            monthsForTitle = [year];
+          }
+        } else {
+          monthsForTitle = [selectedMonth];
+        }
+      } else if (yearSelected) {
+        // Year selected but no specific month
+        monthsForTitle = [selectedYear.toString() + ' (Full Year)'];
+      }
+      
+      let chartType = 'Yield Analysis';
+      if (rangeSelected) {
+        chartType = 'Yield Analysis (Range)';
+      } else if (yearSelected && !monthSelected) {
+        chartType = 'Yield Analysis (Full Year)';
+      } else if (countries.length === 0 && portfolios.length === 0 && assets.length === 0) {
+        chartType = 'Yield Analysis';
+      }
+      
+      const waterfallTitle = buildChartTitle(
+        chartType,
+        monthsForTitle,
+        countries,
+        portfolios,
+        assets,
+        getUnique(allData, 'country'),
+        getUnique(allData, 'portfolio')
+      );
+
+      // Update the dynamic waterfall chart title
+      const waterfallTitleElement = document.getElementById('waterfall-chart-title');
+      if (waterfallTitleElement) {
+        waterfallTitleElement.textContent = waterfallTitle;
+      }
+
+      // Responsive Waterfall Chart Height
+      let waterfallHeight = 340 * 1.50; // default
+      if (window.innerWidth <= 1200) {
+        waterfallHeight = 340 * 1.65;
+      } else if (window.innerWidth <= 1440) {
+        waterfallHeight = 340 * 1.50;
+      } else if (window.innerWidth > 2000) {
+        waterfallHeight = 420 * 1.50;
+      }
+
+      // Create the trace first with uniform font size for data labels above bars
+      // Increased font size for better visibility
+      let dataLabelFontSize;
+      if (window.innerWidth <= 1200) {
+        dataLabelFontSize = 18;
+      } else if (window.innerWidth <= 1440) {
+        dataLabelFontSize = 20;
+      } else {
+        dataLabelFontSize = getResponsiveFontSize(18, 24, 16);
+      }
+      
+      // Use base categories for x; all labels bold for visibility
+      const xCategories = steps.map(s => s.name);
+      const xTickLabels = xCategories.map((name) => `<b>${name}</b>`);
+      
+      // Uniform text configuration for all labels
+      const uniformTextFont = { 
+        size: dataLabelFontSize, 
+        color: "#222", 
+        family: "Arial, sans-serif"
+      };
+      
+      const trace = {
+        type: "waterfall",
+        orientation: "v",
+        measure: steps.map(s => s.type),
+        x: xCategories,
+        y: steps.map(s => s.value),
+        text: steps.map(s => s.value === 0 ? "0" : formatNumber(s.value)),
+        textposition: "outside",
+        textfont: uniformTextFont,
+        outsidetextfont: uniformTextFont,
+        insidetextfont: uniformTextFont,
+        texttemplate: "%{text}",
+        textinfo: "text",
+        hoverinfo: "x+y",
+        showlegend: false,
+        marker: {
+          color: xCategories.map(label =>
+            label === "IC<br>Approved<br>Budget" ? "#4CAF50" : null  // Only IC Approved Budget bar is green
+          ),
+          line: {
+            width: 3, // Thicker border
+            color: "#225184" // Dark blue border
+          },
+          gradient: {
+            type: "vertical",
+            color: "#00000022" // subtle black shadow
+          },
+          pattern: {
+            shape: "",
+            size: 10,
+            solidity: 0.1
+          }
+        },
+        // Add clickable styling
+        hovertemplate: '<b>%{x}</b><br>Value: %{y:,.0f} MWh<br><extra>Click for details</extra>',
+        connector: { line: { color: "white" } }
+      };
+
+      // Then create the layout with improved font sizes for laptop screens
+      const yMax = Math.max(...steps.map(s => s.value), 1) * 1.15; // Ensure minimum height for zero values
+      
+      // Determine font sizes based on screen width - increased for visibility
+      let axisTitleFontSize, axisTickFontSize;
+      if (window.innerWidth <= 1200) {
+        axisTitleFontSize = 14;
+        axisTickFontSize = 12;
+      } else if (window.innerWidth <= 1440) {
+        axisTitleFontSize = 15;
+        axisTickFontSize = 13;
+      } else {
+        axisTitleFontSize = getResponsiveFontSize(14, 18, 10);
+        axisTickFontSize = getResponsiveFontSize(13, 16, 10);
+      }
+      
+      const layout = {
+        xaxis: {
+          title: {
+            font: { size: axisTitleFontSize, family: "Arial Black, Arial, sans-serif", color: "#222" }
+          },
+          tickfont: { size: axisTickFontSize, family: "Arial Black, Arial, sans-serif", color: "#222" },
+          tickmode: 'array',
+          tickvals: xCategories,
+          ticktext: xTickLabels,
+          tickangle: 0,
+          automargin: true,
+          fixedrange: true // Disable zoom on x-axis
+        },
+        yaxis: {
+          title: {
+            text: "Energy (MWh)",
+            font: { size: axisTitleFontSize }
+          },
+          tickfont: { size: axisTickFontSize },
+          zeroline: true,
+          range: [0, yMax],
+          fixedrange: true // Disable zoom on y-axis
+        },
+        hovermode: false,
+        autosize: true,
+        height: waterfallHeight,
+        // Minimize left/right margins to maximize horizontal space for X labels
+        margin: { t: 30, b: 50, l: 28, r: 0 },
+        // Disable all default interactions
+        dragmode: false,
+        selectdirection: false
+      };
+
+      // Add percentage annotations
+      const maxY = Math.max(...steps.map(s => Math.abs(s.value)));
+      const percentY = maxY * 0.10;
+      const xLabels = steps.map(s => s.name);
+      const percentages = steps.map(s => {
+        return steps[1].value && steps[1].value !== 0 ? ((s.value / steps[1].value) * 100) : 0;
+      });
+
+      // Determine annotation font size based on screen width
+      let annotationFontSize;
+      if (window.innerWidth <= 1200) {
+        annotationFontSize = 11;
+      } else if (window.innerWidth <= 1440) {
+        annotationFontSize = 12;
+      } else {
+        annotationFontSize = getResponsiveFontSize(12, 16, 8);
+      }
+      
+      layout.annotations = steps.map((s, i) => ({
+        x: xLabels[i],
+        y: percentY,
+        text: `<b>${Math.round(percentages[i])}%</b>`,
+        showarrow: false,
+        font: { 
+          size: annotationFontSize, 
+          color: '#000', 
+          family: 'Arial, sans-serif', 
+          weight: 'bold' 
+        },
+        xanchor: 'center',
+        yanchor: 'middle',
+        align: 'center',
+      }));
+
+      // Flag to prevent duplicate navigation (shared between plotly_click and DOM click handlers)
+      let navigationInProgress = false;
+      
+      // Shared drill-down mapping (used by both click handlers)
+      const drillDownMap = {
+        "IC<br>Approved<br>Budget": "ic_approved_budget",
+        "Expected<br>Budget": "expected_budget", 
+        "Weather<br>Loss or<br>Gain": "weather_loss_or_gain",
+        "Grid<br>Curtailment<br>Loss or Gain": "grid_curtailment",
+        "Grid<br>Outage": "grid_outage",
+        "Operation<br>Budget": "operation_budget",
+        "Breakdown<br>Loss": "breakdown_loss",
+        "Scheduled<br>Outage<br>Loss": "scheduled_outage_loss",
+        "&nbsp;<br>Unclassified<br>Loss or Gain": "unclassified_loss",
+        "Actual<br>Generation": "actual_generation"
+      };
+      
+      // Shared navigation function to avoid code duplication
+      function navigateToDrillDown(stepName) {
+        if (navigationInProgress) {
+          return; // Prevent duplicate navigation
+        }
+        
+        const category = drillDownMap[stepName];
+        
+        if (!category) {
+          return; // No mapping found
+        }
+        
+        navigationInProgress = true;
+        
+        // Reset flag after 1 second to allow future clicks
+        setTimeout(() => {
+          navigationInProgress = false;
+        }, 1000);
+        
+        // Get current filter values
+        const countries = getSelectedValues(countryMultiSelect);
+        const portfolios = getSelectedValues(portfolioMultiSelect);
+        const assets = getSelectedValues(assetMultiSelect);
+        
+        // Build URL with parameters
+        const params = new URLSearchParams();
+        if (countries.length > 0) params.append('countries', countries.join(','));
+        if (portfolios.length > 0) params.append('portfolios', portfolios.join(','));
+        if (assets.length > 0) params.append('assets', assets.join(','));
+        if (selectedMonth) params.append('month', selectedMonth);
+        if (selectedYear) params.append('year', selectedYear);
+        
+        // Navigate to drill-down page in same tab
+        const drillDownUrl = `/yield-drilldown/${category}/?${params.toString()}`;
+        
+        // Navigate in the same window/tab
+        // Preserve iframe context to maintain header/menu structure
+        if (window.parent && window.parent !== window) {
+          // If in iframe, use postMessage to communicate with parent
+          // The parent will handle navigation while preserving the header
+          try {
+            window.parent.postMessage({
+              type: 'NAVIGATE_TO_DRILLDOWN',
+              url: drillDownUrl,
+              category: category,
+              filters: {
+                countries: countries,
+                portfolios: portfolios,
+                assets: assets,
+                month: selectedMonth,
+                year: selectedYear
+              }
+            }, '*');
+          } catch (postError) {
+            // Fallback: navigate parent (will lose header but at least works)
+            try {
+              window.parent.location.href = drillDownUrl;
+            } catch (navError) {
+              alert(`Please navigate to: ${drillDownUrl}`);
+            }
+          }
+        } else {
+          // Not in iframe, direct navigation
+          window.location.href = drillDownUrl;
+        }
+      }
+      
+      // Get waterfall div reference BEFORE creating plot
+      const waterfallDiv = document.getElementById('waterfall');
+      
+      // Remove any existing click handlers to prevent duplicates
+      if (waterfallDiv && waterfallDiv._clickHandlerAttached) {
+        waterfallDiv.removeListener('plotly_click', waterfallDiv._clickHandlerAttached);
+        waterfallDiv._clickHandlerAttached = null;
+      }
+      
+      // Finally, create the plot
+      Plotly.newPlot("waterfall", [trace], layout, { 
+        responsive: true,
+        useResizeHandler: true,
+        displayModeBar: true,
+        modeBarButtonsToRemove: ['zoom2d', 'pan2d', 'select2d', 'lasso2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d'],
+        displaylogo: false,
+        toImageButtonOptions: {
+          format: 'png',
+          filename: 'yield_waterfall_chart',
+          height: 1000,
+          width: 1400,
+          scale: 2
+        },
+        staticPlot: false,
+        editable: false,
+        scrollZoom: false,
+        doubleClick: false,
+        showTips: false
+      }).then(() => {
+        const waterfallDivAfter = document.getElementById('waterfall');
+        if (waterfallDivAfter) {
+          waterfallDivAfter.style.height = waterfallHeight + 'px';
+          
+          // Store Plotly data and layout on the div for later access (Plotly stores these automatically)
+          // Access via waterfallDivAfter.data and waterfallDivAfter.layout after render
+          
+          // Force update marker colors to ensure IC Approved Budget is green
+          Plotly.restyle(waterfallDivAfter, {
+            'marker.color': [colors]
+          }, [0]).then(() => {
+            // Fallback: Directly set the first bar's fill color to green via SVG manipulation
+            const forceGreenColor = () => {
+              // Find all trace groups and get the first bar elements
+              const traceGroups = waterfallDivAfter.querySelectorAll('.trace');
+              traceGroups.forEach(traceGroup => {
+                // Get all bar elements (paths, rects) in this trace
+                const barElements = traceGroup.querySelectorAll('path[fill], rect[fill]');
+                // The first bar (index 0) should be IC Approved Budget
+                if (barElements.length > 0 && colors[0] === "#4CAF50") {
+                  const firstBar = barElements[0];
+                  // Set fill color to green
+                  firstBar.setAttribute('fill', '#4CAF50');
+                  firstBar.style.fill = '#4CAF50';
+                  // Also set stroke if it exists
+                  if (firstBar.getAttribute('stroke')) {
+                    // Keep the border but ensure fill is green
+                    firstBar.style.setProperty('fill', '#4CAF50', 'important');
+                  }
+                }
+              });
+              
+              // Alternative: find by data-index or similar attributes
+              const allBars = waterfallDivAfter.querySelectorAll('g.points > g.point, g.bars > g.bar');
+              if (allBars.length > 0) {
+                const firstBarGroup = allBars[0];
+                const fillElements = firstBarGroup.querySelectorAll('path, rect');
+                fillElements.forEach(el => {
+                  if (el.getAttribute('fill') || el.style.fill) {
+                    el.setAttribute('fill', '#4CAF50');
+                    el.style.fill = '#4CAF50';
+                    el.style.setProperty('fill', '#4CAF50', 'important');
+                  }
+                });
+              }
+            };
+            
+            // Apply multiple times to catch elements at different render stages
+            setTimeout(forceGreenColor, 100);
+            setTimeout(forceGreenColor, 300);
+            setTimeout(forceGreenColor, 500);
+          });
+          
+          // Force uniform font size for all data labels after render and make them non-clickable
+          // Also disable clicks on connectors and other non-bar elements
+          setTimeout(() => {
+            // Find all text elements in the waterfall chart that are data labels
+            const textElements = waterfallDivAfter.querySelectorAll('g > text, text');
+            textElements.forEach(textEl => {
+              const textContent = textEl.textContent.trim();
+              // Check if this looks like a data label (numeric value with optional commas)
+              if (textContent.match(/^-?\d+([,]\d+)*$/) || textContent === '0') {
+                // Set uniform font size using both style attribute and CSS
+                const fontSizeStr = dataLabelFontSize + 'px';
+                textEl.style.setProperty('font-size', fontSizeStr, 'important');
+                textEl.style.setProperty('font-weight', 'bold', 'important');
+                textEl.style.setProperty('font-family', 'Arial, sans-serif', 'important');
+                // Make text labels non-clickable - clicks should pass through to bars
+                textEl.style.setProperty('pointer-events', 'none', 'important');
+                // Also set as attribute for SVG compatibility
+                textEl.setAttribute('font-size', dataLabelFontSize);
+                textEl.setAttribute('font-weight', 'bold');
+                textEl.setAttribute('pointer-events', 'none');
+              }
+            });
+            
+            // Make connectors non-clickable (paths with stroke but no fill, or fill="none")
+            const allPaths = waterfallDivAfter.querySelectorAll('path');
+            allPaths.forEach(pathEl => {
+              const fillAttr = pathEl.getAttribute('fill');
+              const strokeAttr = pathEl.getAttribute('stroke');
+              
+              // Connectors typically have stroke but fill="none" or no fill
+              // Bars have a color fill (not "none" or "transparent")
+              const hasNoFill = !fillAttr || fillAttr === 'none' || fillAttr === 'transparent';
+              const hasStroke = strokeAttr && strokeAttr !== 'none';
+              
+              // If it's a connector (has stroke but no fill), make it non-clickable
+              if (hasStroke && hasNoFill) {
+                pathEl.style.setProperty('pointer-events', 'none', 'important');
+                pathEl.setAttribute('pointer-events', 'none');
+              }
+            });
+            
+            // Make all annotation groups non-clickable
+            const annotationGroups = waterfallDivAfter.querySelectorAll('[class*="annotation"], .annotation');
+            annotationGroups.forEach(annEl => {
+              annEl.style.setProperty('pointer-events', 'none', 'important');
+              annEl.setAttribute('pointer-events', 'none');
+              // Also make children non-clickable
+              const annChildren = annEl.querySelectorAll('*');
+              annChildren.forEach(child => {
+                child.style.setProperty('pointer-events', 'none', 'important');
+              });
+            });
+            
+            Plotly.Plots.resize(waterfallDivAfter);
+          }, 200);
+          
+          // Also apply after any animations/transitions
+          setTimeout(() => {
+            const textElements = waterfallDivAfter.querySelectorAll('g > text, text');
+            textElements.forEach(textEl => {
+              const textContent = textEl.textContent.trim();
+              if (textContent.match(/^-?\d+([,]\d+)*$/) || textContent === '0') {
+                textEl.style.setProperty('font-size', dataLabelFontSize + 'px', 'important');
+                textEl.style.setProperty('font-weight', 'bold', 'important');
+                // Make text labels non-clickable - clicks should pass through to bars
+                textEl.style.setProperty('pointer-events', 'none', 'important');
+                textEl.setAttribute('pointer-events', 'none');
+              }
+            });
+            
+            // Ensure connectors remain non-clickable
+            const allPaths = waterfallDivAfter.querySelectorAll('path');
+            allPaths.forEach(pathEl => {
+              const fillAttr = pathEl.getAttribute('fill');
+              const strokeAttr = pathEl.getAttribute('stroke');
+              const hasNoFill = !fillAttr || fillAttr === 'none' || fillAttr === 'transparent';
+              const hasStroke = strokeAttr && strokeAttr !== 'none';
+              
+              if (hasStroke && hasNoFill) {
+                pathEl.style.setProperty('pointer-events', 'none', 'important');
+                pathEl.setAttribute('pointer-events', 'none');
+              }
+            });
+          }, 500);
+          
+          // Store steps and drillDownMap on the element for access in handlers
+          waterfallDivAfter._steps = steps;
+          waterfallDivAfter._drillDownMap = drillDownMap;
+          
+          // IMPORTANT: Attach click handler AFTER chart is fully rendered
+          // Simplified handler that directly uses data.points[0].x
+          const plotlyClickHandler = function(data) {
+            if (!data || !data.points || data.points.length === 0) {
+              return;
+            }
+            
+            // Get the clicked point
+            const point = data.points[0];
+            const clickedLabel = point.x;
+            
+            if (!clickedLabel) {
+              return;
+            }
+            
+            // Check if clickedLabel exists in drillDownMap
+            if (drillDownMap[clickedLabel]) {
+              navigateToDrillDown(clickedLabel);
+            } else {
+              // Try using pointIndex as fallback
+              const pointIndex = point.pointIndex !== undefined ? point.pointIndex : (point.pointNumber !== undefined ? point.pointNumber : -1);
+              if (pointIndex >= 0 && pointIndex < steps.length) {
+                const stepName = steps[pointIndex].name;
+                if (drillDownMap[stepName]) {
+                  navigateToDrillDown(stepName);
+                }
+              }
+            }
+          };
+          
+          // Remove any existing handler first
+          if (waterfallDivAfter._plotlyClickHandler) {
+            waterfallDivAfter.removeListener('plotly_click', waterfallDivAfter._plotlyClickHandler);
+          }
+          
+          // Attach the handler
+          waterfallDivAfter.on('plotly_click', plotlyClickHandler);
+          waterfallDivAfter._plotlyClickHandler = plotlyClickHandler;
+        }
+      });
+      
+      // Ensure all bar elements are clickable and connectors are not
+      // Run this multiple times to catch elements that render later
+      const ensureBarsClickable = () => {
+        const waterfallDivForCheck = document.getElementById('waterfall');
+        if (!waterfallDivForCheck) return;
+        
+        // Find all bar containers - Plotly waterfall charts have bars in specific groups
+        const traceGroups = waterfallDivForCheck.querySelectorAll('g.trace, g.bars, g.points');
+        let totalBarCount = 0;
+        let connectorCount = 0;
+        
+        // Method 1: Find bars within trace groups
+        traceGroups.forEach((traceGroup, groupIndex) => {
+          const paths = traceGroup.querySelectorAll('path');
+          paths.forEach((pathEl, pathIndex) => {
+            const fillAttr = pathEl.getAttribute('fill');
+            const strokeAttr = pathEl.getAttribute('stroke');
+            const styleFill = pathEl.style.fill;
+            const computedFill = window.getComputedStyle(pathEl).fill;
+            
+            // Determine if this is a bar (has fill) or connector (only stroke)
+            const hasValidFill = (fillAttr && fillAttr !== 'none' && fillAttr !== 'transparent') ||
+                                (styleFill && styleFill !== 'none' && styleFill !== 'transparent' && styleFill !== 'rgba(0, 0, 0, 0)') ||
+                                (computedFill && computedFill !== 'none' && computedFill !== 'transparent' && computedFill !== 'rgba(0, 0, 0, 0)');
+            
+            const hasStrokeOnly = strokeAttr && strokeAttr !== 'none' && 
+                                 (!fillAttr || fillAttr === 'none' || fillAttr === 'transparent') &&
+                                 (!styleFill || styleFill === 'none');
+            
+            if (hasValidFill) {
+              // It's a bar - make absolutely sure it's clickable
+              pathEl.style.setProperty('pointer-events', 'auto', 'important');
+              pathEl.style.cursor = 'pointer';
+              pathEl.setAttribute('data-is-bar', 'true');
+              pathEl.setAttribute('pointer-events', 'auto');
+              totalBarCount++;
+            } else if (hasStrokeOnly) {
+              // It's likely a connector - make it non-clickable
+              pathEl.style.setProperty('pointer-events', 'none', 'important');
+              pathEl.setAttribute('pointer-events', 'none');
+              connectorCount++;
+            }
+          });
+          
+          // Also check for rect elements in this group
+          const rects = traceGroup.querySelectorAll('rect');
+          rects.forEach((rectEl) => {
+            const fillAttr = rectEl.getAttribute('fill');
+            const styleFill = rectEl.style.fill;
+            const computedFill = window.getComputedStyle(rectEl).fill;
+            const hasValidFill = (fillAttr && fillAttr !== 'none' && fillAttr !== 'transparent') ||
+                                (styleFill && styleFill !== 'none' && styleFill !== 'transparent');
+            
+            if (hasValidFill) {
+              rectEl.style.setProperty('pointer-events', 'auto', 'important');
+              rectEl.style.cursor = 'pointer';
+              rectEl.setAttribute('data-is-bar', 'true');
+              rectEl.setAttribute('pointer-events', 'auto');
+              totalBarCount++;
+            }
+          });
+        });
+        
+        // Method 2: Also find all paths/rects directly (fallback for different Plotly versions)
+        const allPaths = waterfallDivForCheck.querySelectorAll('path:not([data-is-bar])');
+        allPaths.forEach((pathEl) => {
+          const fillAttr = pathEl.getAttribute('fill');
+          const styleFill = pathEl.style.fill;
+          const hasValidFill = (fillAttr && fillAttr !== 'none' && fillAttr !== 'transparent') ||
+                              (styleFill && styleFill !== 'none' && styleFill !== 'transparent');
+          
+          if (hasValidFill && !pathEl.hasAttribute('data-is-bar')) {
+            pathEl.style.setProperty('pointer-events', 'auto', 'important');
+            pathEl.style.cursor = 'pointer';
+            pathEl.setAttribute('data-is-bar', 'true');
+            pathEl.setAttribute('pointer-events', 'auto');
+            totalBarCount++;
+          }
+        });
+        
+        const allRects = waterfallDivForCheck.querySelectorAll('rect:not([data-is-bar])');
+        allRects.forEach((rectEl) => {
+          const fillAttr = rectEl.getAttribute('fill');
+          const styleFill = rectEl.style.fill;
+          const hasValidFill = (fillAttr && fillAttr !== 'none' && fillAttr !== 'transparent') ||
+                              (styleFill && styleFill !== 'none' && styleFill !== 'transparent');
+          
+          if (hasValidFill && !rectEl.hasAttribute('data-is-bar')) {
+            rectEl.style.setProperty('pointer-events', 'auto', 'important');
+            rectEl.style.cursor = 'pointer';
+            rectEl.setAttribute('data-is-bar', 'true');
+            rectEl.setAttribute('pointer-events', 'auto');
+            totalBarCount++;
+          }
+        });
+        };
+        
+      // Run immediately and multiple times to catch all renders
+      setTimeout(ensureBarsClickable, 200);
+      setTimeout(ensureBarsClickable, 500);
+      setTimeout(ensureBarsClickable, 1000);
+      setTimeout(ensureBarsClickable, 2000);
+      
+      // FALLBACK CLICK HANDLER: DOM click listener as backup if plotly_click doesn't fire
+      // This uses coordinate-based detection to find which bar was clicked
+      setTimeout(() => {
+        const waterfallDivForClick = document.getElementById('waterfall');
+        if (!waterfallDivForClick) return;
+        
+        // Get stored steps and drillDownMap
+        const storedSteps = waterfallDivForClick._steps;
+        const storedDrillDownMap = waterfallDivForClick._drillDownMap;
+        
+        if (!storedSteps || !storedDrillDownMap) {
+          return;
+        }
+        
+        // Remove any existing click handler
+        if (waterfallDivForClick._domClickHandler) {
+          waterfallDivForClick.removeEventListener('click', waterfallDivForClick._domClickHandler);
+        }
+        
+        const domClickHandler = function(event) {
+          const target = event.target;
+          
+          // Ignore clicks on text, annotations
+          if (target.tagName === 'text' || target.tagName === 'TEXT') return;
+          if (target.closest && (target.closest('.annotation') || target.closest('[class*="annotation"]'))) return;
+          
+          // Only process if target is a bar (has data-is-bar attribute or looks like a bar)
+          const isBar = target.hasAttribute('data-is-bar') || 
+                       ((target.tagName === 'path' || target.tagName === 'rect') && 
+                        target.getAttribute('fill') && 
+                        target.getAttribute('fill') !== 'none' && 
+                        target.getAttribute('fill') !== 'transparent');
+          
+          if (!isBar) {
+            // Try to find if click is on a bar by checking coordinates
+            const clickX = event.clientX;
+            const clickY = event.clientY;
+            const allBars = waterfallDivForClick.querySelectorAll('[data-is-bar="true"], path[data-is-bar="true"], rect[data-is-bar="true"]');
+            
+            let clickedBar = null;
+            for (const bar of allBars) {
+              const rect = bar.getBoundingClientRect();
+              if (clickX >= rect.left && clickX <= rect.right && 
+                  clickY >= rect.top && clickY <= rect.bottom) {
+                clickedBar = bar;
+                break;
+              }
+            }
+            
+            if (!clickedBar) return;
+          }
+          
+          // Use Plotly's coordinate system to determine bar index
+          try {
+            const plotlyDiv = waterfallDivForClick;
+            const plotlyData = plotlyDiv.data || [];
+            const plotlyLayout = plotlyDiv.layout || {};
+            
+            if (plotlyData.length === 0) {
+              // Fallback: use coordinate-based calculation
+              const xCategories = storedSteps.map(s => s.name);
+              const clickX = event.clientX;
+              const waterfallRect = waterfallDivForClick.getBoundingClientRect();
+              const relativeX = clickX - waterfallRect.left;
+              
+              // Simple division: assume bars are evenly spaced
+              const barWidth = waterfallRect.width / xCategories.length;
+              let barIndex = Math.floor(relativeX / barWidth);
+              if (barIndex < 0) barIndex = 0;
+              if (barIndex >= xCategories.length) barIndex = xCategories.length - 1;
+              
+              const stepName = storedSteps[barIndex].name;
+              
+              if (storedDrillDownMap[stepName]) {
+                navigateToDrillDown(stepName);
+              }
+            } else {
+              // Try to get x categories from Plotly data
+              const xCategories = plotlyData[0].x || storedSteps.map(s => s.name);
+              const clickX = event.clientX;
+              const waterfallRect = waterfallDivForClick.getBoundingClientRect();
+              const relativeX = clickX - waterfallRect.left;
+              
+              // Estimate bar index from click position
+              const estimatedIndex = Math.floor((relativeX / waterfallRect.width) * xCategories.length);
+              let barIndex = Math.max(0, Math.min(estimatedIndex, xCategories.length - 1));
+              
+              // Get step name
+              const clickedXValue = xCategories[barIndex];
+              
+              // Check if clickedXValue matches a step name
+              if (storedDrillDownMap[clickedXValue]) {
+                navigateToDrillDown(clickedXValue);
+              } else {
+                // Fallback: use index to get step name
+                if (barIndex >= 0 && barIndex < storedSteps.length) {
+                  const stepName = storedSteps[barIndex].name;
+                  if (storedDrillDownMap[stepName]) {
+                    navigateToDrillDown(stepName);
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            // Silently handle errors
+          }
+        };
+        
+        waterfallDivForClick.addEventListener('click', domClickHandler, true); // Use capture phase
+        waterfallDivForClick._domClickHandler = domClickHandler;
+      }, 1500);
+
+      renderBreakdownAccordionTable(filteredRows);
+      updateKpiCards(allData, filteredRows, !monthSelected, selectedMonth, assets);
+    }
+
+    function renderBreakdownAccordionTable(filteredRows) {
+      const failureTypes = [
+        { key: 'string failure', label: 'String', cls: 'string' },
+        { key: 'inverter failure', label: 'Inverter', cls: 'inverter' },
+        { key: 'ac_failure', label: 'AC', cls: 'ac' },
+        { key: 'scheduled_outage_loss', label: 'Scheduled', cls: 'scheduled' }
+      ];
+      // Group by Country > Portfolio > Asset
+      const groups = {};
+      filteredRows.forEach(row => {
+        const country = row.country || 'Unknown';
+        const portfolio = row.portfolio || 'Unknown';
+        const asset = row.assetno || 'Unknown';
+        if (!groups[country]) groups[country] = {};
+        if (!groups[country][portfolio]) groups[country][portfolio] = {};
+        if (!groups[country][portfolio][asset]) groups[country][portfolio][asset] = { total: 0 };
+        failureTypes.forEach(ft => {
+          groups[country][portfolio][asset][ft.key] = (groups[country][portfolio][asset][ft.key] || 0) + (Number(row[ft.key]) || 0);
+          groups[country][portfolio][asset].total += (Number(row[ft.key]) || 0);
+        });
+      });
+      // Calculate max abs value for each failure type
+      const maxFailure = {};
+      failureTypes.forEach(ft => {
+        let max = 0;
+        Object.entries(groups).forEach(([country, portfolios]) => {
+          Object.values(portfolios).forEach(assets => {
+            Object.values(assets).forEach(vals => {
+              max = Math.max(max, Math.abs(vals[ft.key] || 0));
+            });
+          });
+        });
+        maxFailure[ft.key] = max;
+      });
+      // Build table HTML with grouped Loss header
+      let html = '<table class="breakdown-table"><thead>';
+      html += '<tr>' +
+              '<th rowspan="2">Country</th>' +
+              '<th rowspan="2">Portfolio</th>' +
+              '<th rowspan="2">Asset</th>' +
+              `<th colspan="${failureTypes.length + 1}">Loss (MWh)</th>` +
+              '</tr>';
+      html += '<tr>';
+      failureTypes.forEach(ft => {
+        const extraClass = ft.cls ? ` ${ft.cls}` : '';
+        html += `<th class="failure-col${extraClass}">${ft.label}</th>`;
+      });
+      html += '<th class="failure-col">Total</th>';
+      html += '</tr></thead><tbody>';
+
+      // Grand total row
+      let grandTotal = { 'string failure': 0, 'inverter failure': 0, 'ac_failure': 0, 'scheduled_outage_loss': 0, total: 0 };
+      Object.entries(groups).forEach(([country, portfolios]) => {
+        Object.values(portfolios).forEach(assets => {
+          Object.values(assets).forEach(vals => {
+            failureTypes.forEach(ft => grandTotal[ft.key] += vals[ft.key] || 0);
+            grandTotal.total += vals.total;
+          });
+        });
+      });
+      html += `<tr class="grand-total-row"><td><b>All</b></td><td><b>All</b></td><td><b>All</b></td>`;
+      failureTypes.forEach(ft => {
+        const extraClass = ft.cls ? ` failure-col ${ft.cls}` : '';
+        html += `<td class="${extraClass}"><b>${formatNumber(Math.round(grandTotal[ft.key]))}</b></td>`;
+      });
+      html += `<td class="failure-col"><b>${formatNumber(Math.round(grandTotal.total))}</b></td></tr>`;
+
+      // Country row
+      Object.entries(groups).forEach(([country, portfolios], cIdx) => {
+        // Country row
+        const countryId = `country-${cIdx}`;
+         let countryTotal = { 'string failure': 0, 'inverter failure': 0, 'ac_failure': 0, 'scheduled_outage_loss': 0, total: 0 };
+        Object.values(portfolios).forEach(assets => {
+          Object.values(assets).forEach(vals => {
+            failureTypes.forEach(ft => countryTotal[ft.key] += vals[ft.key] || 0);
+            countryTotal.total += vals.total;
+          });
+        });
+        html += `<tr class="country-row" data-toggle="${countryId}"><td><button class="accordion-btn" data-target="${countryId}">+</button> ${country}</td><td></td><td></td>`;
+        failureTypes.forEach(ft => {
+          const extraClass = ft.cls ? ` failure-col ${ft.cls}` : '';
+          html += `<td class="${extraClass}">${formatNumber(Math.round(countryTotal[ft.key]))}</td>`;
+        });
+        html += `<td class="failure-col">${formatNumber(Math.round(countryTotal.total))}</td></tr>`;
+        // Portfolio rows
+        Object.entries(portfolios).forEach(([portfolio, assets], pIdx) => {
+          const portfolioId = `${countryId}-portfolio-${pIdx}`;
+           let portfolioTotal = { 'string failure': 0, 'inverter failure': 0, 'ac_failure': 0, 'scheduled_outage_loss': 0, total: 0 };
+          Object.values(assets).forEach(vals => {
+            failureTypes.forEach(ft => portfolioTotal[ft.key] += vals[ft.key] || 0);
+            portfolioTotal.total += vals.total;
+          });
+          html += `<tr class="portfolio-row" data-parent="${countryId}" data-toggle="${portfolioId}" style="display:none"><td></td><td><button class="accordion-btn" data-target="${portfolioId}">+</button> ${portfolio}</td><td></td>`;
+          failureTypes.forEach(ft => {
+            const extraClass = ft.cls ? ` failure-col ${ft.cls}` : '';
+            html += `<td class="${extraClass}">${formatNumber(Math.round(portfolioTotal[ft.key]))}</td>`;
+          });
+          html += `<td class="failure-col">${formatNumber(Math.round(portfolioTotal.total))}</td></tr>`;
+          // Asset rows
+          Object.entries(assets).forEach(([asset, vals]) => {
+            html += `<tr class="asset-row" data-parent="${portfolioId}" style="display:none"><td></td><td></td><td>${asset}</td>`;
+            failureTypes.forEach(ft => {
+              const value = Math.round(vals[ft.key]);
+              let width = maxFailure[ft.key] ? Math.abs(value) / maxFailure[ft.key] * 100 : 0; // 0-100% width
+              width = Math.max(width, value > 0 ? 10 : 0); // Minimum 10% width for nonzero values
+               let color = '#90caf9'; // light blue default
+              if (ft.key.includes('inverter')) color = '#b3c6f7'; // lighter blue
+              else if (ft.key.includes('ac')) color = '#ffccbc'; // light orange
+               else if (ft.key.includes('string')) color = '#bbdefb'; // very light blue
+               else if (ft.key.includes('scheduled')) color = '#ffe0b2'; // pale orange for scheduled
+              const extraClass = ft.cls ? ` failure-col ${ft.cls}` : ' failure-col';
+              html += `<td class="breakdown-bar-cell${extraClass}">
+                <div class="bar-indicator-bg" style="width:${width}%;background:${color}"></div>
+                <span class="bar-indicator-value">${formatNumber(value)}</span>
+              </td>`;
+            });
+            html += `<td>${formatNumber(Math.round(vals.total))}</td></tr>`;
+          });
+        });
+      });
+      html += '</tbody></table>';
+      document.getElementById('breakdown-table').innerHTML = html;
+      // Accordion logic
+      document.querySelectorAll('.accordion-btn').forEach(btn => {
+        btn.onclick = function() {
+          const target = this.getAttribute('data-target');
+          const rows = document.querySelectorAll(`[data-parent='${target}']`);
+          const expanded = this.textContent === '-';
+          this.textContent = expanded ? '+' : '-';
+          rows.forEach(row => {
+            row.style.display = expanded ? 'none' : '';
+            // Collapse all children if collapsing
+            if (expanded) {
+              row.querySelectorAll('.accordion-btn').forEach(childBtn => { childBtn.textContent = '+'; });
+              const childRows = document.querySelectorAll(`[data-parent='${row.getAttribute('data-toggle')}']`);
+              childRows.forEach(childRow => childRow.style.display = 'none');
+            }
+          });
+        };
+      });
+      
+      // Initialize column resizing
+      initializeColumnResizing();
+    }
+    
+    // Column Resizing Functionality
+    function initializeColumnResizing() {
+      const table = document.querySelector('.breakdown-table');
+      if (!table) return;
+      
+      // Get all columns from the second header row (the one with actual column headers)
+      const headerRow = table.querySelectorAll('thead tr:last-child th');
+      
+      headerRow.forEach((th, index) => {
+        // Skip if this is the last column (no need for resize handle on last column)
+        if (index === headerRow.length - 1) return;
+        
+        // Make sure th has position relative for the handle
+        if (!th.style.position) {
+          th.style.position = 'relative';
+        }
+        
+        // Create resize handle
+        const handle = document.createElement('div');
+        handle.className = 'column-resize-handle';
+        th.appendChild(handle);
+        
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+        let columnIndex = index;
+        
+        // Get all cells in this column (including header and data cells)
+        const getColumnCells = (colIndex) => {
+          const cells = [];
+          
+          // Add header cells from the last row (the one with column headers)
+          const headerCells = Array.from(table.querySelectorAll('thead tr:last-child th'));
+          if (headerCells[colIndex]) {
+            cells.push(headerCells[colIndex]);
+          }
+          
+          // Also check first header row for cells that span multiple rows
+          const firstHeaderRow = table.querySelector('thead tr:first-child');
+          if (firstHeaderRow) {
+            const firstRowCells = Array.from(firstHeaderRow.querySelectorAll('th'));
+            // Check if any first row cell spans this column
+            let colOffset = 0;
+            firstRowCells.forEach(cell => {
+              const colspan = parseInt(cell.getAttribute('colspan') || '1');
+              if (colIndex >= colOffset && colIndex < colOffset + colspan) {
+                cells.push(cell);
+              }
+              colOffset += colspan;
+            });
+          }
+          
+          // Add all data cells in this column
+          table.querySelectorAll('tbody tr').forEach(row => {
+            const cell = row.children[colIndex];
+            if (cell) {
+              cells.push(cell);
+            }
+          });
+          
+          return cells;
+        };
+        
+        handle.addEventListener('mousedown', (e) => {
+          isResizing = true;
+          startX = e.pageX;
+          const th = handle.parentElement;
+          startWidth = th.offsetWidth;
+          handle.classList.add('active');
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        
+        const handleMouseMove = (e) => {
+          if (!isResizing) return;
+          
+          const diffX = e.pageX - startX;
+          const newWidth = Math.max(50, startWidth + diffX); // Minimum column width of 50px
+          
+          const cells = getColumnCells(columnIndex);
+          cells.forEach(cell => {
+            cell.style.width = newWidth + 'px';
+            cell.style.minWidth = newWidth + 'px';
+            // Don't set maxWidth for flexibility, just minWidth
+          });
+          
+          e.preventDefault();
+        };
+        
+        const handleMouseUp = () => {
+          if (isResizing) {
+            isResizing = false;
+            handle.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+          }
+        };
+        
+        // Use document-level listeners to handle mouse movement outside the handle
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        // Store cleanup function on the handle for potential future use
+        handle._cleanup = () => {
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+      });
+    }
+
+    // --- DYNAMIC KPI CARDS ---
+    function updateKpiCards(yieldData, filteredRows, isYTD, selectedMonth, filteredAssets) {
+      const countries = getSelectedValues(countryMultiSelect);
+      const portfolios = getSelectedValues(portfolioMultiSelect);
+      const assets = getSelectedValues(assetMultiSelect);
+      const availableMonths = [...new Set(yieldData.map(row => row.month))].sort();
+
+      let kpiRows;
+      if (!selectedMonth && countries.length === 0 && portfolios.length === 0 && assets.length === 0) {
+        // No filters, no month: show latest month capacities
+        const latestMonth = availableMonths.length > 0 ? availableMonths[availableMonths.length - 1] : null;
+        kpiRows = yieldData.filter(r => r.month === latestMonth);
+      } else if (selectedMonth) {
+        // Month selected: show only that month
+        kpiRows = yieldData.filter(r => r.month === selectedMonth &&
+          (countries.length === 0 || countries.includes(r.country)) &&
+          (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+          (assets.length === 0 || assets.includes(String(r.assetno)))
+        );
+      } else {
+        // Filters selected, no month: use latest month
+        const latestMonth = availableMonths.length > 0 ? availableMonths[availableMonths.length - 1] : null;
+        kpiRows = yieldData.filter(r => r.month === latestMonth &&
+          (countries.length === 0 || countries.includes(r.country)) &&
+          (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+          (assets.length === 0 || assets.includes(String(r.assetno)))
+        );
+      }
+      // Sum up the capacities
+      let dc = 0, ac = 0, bess = 0;
+      kpiRows.forEach(row => {
+        dc += Number(row.dc_capacity_mw) || 0;
+        ac += Number(row.ac_capacity_mw) || 0;
+        bess += Number(row.bess_capacity_mwh) || 0;
+      });
+      // Update the card values in the DOM
+      const dcCard = document.querySelector('.kpi-card.dc .kpi-value');
+      const acCard = document.querySelector('.kpi-card.ac .kpi-value');
+      const bessCard = document.querySelector('.kpi-card.bess .kpi-value');
+      if (dcCard) dcCard.textContent = dc.toFixed(2);
+      if (acCard) acCard.textContent = ac.toFixed(2);
+      if (bessCard) bessCard.textContent = bess.toFixed(2);
+    }
+
+    document.getElementById('resetFiltersBtn').addEventListener('click', function() {
+      // Reset button clicked
+      
+      // Reset month picker and filters
+      selectedMonth = null;
+      selectedYear = null;
+      
+      // Reset BestCalendar if available
+      if (yieldCalendar && typeof yieldCalendar.reset === 'function') {
+        yieldCalendar.reset();
+      }
+      
+      // Clear range selections
+      if (window.currentBestCalendar && window.currentBestCalendar.selectedRange) {
+        window.currentBestCalendar.selectedRange = { start: null, end: null };
+      }
+      
+      // Reset multi-select dropdowns
+      if (countryMultiSelect) countryMultiSelect.clearSelection();
+      if (portfolioMultiSelect) portfolioMultiSelect.clearSelection();
+      if (assetMultiSelect) assetMultiSelect.clearSelection();
+      
+      // Re-populate portfolio and asset filters with all available options
+      const allPortfolios = getUnique(allData, 'portfolio');
+      const allAssets = getUnique(allData, 'assetno');
+      
+      // Re-populating filters after reset
+      
+      populateMultiSelect(portfolioMultiSelect, allPortfolios);
+      populateMultiSelect(assetMultiSelect, allAssets);
+      
+      // Reset month label
+      document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+      
+      updateChart();
+    });
+
+    function buildChartTitle(prefix, months, countries, portfolios, assetNos, allCountries, allPortfolios) {
+      let monthTitle = 'YTD';
+      if (months.length === 1) {
+        // If the string is just a year (e.g., '2025'), use it directly
+        if (/^\d{4}$/.test(months[0])) {
+          monthTitle = months[0];
+        } else {
+          monthTitle = formatMonthLabel(months[0]);
+        }
+      } else if (months.length > 1) {
+        monthTitle = formatMonthLabel(months[0]) + ' – ' + formatMonthLabel(months[months.length - 1]);
+      }
+
+      let countryTitle = 'All Countries';
+      if (countries.length === 1) {
+        countryTitle = countries[0];
+      } else if (countries.length > 1 && countries.length < allCountries.length) {
+        countryTitle = 'Multiple Countries';
+      }
+
+      let portfolioTitle = 'All Portfolios';
+      if (portfolios.length === 1) {
+        portfolioTitle = portfolios[0];
+      } else if (portfolios.length > 1 && portfolios.length < allPortfolios.length) {
+        portfolioTitle = 'Multiple Portfolios';
+      }
+
+      let assetTitle = 'All Assets';
+      if (assetNos.length === 1) {
+        assetTitle = 'Asset ' + assetNos[0];
+      } else if (assetNos.length > 1 && assetNos.length < allCountries.length) {
+        assetTitle = 'Multiple Assets';
+      }
+
+      return `${prefix}: ${countryTitle} - ${portfolioTitle} - ${monthTitle} - ${assetTitle}`;
+    }
+
+    // On window resize, re-render or resize charts
+    window.addEventListener('resize', function() {
+      if (window.Plotly) {
+        Plotly.Plots.resize(document.getElementById('waterfall'));
+      }
+    });
+
+    // Function to resize all charts
+    function resizeAllCharts() {
+      if (window.Plotly) {
+        const waterfallChart = document.getElementById('waterfall');
+        
+        if (waterfallChart && waterfallChart.data) {
+          Plotly.Plots.resize(waterfallChart);
+        }
+      }
+    }
+
+    // Responsive font size helper for charts
+    function getResponsiveFontSize(base, max = 22, min = 8) {
+      const width = window.innerWidth;
+      return Math.min(Math.max(Math.round(base * (width / 1920)), min), max);
+    }
+
+    // Call resize on page load
+    window.addEventListener('load', function() {
+      setTimeout(resizeAllCharts, 500);
+    });
+
+    // Also call resize after data loads
+    document.addEventListener("DOMContentLoaded", function () {
+    {% if error_message %}
+      showError('Error loading yield data: {{ error_message }}');
+      allData = [];
+    {% elif yield_data_json %}
+      const data = {{ yield_data_json|safe }};
+      allData = data.map(row => {
+        const cleaned = {};
+        for (let key in row) {
+          const normKey = key.trim().toLowerCase();
+          let val = row[key];
+          if (typeof val === 'string') val = val.trim();
+          cleaned[normKey] = val;
+
+          if (["country", "portfolio", "assetno"].includes(normKey)) {
+            cleaned[normKey + '_norm'] = String(val).trim().toLowerCase();
+          }
+        }
+        if ('assetno' in cleaned) cleaned.assetno = String(cleaned.assetno).trim();
+        return cleaned;
+      });
+    {% else %}
+      showError('No yield data available. Please check your permissions.');
+      allData = [];
+    {% endif %}
+
+    // Initialize multi-select components
+    initializeMultiSelects();
+    
+    // Populate initial dropdowns with all available options
+    const allCountries = getUnique(allData, 'country');
+    const allPortfolios = getUnique(allData, 'portfolio');
+    const allAssets = getUnique(allData, 'assetno');
+    
+    populateMultiSelect(countryMultiSelect, allCountries);
+    populateMultiSelect(portfolioMultiSelect, allPortfolios);
+    populateMultiSelect(assetMultiSelect, allAssets);
+    
+    // Debug: Log the multi-select instances to ensure they're properly initialized
+    // Multi-select instances initialized
+    
+    // Debug: Test the multi-select functionality
+    setTimeout(() => {
+      if (countryMultiSelect) {
+        // Country multi-select debug logged
+      }
+      
+      // Force asset filter width after initialization
+      const assetContainer = document.querySelector('.asset-filter-container');
+      const assetDropdown = document.getElementById('filterAssetDropdown');
+      
+      if (assetContainer) {
+        assetContainer.style.minWidth = '225px';
+        assetContainer.style.maxWidth = '400px';
+        assetContainer.style.width = 'auto';
+        // Asset container width forced
+      }
+      
+      if (assetDropdown) {
+        assetDropdown.style.minWidth = '225px';
+        assetDropdown.style.maxWidth = '400px';
+        assetDropdown.style.width = 'auto';
+        // Asset dropdown width forced
+      }
+      
+      // Force reset button positioning
+      const resetContainer = document.querySelector('.reset-button-container');
+      if (resetContainer) {
+        resetContainer.style.marginLeft = '8px';
+        resetContainer.style.marginRight = '0';
+        resetContainer.style.position = 'relative';
+        resetContainer.style.right = 'auto';
+        resetContainer.style.display = 'flex';
+        resetContainer.style.alignItems = 'center';
+        // Reset button positioning fixed - next to calendar
+      }
+    }, 1000);
+
+    // Initialize BestCalendar
+    function initializeBestCalendar() {
+      if (typeof BestCalendar === 'undefined') {
+        return false;
+      }
+      yieldCalendar = new BestCalendar({
+        triggerId: 'monthMatrixTrigger',
+        pickerId: 'monthMatrixPicker',
+        labelId: 'selectedMonthLabel',
+        data: [],
+        options: {
+          range: true, // Enable range selection mode
+          onPeriodChange: function (period) {
+            selectedMonth = period.month;
+            selectedYear = period.year;
+            if (period && period.range) {
+              // Handle range selection
+              const lbl = document.getElementById('selectedMonthLabel');
+              if (lbl) { 
+                const startDate = formatMonthLabel(period.range.start);
+                const endDate = formatMonthLabel(period.range.end);
+                lbl.textContent = `${startDate} - ${endDate}`;
+              }
+            } else if (period && period.month) {
+              const lbl = document.getElementById('selectedMonthLabel');
+              if (lbl) { lbl.textContent = formatMonthLabel(period.month); }
+            } else if (period && period.year) {
+              const lbl = document.getElementById('selectedMonthLabel');
+              if (lbl) { lbl.textContent = String(period.year) + ' (Full Year)'; }
+            }
+            
+            // Hide the picker when a period is selected
+            const pickerElement = document.getElementById('monthMatrixPicker');
+            if (pickerElement) {
+              pickerElement.classList.remove('show-picker');
+              pickerElement.classList.add('bc-hidden');
+            }
+            
+            updateChart();
+          }
+        }
+      });
+
+      window.currentBestCalendar = yieldCalendar;
+
+      const availableMonths = [...new Set(allData.map(row => row.month).filter(Boolean))];
+
+      let convertedMonths = [];
+      if (availableMonths.length > 0) {
+        const firstMonth = availableMonths[0];
+        if (firstMonth.includes('-')) {
+          if (/^\d{4}-\d{2}$/.test(firstMonth)) {
+            convertedMonths = availableMonths;
+          } else {
+            convertedMonths = availableMonths.map(monthStr => {
+              const [year, month] = monthStr.split('-');
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const monthIndex = monthNames.indexOf(month);
+              const fullYear = '20' + year;
+              const monthNum = String(monthIndex + 1).padStart(2, '0');
+              return `${fullYear}-${monthNum}`;
+            });
+          }
+        } else {
+          convertedMonths = availableMonths;
+        }
+      }
+
+      yieldCalendar.setData(convertedMonths.map(month => ({ month, value: 1 })));
+
+            const picker = document.getElementById('monthMatrixPicker');
+      if (picker) { picker.innerHTML = ''; }
+      
+      // Force BestCalendar to render its content
+      if (typeof yieldCalendar.renderTabs === 'function') {
+        yieldCalendar.renderTabs();
+      }
+      if (typeof yieldCalendar.renderPicker === 'function') {
+        yieldCalendar.renderPicker();
+      }
+
+      // Ensure months are enabled by selecting the latest available year
+      try {
+        const years = [...new Set(convertedMonths.map(m => m.split('-')[0]))].sort();
+        if (years.length) {
+          yieldCalendar.selectedYear = parseInt(years[years.length - 1]);
+          if (typeof yieldCalendar.renderPicker === 'function') {
+            yieldCalendar.renderPicker();
+          }
+          if (typeof yieldCalendar.updateLabel === 'function') {
+            yieldCalendar.updateLabel();
+          }
+        }
+      } catch (e) { /* no-op */ }
+
+      // Ensure picker starts hidden
+      const initialPicker = document.getElementById('monthMatrixPicker');
+      if (initialPicker) {
+        initialPicker.classList.add('bc-hidden');
+        initialPicker.classList.remove('show-picker');
+        initialPicker.style.display = 'none';
+      }
+
+      const trigger = document.getElementById('monthMatrixTrigger');
+      if (trigger) {
+        trigger.removeEventListener('click', trigger._calendarClickHandler);
+        trigger._calendarClickHandler = function () {
+          const pickerElement = document.getElementById('monthMatrixPicker');
+          
+          if (pickerElement) {
+            const isVisible = pickerElement.classList.contains('show-picker');
+            
+            if (isVisible) {
+              // Hide picker
+              pickerElement.classList.remove('show-picker');
+              pickerElement.classList.add('bc-hidden');
+            } else {
+              // Show picker
+              if (typeof yieldCalendar.renderPicker === 'function') {
+                // Ensure content is rendered before showing
+                yieldCalendar.renderTabs();
+                yieldCalendar.renderPicker();
+                yieldCalendar.showPicker();
+                
+                // Force picker to be visible
+                pickerElement.classList.remove('bc-hidden');
+                pickerElement.classList.add('show-picker');
+              }
+            }
+          }
+        };
+        trigger.addEventListener('click', trigger._calendarClickHandler);
+        
+        // Add click outside handler to hide picker (only once)
+        if (!document._calendarClickOutsideHandler) {
+          document._calendarClickOutsideHandler = function(event) {
+            const outsidePicker = document.getElementById('monthMatrixPicker');
+            const outsideTrigger = document.getElementById('monthMatrixTrigger');
+            
+            if (outsidePicker && outsideTrigger && 
+                !outsidePicker.contains(event.target) && 
+                !outsideTrigger.contains(event.target)) {
+              outsidePicker.classList.remove('show-picker');
+              outsidePicker.classList.add('bc-hidden');
+            }
+          };
+          document.addEventListener('click', document._calendarClickOutsideHandler);
+        }
+      }
+      return true;
+    }
+    
+    // Fallback month picker if BestCalendar fails
+    function createFallbackMonthPicker() {
+      const trigger = document.getElementById('monthMatrixTrigger');
+      const picker = document.getElementById('monthMatrixPicker');
+      
+      if (!trigger || !picker) { return; }
+      
+      const availableMonths = [...new Set(allData.map(row => row.month).filter(Boolean))].sort();
+      
+      if (availableMonths.length === 0) { return; }
+      
+      // Create simple dropdown
+      picker.innerHTML = `
+        <div style="padding: 16px; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+          <h4 style="margin: 0 0 12px 0; color: #0072CE;">Select Month</h4>
+          <select id="fallbackMonthSelect" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <option value="">Select a month...</option>
+            ${availableMonths.map(month => `<option value="${month}">${formatMonthLabel(month)}</option>`).join('')}
+          </select>
+          <div style="margin-top: 12px; text-align: right;">
+            <button id="fallbackCancelBtn" style="padding: 6px 12px; margin-right: 8px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; cursor: pointer;">Cancel</button>
+            <button id="fallbackApplyBtn" style="padding: 6px 12px; border: 1px solid #0072CE; background: #0072CE; color: white; border-radius: 4px; cursor: pointer;">Apply</button>
+          </div>
+        </div>
+      `;
+      
+      // Add event listeners
+      document.getElementById('fallbackCancelBtn')?.addEventListener('click', () => {
+        picker.style.display = 'none';
+      });
+      
+      document.getElementById('fallbackApplyBtn')?.addEventListener('click', () => {
+        const monthValue = document.getElementById('fallbackMonthSelect').value;
+        if (monthValue) {
+          selectedMonth = monthValue;
+          selectedYear = monthValue.split('-')[0];
+          document.getElementById('selectedMonthLabel').textContent = formatMonthLabel(monthValue);
+          picker.style.display = 'none';
+          updateChart();
+        }
+      });
+      
+      // Show picker when trigger is clicked
+      trigger.onclick = () => {
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+      };
+      
+      // Close picker when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!picker.contains(e.target) && !trigger.contains(e.target)) {
+          picker.style.display = 'none';
+        }
+      });
+    }
+
+    // Init calendar
+    const calendarInitResult = initializeBestCalendar();
+    if (!calendarInitResult) { 
+      createFallbackMonthPicker(); 
+    }
+
+    // Refresh UI
+    updateChart();
+    
+    // Ensure calendar is properly initialized but not automatically shown
+    setTimeout(() => {
+      if (yieldCalendar && typeof yieldCalendar.renderTabs === 'function') {
+        // Pre-render the calendar content but keep it hidden
+        yieldCalendar.renderTabs();
+        yieldCalendar.renderPicker();
+        
+        // Ensure picker starts hidden
+        const picker = document.getElementById('monthMatrixPicker');
+        if (picker) {
+          picker.classList.add('bc-hidden');
+          picker.classList.remove('show-picker');
+        }
+      }
+    }, 2000);
+
+    setTimeout(resizeAllCharts, 1000);
+    setTimeout(() => {
+      document.getElementById('resetFiltersBtn')?.click();
+    }, 120);
+  });
+
+  </script>
+  <script>
+    function setBreakdownTableTitleFont() {
+      var div = document.getElementById('breakdown-table-title');
+      if (!div) return;
+      var size = getResponsiveFontSize(20, 24, 12);
+      div.style.fontSize = size + 'px';
+      div.style.fontFamily = 'Arial, sans-serif';
+      div.style.fontWeight = '700';
+      div.style.color = '#225184';
+      div.style.textAlign = 'center';
+    }
+    window.addEventListener('resize', setBreakdownTableTitleFont);
+    document.addEventListener('DOMContentLoaded', setBreakdownTableTitleFont);
+    setTimeout(setBreakdownTableTitleFont, 1000);
+  </script>
+</body>
+</html>

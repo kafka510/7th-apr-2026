@@ -1,0 +1,825 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Ticket {{ ticket.ticket_number }} - Ticketing System{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'ticketing/css/tickets.css' %}">
+<script src="{% static 'ticketing/js/device_selection.js' %}"></script>
+<script src="{% static 'ticketing/js/image_paste.js' %}"></script>
+
+<!-- Multi-select with checkbox styling -->
+<style>
+    /* Multi-select dropdown styling with checkboxes */
+    .multi-select-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        z-index: 1000;
+    }
+    
+    /* Higher z-index for left column to ensure dropdowns appear above cards */
+    .col-lg-5 .multi-select-container {
+        z-index: 10000;
+    }
+    
+    .multi-select-trigger {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 12px;
+        background: white !important;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: border-color 0.2s;
+        height: 42px;
+        position: relative;
+        z-index: 1001;
+    }
+    
+    .multi-select-trigger:hover {
+        border-color: #0d6efd;
+        background: white !important;
+    }
+    
+    .multi-select-trigger.active {
+        border-color: #0d6efd;
+        background: white !important;
+    }
+    
+    .multi-select-arrow {
+        font-size: 12px;
+        color: #0d6efd;
+        transition: transform 0.2s;
+    }
+    
+    .multi-select-trigger.active .multi-select-arrow {
+        transform: rotate(180deg);
+    }
+    
+    .multi-select-trigger.disabled {
+        background-color: #f1f3f5 !important;
+        cursor: not-allowed;
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .multi-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white !important;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+        z-index: 10001 !important;
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: none;
+        padding: 4px 0;
+        scrollbar-width: thin;
+        scrollbar-color: #0072CE #f1f1f1;
+        min-width: 100%;
+        margin-top: 2px;
+    }
+    
+    /* Ensure left column dropdowns have highest z-index */
+    .col-lg-5 .multi-select-dropdown {
+        z-index: 10002 !important;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb {
+        background: #0072CE;
+        border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb:hover {
+        background: #0056b3;
+    }
+    
+    .multi-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        min-height: 20px;
+    }
+    
+    .multi-select-option:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .multi-select-option.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.disabled:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.select-all-option {
+        border-bottom: 1px solid #e0e0e0;
+        font-weight: 600;
+        color: #0d6efd;
+    }
+    
+    .multi-select-separator {
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 4px 0;
+    }
+    
+    /* Checkbox styling */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+        display: none;
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        width: 100%;
+        font-size: 14px;
+        color: #333;
+    }
+    
+    .checkbox-custom {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ccc;
+        border-radius: 3px;
+        margin-right: 8px;
+        position: relative;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+        content: '✓';
+        position: absolute;
+        top: -2px;
+        left: 1px;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .checkbox-text {
+        flex: 1;
+    }
+    
+    .selected-items {
+        display: none;
+    }
+</style>
+
+<!-- Header -->
+<div class="card shadow-sm border-0 mb-1" style="margin-top: -1.5rem !important;">
+    <div class="card-body py-1 d-flex flex-column flex-md-row justify-content-end align-items-md-center">
+        <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Ticket
+        </a>
+    </div>
+</div>
+
+<!-- Two-Column Responsive Layout -->
+<form method="post" class="needs-validation" novalidate>
+    {% csrf_token %}
+    
+    <div class="row g-1">
+        <!-- LEFT COLUMN: Site & Device Selection -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm mb-1">
+                <div class="card-header bg-light py-1">
+                    <h5 class="mb-0 fw-semibold text-primary">
+                        <i class="fas fa-map-marker-alt me-2"></i>Site & Device Selection
+                    </h5>
+                </div>
+                <div class="card-body p-1">
+                    <!-- Site Selection -->
+                    <div class="row g-1">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Site <span class="text-danger">*</span></label>
+                            <div class="multi-select-container">
+                                <div id="siteFilterTrigger" class="multi-select-trigger">
+                                    <span id="siteFilterPlaceholder" data-default="Select Site" class="text-muted">Select Site</span>
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                <div id="siteFilterDropdown" class="multi-select-dropdown"></div>
+                                <div id="siteSelectedItems" class="selected-items"></div>
+                            </div>
+                            <select name="asset_code" id="asset-select" class="d-none" required>
+                                <option value="">Select Site</option>
+                                {% for asset in form.asset_code.field.queryset %}
+                                    <option value="{{ asset.asset_code }}" {% if form.asset_code.value == asset.asset_code %}selected{% endif %}>
+                                        {{ asset.asset_name }} ({{ asset.asset_code }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <div id="siteHiddenInputs"></div>
+                            {% if form.asset_code.errors %}
+                                <div class="text-danger small">{{ form.asset_code.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Device Details -->
+                    <div class="row g-1 mt-1">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Device Type <span class="text-danger">*</span></label>
+                            <div class="multi-select-container">
+                                <div id="deviceTypeFilterTrigger" class="multi-select-trigger">
+                                    <span id="deviceTypeFilterPlaceholder" data-default="Select site first" class="text-muted">Select site first</span>
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                <div id="deviceTypeFilterDropdown" class="multi-select-dropdown"></div>
+                                <div id="deviceTypeSelectedItems" class="selected-items"></div>
+                            </div>
+                            <select id="device-type-select" class="d-none" disabled required>
+                                <option value="">Select site first</option>
+                            </select>
+                            <div id="deviceTypeHiddenInputs"></div>
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Device Name <span class="text-danger">*</span></label>
+                            <div class="multi-select-container">
+                                <div id="deviceFilterTrigger" class="multi-select-trigger">
+                                    <span id="deviceFilterPlaceholder" data-default="Select device type first" class="text-muted">Select device type first</span>
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                <div id="deviceFilterDropdown" class="multi-select-dropdown"></div>
+                                <div id="deviceSelectedItems" class="selected-items"></div>
+                            </div>
+                            <select id="device-select" class="d-none" disabled required>
+                                <option value="">Select device type first</option>
+                            </select>
+                            {{ form.device_id }}
+                            <div id="deviceHiddenInputs"></div>
+                            {% if form.device_id.errors %}
+                                <div class="text-danger small">{{ form.device_id.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Sub Device (Optional)</label>
+                            <div class="multi-select-container">
+                                <div id="subDeviceFilterTrigger" class="multi-select-trigger">
+                                    <span id="subDeviceFilterPlaceholder" data-default="Select device name first" class="text-muted">Select device name first</span>
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                <div id="subDeviceFilterDropdown" class="multi-select-dropdown"></div>
+                                <div id="subDeviceSelectedItems" class="selected-items"></div>
+                            </div>
+                            <select id="sub-device-select" class="d-none" disabled>
+                                <option value="">Select device name first</option>
+                            </select>
+                            {{ form.sub_device_id }}
+                            <div id="subDeviceHiddenInputs"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Fields -->
+                    {{ form.device_type }}
+                    {{ form.device_sub_group }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- RIGHT COLUMN: Basic Information -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm mb-1">
+                <div class="card-header bg-light py-1">
+                    <h5 class="mb-0 fw-semibold text-primary">
+                        <i class="fas fa-info-circle me-2"></i>Basic Information
+                    </h5>
+                </div>
+                <div class="card-body p-1">
+                    <!-- Ticket Summary (Read-only Info) -->
+                    <div class="row g-1 mb-2 pb-2 border-bottom">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-muted" style="font-size: 0.85rem;">Created By</label>
+                            <div class="form-control-plaintext" style="font-size: 0.9rem;">
+                                {% if ticket.created_by %}
+                                    <i class="fas fa-user me-1"></i>{{ ticket.created_by.username }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-muted" style="font-size: 0.85rem;">Created At</label>
+                            <div class="form-control-plaintext" style="font-size: 0.9rem;">
+                                <i class="fas fa-calendar me-1"></i>{{ ticket.created_at|date:"M d, Y H:i" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Title / Category / Priority -->
+                    <div class="row g-1">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                            {{ form.title }}
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                            <div class="multi-select-container">
+                                <div id="categoryFilterTrigger" class="multi-select-trigger">
+                                    <span id="categoryFilterPlaceholder" data-default="Select Category" class="text-muted">Select Category</span>
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                <div id="categoryFilterDropdown" class="multi-select-dropdown"></div>
+                                <div id="categorySelectedItems" class="selected-items"></div>
+                            </div>
+                            <select name="category" id="id_category" class="d-none" required>
+                                <option value="">Select Category</option>
+                                {% for value, label in form.category.field.choices %}
+                                    {% if value %}
+                                        <option value="{{ value }}" {% if form.category.value == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div id="categoryHiddenInputs"></div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Priority <span class="text-danger">*</span></label>
+                            <div class="multi-select-container">
+                                <div id="priorityFilterTrigger" class="multi-select-trigger">
+                                    <span id="priorityFilterPlaceholder" data-default="Select Priority" class="text-muted">Select Priority</span>
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                <div id="priorityFilterDropdown" class="multi-select-dropdown"></div>
+                                <div id="prioritySelectedItems" class="selected-items"></div>
+                            </div>
+                            <select name="priority" id="id_priority" class="d-none" required>
+                                <option value="">Select Priority</option>
+                                {% for value, label in form.priority.field.choices %}
+                                    {% if value %}
+                                        <option value="{{ value }}" {% if form.priority.value == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <div id="priorityHiddenInputs"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="mt-1">
+                        <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                        {{ form.description }}
+                    </div>
+                    
+                    <!-- Loss / Assign / Loss Category -->
+                    <div class="row g-1 mt-1">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Loss Category (Optional)</label>
+                            {{ form.loss_category }}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Loss Value (Optional)</label>
+                            {{ form.loss_value }}
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Assign To (Optional)</label>
+                            <div class="multi-select-container">
+                                <div id="assignToFilterTrigger" class="multi-select-trigger">
+                                    <span id="assignToFilterPlaceholder" data-default="Select User" class="text-muted">Select User</span>
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                <div id="assignToFilterDropdown" class="multi-select-dropdown"></div>
+                                <div id="assignToSelectedItems" class="selected-items"></div>
+                            </div>
+                            <select name="assigned_to" id="id_assigned_to" class="d-none">
+                                <option value="">Select User</option>
+                                {% for user in form.assigned_to.field.queryset %}
+                                    <option value="{{ user.id }}" {% if form.assigned_to.value == user.id %}selected{% endif %}>{{ user.username }}</option>
+                                {% endfor %}
+                            </select>
+                            <div id="assignToHiddenInputs"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Watchers -->
+                    <div class="mt-1">
+                        <label class="form-label fw-semibold">Watchers / Collaborators (Optional)</label>
+                        <div class="multi-select-container">
+                            <div id="watchersFilterTrigger" class="multi-select-trigger">
+                                <span id="watchersFilterPlaceholder" data-default="Select watchers" class="text-muted">Select watchers</span>
+                                <span class="multi-select-arrow">▼</span>
+                            </div>
+                            <div id="watchersFilterDropdown" class="multi-select-dropdown"></div>
+                            <div id="watchersSelectedItems" class="selected-items"></div>
+                        </div>
+                        <div id="watchersHiddenInputs"></div>
+                        <small class="text-muted">Search and select multiple users</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end gap-2 mt-1">
+        <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="btn btn-outline-secondary">
+            <i class="fas fa-times me-2"></i>Cancel
+        </a>
+        <button type="submit" class="btn btn-primary px-4">
+            <i class="fas fa-save me-2"></i>Save Changes
+        </button>
+    </div>
+</form>
+
+<!-- Multi-Select JavaScript -->
+<script src="{% static 'js/multi-select.js' %}"></script>
+
+<!-- Bootstrap 5 Validation Script -->
+<script>
+(() => {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+
+<!-- Initialize Multi-Select for All Fields -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Function to ensure dropdowns have proper z-index when open
+    function ensureDropdownZIndex() {
+        const dropdowns = document.querySelectorAll('.multi-select-dropdown');
+        dropdowns.forEach(dropdown => {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const isOpen = dropdown.style.display === 'block';
+                        const container = dropdown.closest('.multi-select-container');
+                        
+                        if (isOpen) {
+                            dropdown.style.zIndex = '10005';
+                            dropdown.style.background = 'white';
+                            dropdown.style.opacity = '1';
+                            if (container) {
+                                container.style.zIndex = '10006';
+                            }
+                            const options = dropdown.querySelectorAll('.multi-select-option, .checkbox-container, .checkbox-label');
+                            options.forEach(opt => {
+                                opt.style.pointerEvents = 'auto';
+                                opt.style.cursor = 'pointer';
+                            });
+                        } else {
+                            if (container) {
+                                const isLeftColumn = container.closest('.col-lg-5');
+                                container.style.zIndex = isLeftColumn ? '10000' : '1000';
+                            }
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(dropdown, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+        });
+    }
+    
+    ensureDropdownZIndex();
+    
+    if (typeof MultiSelect !== 'undefined') {
+        const originalToggle = MultiSelect.prototype.toggleDropdown;
+        MultiSelect.prototype.toggleDropdown = function() {
+            const result = originalToggle.call(this);
+            if (this.isOpen()) {
+                this.dropdown.style.zIndex = '10005';
+                this.dropdown.style.background = 'white';
+                this.dropdown.style.opacity = '1';
+                const container = this.dropdown.closest('.multi-select-container');
+                if (container) {
+                    container.style.zIndex = '10006';
+                }
+                const options = this.dropdown.querySelectorAll('.multi-select-option, .checkbox-container, .checkbox-label');
+                options.forEach(opt => {
+                    opt.style.pointerEvents = 'auto';
+                    opt.style.cursor = 'pointer';
+                    opt.style.background = 'transparent';
+                });
+            }
+            return result;
+        };
+        
+        const originalClose = MultiSelect.prototype.closeDropdown;
+        MultiSelect.prototype.closeDropdown = function() {
+            const result = originalClose.call(this);
+            const container = this.dropdown.closest('.multi-select-container');
+            if (container) {
+                const isLeftColumn = container.closest('.col-lg-5');
+                container.style.zIndex = isLeftColumn ? '10000' : '1000';
+            }
+            return result;
+        };
+    }
+    
+    // Function to update hidden inputs for form submission
+    function updateHiddenInputs(containerId, selectedValues, paramName, hiddenSelectId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        selectedValues.forEach(value => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = paramName;
+            input.value = value;
+            container.appendChild(input);
+        });
+        
+        if (hiddenSelectId) {
+            const hiddenSelect = document.getElementById(hiddenSelectId);
+            if (hiddenSelect) {
+                if (selectedValues.length > 0) {
+                    hiddenSelect.value = selectedValues[0];
+                    hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    hiddenSelect.value = '';
+                    hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        }
+    }
+    
+    // Function to sync multi-select with hidden select when hidden select changes
+    function syncMultiSelectFromHiddenSelect(multiSelectInstance, hiddenSelectId, placeholderId) {
+        const hiddenSelect = document.getElementById(hiddenSelectId);
+        if (hiddenSelect && multiSelectInstance) {
+            hiddenSelect.addEventListener('change', function() {
+                const value = hiddenSelect.value;
+                if (value) {
+                    multiSelectInstance.setSelectedValues([value]);
+                } else {
+                    multiSelectInstance.setSelectedValues([]);
+                }
+            });
+        }
+    }
+    
+    // Initialize Site multi-select
+    const siteOptions = [
+        {% for asset in form.asset_code.field.queryset %}
+        { value: '{{ asset.asset_code }}', label: '{{ asset.asset_name }} ({{ asset.asset_code }})' },
+        {% endfor %}
+    ];
+    let siteMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && siteOptions.length > 0) {
+        siteMultiSelect = new MultiSelect(
+            'siteFilterTrigger',
+            'siteFilterDropdown',
+            'siteFilterPlaceholder',
+            'siteSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('siteHiddenInputs', selectedValues, 'asset_code', 'asset-select');
+            }
+        );
+        siteMultiSelect.setOptions(siteOptions);
+        {% if form.asset_code.value %}
+        siteMultiSelect.setSelectedValues(['{{ form.asset_code.value }}']);
+        {% endif %}
+        syncMultiSelectFromHiddenSelect(siteMultiSelect, 'asset-select', 'siteFilterPlaceholder');
+    }
+    
+    // Initialize Category multi-select
+    const categoryOptions = [
+        {% for value, label in form.category.field.choices %}
+        {% if value %}{ value: '{{ value }}', label: '{{ label }}' },{% endif %}
+        {% endfor %}
+    ];
+    let categoryMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && categoryOptions.length > 0) {
+        categoryMultiSelect = new MultiSelect(
+            'categoryFilterTrigger',
+            'categoryFilterDropdown',
+            'categoryFilterPlaceholder',
+            'categorySelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('categoryHiddenInputs', selectedValues, 'category', 'id_category');
+            }
+        );
+        categoryMultiSelect.setOptions(categoryOptions);
+        {% if form.category.value %}
+        categoryMultiSelect.setSelectedValues(['{{ form.category.value }}']);
+        {% endif %}
+    }
+    
+    // Initialize Priority multi-select
+    const priorityOptions = [
+        {% for value, label in form.priority.field.choices %}
+        {% if value %}{ value: '{{ value }}', label: '{{ label }}' },{% endif %}
+        {% endfor %}
+    ];
+    let priorityMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && priorityOptions.length > 0) {
+        priorityMultiSelect = new MultiSelect(
+            'priorityFilterTrigger',
+            'priorityFilterDropdown',
+            'priorityFilterPlaceholder',
+            'prioritySelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('priorityHiddenInputs', selectedValues, 'priority', 'id_priority');
+            }
+        );
+        priorityMultiSelect.setOptions(priorityOptions);
+        {% if form.priority.value %}
+        priorityMultiSelect.setSelectedValues(['{{ form.priority.value }}']);
+        {% endif %}
+    }
+    
+    // Initialize Assign To multi-select
+    const assignToOptions = [
+        {% for user in form.assigned_to.field.queryset %}
+        { value: '{{ user.id }}', label: '{{ user.username }}' },
+        {% endfor %}
+    ];
+    let assignToMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && assignToOptions.length > 0) {
+        assignToMultiSelect = new MultiSelect(
+            'assignToFilterTrigger',
+            'assignToFilterDropdown',
+            'assignToFilterPlaceholder',
+            'assignToSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('assignToHiddenInputs', selectedValues, 'assigned_to', 'id_assigned_to');
+            }
+        );
+        assignToMultiSelect.setOptions(assignToOptions);
+        {% if form.assigned_to.value %}
+        assignToMultiSelect.setSelectedValues(['{{ form.assigned_to.value }}']);
+        {% endif %}
+    }
+    
+    // Initialize Device Type multi-select (will be populated dynamically)
+    let deviceTypeMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined') {
+        deviceTypeMultiSelect = new MultiSelect(
+            'deviceTypeFilterTrigger',
+            'deviceTypeFilterDropdown',
+            'deviceTypeFilterPlaceholder',
+            'deviceTypeSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('deviceTypeHiddenInputs', selectedValues, 'device_type', 'device-type-select');
+            }
+        );
+        deviceTypeMultiSelect.setOptions([]);
+        const deviceTypeTrigger = document.getElementById('deviceTypeFilterTrigger');
+        if (deviceTypeTrigger) {
+            deviceTypeTrigger.classList.add('disabled');
+            deviceTypeTrigger.style.pointerEvents = 'none';
+        }
+        syncMultiSelectFromHiddenSelect(deviceTypeMultiSelect, 'device-type-select', 'deviceTypeFilterPlaceholder');
+        window.deviceTypeMultiSelect = deviceTypeMultiSelect;
+    }
+    
+    // Initialize Device Name multi-select (will be populated dynamically)
+    let deviceMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined') {
+        deviceMultiSelect = new MultiSelect(
+            'deviceFilterTrigger',
+            'deviceFilterDropdown',
+            'deviceFilterPlaceholder',
+            'deviceSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('deviceHiddenInputs', selectedValues, 'device_id', 'device-select');
+                const hiddenDeviceId = document.querySelector("input[name='device_id']");
+                if (hiddenDeviceId && selectedValues.length > 0) {
+                    hiddenDeviceId.value = selectedValues[0];
+                    const hiddenSelect = document.getElementById('device-select');
+                    if (hiddenSelect) {
+                        const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.value === selectedValues[0]);
+                        if (selectedOption) {
+                            const hiddenDeviceType = document.querySelector("input[name='device_type']");
+                            const hiddenDeviceGroup = document.querySelector("input[name='device_sub_group']");
+                            if (selectedOption.dataset.deviceType && hiddenDeviceType) {
+                                hiddenDeviceType.value = selectedOption.dataset.deviceType;
+                            }
+                            if (selectedOption.dataset.deviceSubGroup && hiddenDeviceGroup) {
+                                hiddenDeviceGroup.value = selectedOption.dataset.deviceSubGroup;
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        deviceMultiSelect.setOptions([]);
+        const deviceTrigger = document.getElementById('deviceFilterTrigger');
+        if (deviceTrigger) {
+            deviceTrigger.classList.add('disabled');
+            deviceTrigger.style.pointerEvents = 'none';
+        }
+        syncMultiSelectFromHiddenSelect(deviceMultiSelect, 'device-select', 'deviceFilterPlaceholder');
+        window.deviceMultiSelect = deviceMultiSelect;
+    }
+    
+    // Initialize Sub Device multi-select (will be populated dynamically)
+    let subDeviceMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined') {
+        subDeviceMultiSelect = new MultiSelect(
+            'subDeviceFilterTrigger',
+            'subDeviceFilterDropdown',
+            'subDeviceFilterPlaceholder',
+            'subDeviceSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('subDeviceHiddenInputs', selectedValues, 'sub_device_id', 'sub-device-select');
+                const hiddenSubDeviceId = document.querySelector("input[name='sub_device_id']");
+                if (hiddenSubDeviceId && selectedValues.length > 0) {
+                    hiddenSubDeviceId.value = selectedValues[0];
+                }
+            }
+        );
+        subDeviceMultiSelect.setOptions([]);
+        const subDeviceTrigger = document.getElementById('subDeviceFilterTrigger');
+        if (subDeviceTrigger) {
+            subDeviceTrigger.classList.add('disabled');
+            subDeviceTrigger.style.pointerEvents = 'none';
+        }
+        syncMultiSelectFromHiddenSelect(subDeviceMultiSelect, 'sub-device-select', 'subDeviceFilterPlaceholder');
+        window.subDeviceMultiSelect = subDeviceMultiSelect;
+    }
+    
+    // Initialize Watchers multi-select
+    const watchersOptions = [
+        {% for user in form.watchers.field.queryset %}
+        { value: '{{ user.id }}', label: '{{ user.username }}' },
+        {% endfor %}
+    ];
+    let watchersMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && watchersOptions.length > 0) {
+        watchersMultiSelect = new MultiSelect(
+            'watchersFilterTrigger',
+            'watchersFilterDropdown',
+            'watchersFilterPlaceholder',
+            'watchersSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('watchersHiddenInputs', selectedValues, 'watchers', null);
+            }
+        );
+        watchersMultiSelect.setOptions(watchersOptions);
+        {% if form.watchers.value %}
+        const initialValues = [
+            {% for user_id in form.watchers.value %}
+            '{{ user_id }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        if (initialValues.length > 0) {
+            watchersMultiSelect.setSelectedValues(initialValues);
+        }
+        {% endif %}
+    }
+    
+    // Initialize device selection with existing values if site is already selected
+    const siteSelect = document.getElementById('asset-select');
+    if (siteSelect && siteSelect.value) {
+        if (window.deviceSelection) {
+            window.deviceSelection.onSiteChange(siteSelect.value);
+        }
+    }
+});
+</script>
+{% endblock %}

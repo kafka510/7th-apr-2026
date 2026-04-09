@@ -1,0 +1,61 @@
+<div class="quickview-content">
+    <h6 class="fw-bold mb-3">{{ ticket.ticket_number }}</h6>
+    
+    <div class="mb-3">
+        <strong>Title:</strong>
+        <p>{{ ticket.title }}</p>
+    </div>
+    
+    <div class="mb-3 d-flex gap-2">
+        <span class="badge status-{{ ticket.status }}">{{ ticket.get_status_display }}</span>
+        <span class="badge priority-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span>
+    </div>
+    
+    <div class="mb-3">
+        <strong><i class="fas fa-building me-2"></i>Site:</strong>
+        <p>{{ ticket.asset_code.asset_name }} ({{ ticket.asset_code.asset_code }})</p>
+    </div>
+    
+    <div class="mb-3">
+        <strong><i class="fas fa-tag me-2"></i>Category:</strong>
+        <p>{{ ticket.category.name }}</p>
+    </div>
+    
+    {% if ticket.device_id %}
+    <div class="mb-3">
+        <strong><i class="fas fa-microchip me-2"></i>Device:</strong>
+        <p>{{ ticket.device_id.device_name }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="mb-3">
+        <strong><i class="fas fa-calendar me-2"></i>Created:</strong>
+        <p>{{ ticket.created_at|date:"M d, Y H:i" }} by {{ ticket.created_by.username }}</p>
+    </div>
+    
+    {% if ticket.assigned_to %}
+    <div class="mb-3">
+        <strong><i class="fas fa-user me-2"></i>Assigned To:</strong>
+        <p>{{ ticket.assigned_to.username }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="mb-3">
+        <strong>Description:</strong>
+        <p class="text-muted">{{ ticket.description|linebreaks }}</p>
+    </div>
+    
+    {% if ticket.resolution_notes %}
+    <div class="mb-3">
+        <strong>Resolution Notes:</strong>
+        <p class="text-muted">{{ ticket.resolution_notes|linebreaks }}</p>
+    </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="btn btn-primary w-100" onclick="event.stopPropagation()">
+            <i class="fas fa-external-link-alt me-2"></i>Open Full Ticket
+        </a>
+    </div>
+</div>
+

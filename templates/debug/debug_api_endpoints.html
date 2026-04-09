@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Debug API Endpoints{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Debug API Endpoints</h2>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>User Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Role:</strong> {{ user_role }}</p>
+                    <p><strong>Accessible Sites:</strong> {{ accessible_sites.count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Yield Data API Test</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Total Records:</strong> {{ api_tests.yield_data.total_count }}</p>
+                    <p><strong>Accessible Records:</strong> {{ api_tests.yield_data.accessible_count }}</p>
+                    <p><strong>Japan Records:</strong> {{ api_tests.yield_data.japan_count }}</p>
+                    <p><strong>Korea Records:</strong> {{ api_tests.yield_data.korea_count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>BESS Data API Test</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Total Records:</strong> {{ api_tests.bess_data.total_count }}</p>
+                    <p><strong>Accessible Records:</strong> {{ api_tests.bess_data.accessible_count }}</p>
+                    <p><strong>Japan Records:</strong> {{ api_tests.bess_data.japan_count }}</p>
+                    <p><strong>Korea Records:</strong> {{ api_tests.bess_data.korea_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>AOC Data API Test</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Total Records:</strong> {{ api_tests.aoc_data.total_count }}</p>
+                    <p><strong>Accessible Records:</strong> {{ api_tests.aoc_data.accessible_count }}</p>
+                    <p><strong>Japan Records:</strong> {{ api_tests.aoc_data.japan_count }}</p>
+                    <p><strong>Korea Records:</strong> {{ api_tests.aoc_data.korea_count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Map Data API Test</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Total Records:</strong> {{ api_tests.map_data.total_count }}</p>
+                    <p><strong>Accessible Records:</strong> {{ api_tests.map_data.accessible_count }}</p>
+                    <p><strong>Japan Records:</strong> {{ api_tests.map_data.japan_count }}</p>
+                    <p><strong>Korea Records:</strong> {{ api_tests.map_data.korea_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <h6>API Endpoint URLs:</h6>
+                <ul>
+                    <li><strong>Yield Data:</strong> <code>/api/yield-data/</code></li>
+                    <li><strong>BESS Data:</strong> <code>/api/bess-data/</code></li>
+                    <li><strong>AOC Data:</strong> <code>/api/aoc-data/</code></li>
+                    <li><strong>Map Data:</strong> <code>/api/map-data/</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-warning">
+                <h6>Debug Information:</h6>
+                <ul>
+                    <li>If Japan records exist but are not accessible, check your user permissions</li>
+                    <li>If no Japan records exist in the database, the data may not be imported</li>
+                    <li>Admin users should see all records regardless of site assignments</li>
+                    <li>Check the data filtering logic in the API views</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

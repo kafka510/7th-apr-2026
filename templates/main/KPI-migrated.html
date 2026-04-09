@@ -1,0 +1,1211 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KPI ANALYTICS – Modern Style (Migrated)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- External Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Shared Dashboard Styles and Components -->
+  <link rel="stylesheet" href="{% static "dashboard-common.css" %}">
+  <script src="{% static "dashboard-utils.js" %}"></script>
+  <script src="{% static "components.js" %}"></script>
+  
+  <!-- BestCalendar Component (keeping existing) -->
+  <script src="{% static "bestcalendar.js" %}"></script>
+  
+  <style>
+    /* Dashboard-specific styles (minimal) */
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .dashboard-title {
+      font-size: var(--font-size-xl);
+      font-weight: 700;
+      color: var(--primary-color);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+    
+    .gauge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: var(--spacing-md);
+    }
+    
+    .gauge-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(9px);
+      border-radius: var(--border-radius-lg);
+      border: 1.5px solid rgba(255,255,255,0.16);
+      padding: var(--spacing-lg);
+      text-align: center;
+    }
+    
+    .gauge-title {
+      font-size: var(--font-size-sm);
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+         .gauge-value {
+       font-size: var(--font-size-lg);
+       font-weight: 700;
+       color: var(--primary-color);
+     }
+     
+     .gauge-container {
+       position: relative;
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       margin: var(--spacing-md) 0;
+     }
+     
+     .gauge-value-overlay {
+       position: absolute;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       font-size: var(--font-size-lg);
+       font-weight: 700;
+       color: var(--primary-color);
+       text-align: center;
+       z-index: 10;
+     }
+    
+    .chart-container {
+      min-height: 280px;
+      height: 40vw;
+      max-height: 400px;
+    }
+    
+    @media (max-width: 900px) {
+      .chart-container {
+        min-height: 180px;
+        height: 50vw;
+        max-height: 300px;
+      }
+    }
+    
+    @media (max-width: 700px) {
+      .chart-container {
+        min-height: 120px;
+        height: 70vw;
+        max-height: 200px;
+      }
+    }
+    
+    /* Collapsible sections */
+    .collapsible-section {
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .collapsible-header {
+      cursor: pointer;
+      padding: var(--spacing-md);
+      background: var(--bg-glass);
+      border-radius: var(--border-radius);
+      margin-bottom: var(--spacing-sm);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .collapsible-arrow {
+      transition: transform 0.3s ease;
+    }
+    
+         .collapsible-arrow.rotated {
+       transform: rotate(180deg);
+     }
+     
+     /* BestCalendar styles */
+     .year-picker-container {
+       position: absolute;
+       z-index: 1000;
+       background: var(--bg-glass);
+       border: 1px solid rgba(255,255,255,0.2);
+       border-radius: var(--border-radius);
+       padding: var(--spacing-md);
+       box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+       backdrop-filter: blur(10px);
+     }
+   </style>
+</head>
+<body>
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">KPI Analytics</h1>
+  </div>
+
+  <!-- Dashboard Container -->
+  <div class="dashboard-container">
+    <!-- BestCalendar Elements (for year selection) -->
+    <div class="filter-section mb-4">
+      <div class="d-flex flex-wrap gap-3 align-items-end">
+        <div class="filter-group">
+          <label class="filter-label">Year Selection</label>
+          <div class="d-flex gap-2">
+            <button id="yearMatrixTrigger" class="btn btn-secondary btn-sm">
+              <i class="fas fa-calendar"></i> Select Year
+            </button>
+            <span id="selectedYearLabel" class="filter-label">All Years</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- BestCalendar Picker Container -->
+    <div id="yearMatrixPicker" class="year-picker-container" style="display: none;"></div>
+    
+         <!-- Filter Panel -->
+     <div id="filterPanel"></div>
+     
+     <!-- Debug Test Button -->
+     <div style="margin: 10px 0; text-align: center;">
+       <button onclick="testKPICards()" class="btn btn-warning btn-sm">
+         <i class="fas fa-bug"></i> Test KPI Cards Update
+       </button>
+     </div>
+    
+    <!-- KPI Cards Row -->
+    <div class="kpi-row">
+      <div id="icBudget"></div>
+      <div id="expectedBudget"></div>
+      <div id="actualGeneration"></div>
+      <div id="irrGauge"></div>
+    </div>
+    
+    <!-- Charts Grid -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-header">Generation vs Budget Trend</div>
+        <div class="card-content">
+          <div class="chart-container">
+            <canvas id="generationChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">Portfolio Performance</div>
+        <div class="card-content">
+          <div class="chart-container">
+            <canvas id="portfolioChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+         <!-- Gauge Charts Section -->
+     <div class="collapsible-header" onclick="toggleSection('gaugesSection', 'arrowGauges')">
+       <span>Gauge Charts</span>
+       <i class="fas fa-chevron-down collapsible-arrow" id="arrowGauges"></i>
+     </div>
+     <div id="gaugesSection" class="collapsible-section max-h-0">
+       <div class="gauge-grid">
+                   <div class="gauge-card">
+            <div class="gauge-title">IC vs Actual (MWh)</div>
+            <div class="gauge-container" data-gauge-container="icBudgetGauge">
+              <canvas id="icBudgetGauge" width="200" height="200"></canvas>
+              <div class="gauge-value-overlay" id="icBudgetGaugeValue">0 / 0</div>
+            </div>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-title">Expected vs Actual (MWh)</div>
+            <div class="gauge-container" data-gauge-container="expectedBudgetGauge">
+              <canvas id="expectedBudgetGauge" width="200" height="200"></canvas>
+              <div class="gauge-value-overlay" id="expectedBudgetGaugeValue">0 / 0</div>
+            </div>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-title">PR(%)</div>
+            <div class="gauge-container" data-gauge-container="actualGenerationGauge">
+              <canvas id="actualGenerationGauge" width="200" height="200"></canvas>
+              <div class="gauge-value-overlay" id="actualGenerationGaugeValue">0 / 0</div>
+            </div>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-title">Irradiation (kWh/M2)</div>
+            <div class="gauge-container" data-gauge-container="irrGaugeChart">
+              <canvas id="irrGaugeChart" width="200" height="200"></canvas>
+              <div class="gauge-value-overlay" id="irrGaugeValue">0 / 0</div>
+            </div>
+          </div>
+       </div>
+     </div>
+    
+    <!-- Bar Charts Section -->
+    <div class="collapsible-header" onclick="toggleSection('barsSection', 'arrowBars')">
+      <span>Bar Charts</span>
+      <i class="fas fa-chevron-down collapsible-arrow" id="arrowBars"></i>
+    </div>
+    <div id="barsSection" class="collapsible-section max-h-0">
+      <div class="chart-grid">
+        <div class="card">
+          <div class="card-header">Monthly Performance</div>
+          <div class="card-content">
+            <div class="chart-container">
+              <canvas id="monthlyChart"></canvas>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">Country Comparison</div>
+          <div class="card-content">
+            <div class="chart-container">
+              <canvas id="countryChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class KPIDashboard {
+      constructor() {
+        this.rawData = [];
+        this.filteredData = [];
+        this.components = {};
+        this.yearCalendar = null;
+        this.init();
+      }
+
+             async init() {
+         try {
+           // Initialize components
+           this.initFilterPanel();
+           this.initKPICards();
+           this.initCharts();
+           
+           // Initialize gauge charts immediately (not in setTimeout)
+           this.initGaugeCharts();
+           
+           // Load data
+           await this.loadData();
+           
+           // Initialize BestCalendar
+           this.initBestCalendar();
+           
+           // Bind events
+           this.bindEvents();
+           
+         } catch (error) {
+           console.error('Dashboard initialization failed:', error);
+           this.showError(error);
+         }
+       }
+
+      initFilterPanel() {
+        this.components.filterPanel = new FilterPanel('filterPanel', {
+          filters: [
+            {
+              id: 'countrySelect',
+              label: 'Country',
+              type: 'select',
+              placeholder: 'Select Country',
+              options: []
+            },
+            {
+              id: 'portfolioSelect',
+              label: 'Portfolio',
+              type: 'select',
+              placeholder: 'Select Portfolio',
+              options: []
+            }
+          ],
+          showExportButtons: true,
+          onFilterChange: (filters) => this.handleFilterChange(filters)
+        });
+      }
+
+      initKPICards() {
+        // Initialize KPI cards with loading state
+        this.components.icBudget = new KPICard('icBudget', {
+          title: 'IC Budget',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'currency'
+        });
+
+        this.components.expectedBudget = new KPICard('expectedBudget', {
+          title: 'Expected Budget',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'currency'
+        });
+
+        this.components.actualGeneration = new KPICard('actualGeneration', {
+          title: 'Actual Generation',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'number'
+        });
+
+        this.components.irrGauge = new KPICard('irrGauge', {
+          title: 'Irradiation',
+          value: 0,
+          trend: 0,
+          trendDirection: 'neutral',
+          format: 'number'
+        });
+      }
+
+             initCharts() {
+         // Initialize chart wrappers
+         this.components.generationChart = new ChartWrapper('generationChart', {
+           type: 'line',
+           data: {
+             labels: [],
+             datasets: []
+           },
+           config: {
+             responsive: true,
+             maintainAspectRatio: false
+           }
+         });
+
+         this.components.portfolioChart = new ChartWrapper('portfolioChart', {
+           type: 'bar',
+           data: {
+             labels: [],
+             datasets: []
+           },
+           config: {
+             responsive: true,
+             maintainAspectRatio: false
+           }
+         });
+
+         this.components.monthlyChart = new ChartWrapper('monthlyChart', {
+           type: 'bar',
+           data: {
+             labels: [],
+             datasets: []
+           },
+           config: {
+             responsive: true,
+             maintainAspectRatio: false
+           }
+         });
+
+                   this.components.countryChart = new ChartWrapper('countryChart', {
+            type: 'bar',
+            data: {
+              labels: [],
+              datasets: []
+            },
+            config: {
+              responsive: true,
+              maintainAspectRatio: false
+            }
+          });
+        }
+       
+                               initGaugeCharts() {
+       
+           
+           // Initialize gauge charts with proper budget vs actual comparisons
+           this.components.icBudgetGauge = this.createGaugeChart('icBudgetGauge', 'IC vs Actual (MWh)', 0, 1000);
+           this.components.expectedBudgetGauge = this.createGaugeChart('expectedBudgetGauge', 'Expected vs Actual (MWh)', 0, 1000);
+           this.components.actualGenerationGauge = this.createGaugeChart('actualGenerationGauge', 'PR(%)', 0, 100);
+           this.components.irrGauge = this.createGaugeChart('irrGaugeChart', 'Irradiation (kWh/M2)', 0, 1000);
+           
+
+         }
+       
+                       createGaugeChart(canvasId, label, value, maxValue) {
+
+          let canvas = document.getElementById(canvasId);
+          
+          // If canvas doesn't exist, try to create it
+          if (!canvas) {
+
+            const container = document.querySelector(`[data-gauge-container="${canvasId}"]`) || 
+                             document.querySelector(`#${canvasId.replace('Gauge', '')} .gauge-container`);
+            
+            if (container) {
+              canvas = document.createElement('canvas');
+              canvas.id = canvasId;
+              canvas.width = 200;
+              canvas.height = 200;
+              container.appendChild(canvas);
+
+            } else {
+              console.error(`Could not find container for canvas ${canvasId}`);
+              return {
+                chart: null,
+                update: () => {}
+              };
+            }
+          }
+          
+
+          
+          if (typeof canvas.getContext !== 'function') {
+            console.error(`Canvas getContext is not a function for ${canvasId}`);
+            return {
+              chart: null,
+              update: () => {}
+            };
+          }
+          
+          const ctx = canvas.getContext('2d');
+          
+          // Create semi-circular gauge chart
+          const chart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              datasets: [{
+                data: [value, maxValue - value],
+                backgroundColor: [
+                  '#28A745', // Green for actual/budget
+                  '#E9ECEF'  // Gray for remaining
+                ],
+                borderWidth: 0,
+                cutout: '75%'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              rotation: -0.5 * Math.PI, // Start from top (semi-circle)
+              circumference: Math.PI,   // Only half circle
+              plugins: {
+                legend: {
+                  display: false
+                },
+                tooltip: {
+                  enabled: false
+                }
+              },
+              elements: {
+                arc: {
+                  borderWidth: 0
+                }
+              }
+            }
+          });
+          
+          return {
+            chart,
+            update: (newValue, newMaxValue = maxValue) => {
+              chart.data.datasets[0].data = [newValue, newMaxValue - newValue];
+              chart.update('none');
+            }
+          };
+        }
+
+      async loadData() {
+        try {
+          // Show loading state
+          if (window.DashboardUIState) {
+            window.DashboardUIState.showLoadingState('dashboard-container', 'Loading KPI data...');
+          }
+          
+                               // Load CSV data using shared service
+          console.log('Attempting to load CSV data from /data/yield.csv');
+          // Try different paths if the first one fails
+          let data;
+          try {
+            data = await window.DashboardDataService.loadCSVData('/data/yield.csv');
+          } catch (error) {
+            console.log('Failed to load from /data/yield.csv, trying ../data/yield.csv');
+            try {
+              data = await window.DashboardDataService.loadCSVData('../data/yield.csv');
+            } catch (error2) {
+              console.log('Failed to load from ../data/yield.csv, trying ../../data/yield.csv');
+              data = await window.DashboardDataService.loadCSVData('../../data/yield.csv');
+            }
+          }
+          console.log('Raw CSV data loaded:', data);
+          this.rawData = data.filter(r => r.portfolio);
+          console.log('Filtered data with portfolio:', this.rawData);
+           
+           // Debug: Log data loading
+           console.log('Data loaded:', {
+             totalRows: data.length,
+             filteredRows: this.rawData.length,
+             sampleRow: this.rawData[0],
+             countries: [...new Set(this.rawData.map(d => d.country))],
+             portfolios: [...new Set(this.rawData.map(d => d.portfolio))],
+             months: [...new Set(this.rawData.map(d => d.month))]
+           });
+          
+          // Populate filters
+          this.populateFilters();
+          
+          // Apply initial filters
+          this.applyFilters();
+          
+          // Hide loading state
+          if (window.DashboardUIState) {
+            window.DashboardUIState.hideLoadingState('dashboard-container');
+          }
+          
+        } catch (error) {
+          console.error('Failed to load data:', error);
+          if (window.DashboardUIState) {
+            window.DashboardUIState.showErrorState(error, 'dashboard-container', () => this.loadData());
+          } else {
+            this.showError(error);
+          }
+        }
+      }
+
+      initBestCalendar() {
+        try {
+          this.yearCalendar = new BestCalendar({
+            triggerId: 'yearMatrixTrigger',
+            pickerId: 'yearMatrixPicker',
+            labelId: 'selectedYearLabel',
+            onPeriodChange: (period) => {
+              this.applyFilters();
+            }
+          });
+          
+          // Set global instance for onclick handlers
+          window.currentBestCalendar = this.yearCalendar;
+          
+          // Set data for calendar
+          this.yearCalendar.setData(this.rawData);
+          
+        } catch (error) {
+          console.error('Failed to initialize BestCalendar:', error);
+          // Fallback: create a simple year select
+          this.createYearFallback();
+        }
+      }
+
+      createYearFallback() {
+        // Add year filter to filter panel
+        const yearFilter = {
+          id: 'yearSelect',
+          label: 'Year',
+          type: 'select',
+          placeholder: 'All Years',
+          options: this.getYearOptions()
+        };
+        
+        // Update filter panel with year filter
+        this.components.filterPanel.filters.push(yearFilter);
+        this.components.filterPanel.render();
+      }
+
+             getYearOptions() {
+         // Extract year from month field (format: YYYY-MM)
+         const years = [...new Set(this.rawData.map(d => {
+           const monthStr = d.month || '';
+           return monthStr.split('-')[0]; // Get year part
+         }))].filter(Boolean).sort();
+         return years.map(year => ({ value: year, label: year }));
+       }
+
+      populateFilters() {
+        // Populate country filter
+        const countries = [...new Set(this.rawData.map(d => d.country))].filter(Boolean).sort();
+        const countryOptions = countries.map(country => ({ value: country, label: country }));
+        
+        // Populate portfolio filter
+        const portfolios = [...new Set(this.rawData.map(d => d.portfolio))].filter(Boolean).sort();
+        const portfolioOptions = portfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+        
+        // Update filter options
+        this.components.filterPanel.filters[0].options = countryOptions;
+        this.components.filterPanel.filters[1].options = portfolioOptions;
+        
+        // Re-render filter panel
+        this.components.filterPanel.render();
+      }
+
+      handleFilterChange(filters) {
+        this.applyFilters();
+      }
+
+            applyFilters() {
+        let filtered = [...this.rawData];
+        
+        // Apply country filter
+        const countryFilter = this.components.filterPanel.getFilterValues().countrySelect;
+        if (countryFilter) {
+          filtered = filtered.filter(d => d.country === countryFilter);
+        }
+        
+        // Apply portfolio filter
+        const portfolioFilter = this.components.filterPanel.getFilterValues().portfolioSelect;
+        if (portfolioFilter) {
+          filtered = filtered.filter(d => d.portfolio === portfolioFilter);
+        }
+        
+        // Apply year filter (from BestCalendar or fallback)
+        let yearFilter = null;
+        if (this.yearCalendar) {
+          yearFilter = this.yearCalendar.getSelectedYear();
+        } else {
+          yearFilter = this.components.filterPanel.getFilterValues().yearSelect;
+        }
+        if (yearFilter) {
+          filtered = filtered.filter(d => {
+            const monthStr = d.month || '';
+            const yearFromMonth = monthStr.split('-')[0];
+            return yearFromMonth === yearFilter;
+          });
+        }
+        
+        this.filteredData = filtered;
+
+        this.updateDashboard();
+      }
+
+      updateDashboard() {
+        this.updateKPICards();
+        this.updateCharts();
+        this.updateGauges();
+      }
+
+      updateKPICards() {
+        if (this.filteredData.length === 0) {
+          if (this.components.icBudget && this.components.icBudget.update) {
+            this.components.icBudget.update({ value: 0, trend: 0, trendDirection: 'neutral' });
+          }
+          if (this.components.expectedBudget && this.components.expectedBudget.update) {
+            this.components.expectedBudget.update({ value: 0, trend: 0, trendDirection: 'neutral' });
+          }
+          if (this.components.actualGeneration && this.components.actualGeneration.update) {
+            this.components.actualGeneration.update({ value: 0, trend: 0, trendDirection: 'neutral' });
+          }
+          if (this.components.irrGauge && this.components.irrGauge.update) {
+            this.components.irrGauge.update({ value: 0, trend: 0, trendDirection: 'neutral' });
+          }
+          return;
+        }
+
+        // Calculate totals
+        const totals = this.calculateTotals();
+        console.log('KPI totals calculated:', totals);
+        
+        // Calculate trends
+        const trends = this.calculateTrends();
+        console.log('KPI trends calculated:', trends);
+        
+        // Update KPI cards with safety checks
+        if (this.components.icBudget && this.components.icBudget.update) {
+          console.log('Updating IC Budget card with value:', totals.icBudget);
+          this.components.icBudget.update({
+            value: totals.icBudget,
+            trend: trends.icBudget,
+            trendDirection: trends.icBudget > 0 ? 'up' : trends.icBudget < 0 ? 'down' : 'neutral'
+          });
+        } else {
+          console.error('IC Budget component not found or update method missing');
+        }
+
+        if (this.components.expectedBudget && this.components.expectedBudget.update) {
+          console.log('Updating Expected Budget card with value:', totals.expectedBudget);
+          this.components.expectedBudget.update({
+            value: totals.expectedBudget,
+            trend: trends.expectedBudget,
+            trendDirection: trends.expectedBudget > 0 ? 'up' : trends.expectedBudget < 0 ? 'down' : 'neutral'
+          });
+        } else {
+          console.error('Expected Budget component not found or update method missing');
+        }
+
+        if (this.components.actualGeneration && this.components.actualGeneration.update) {
+          console.log('Updating Actual Generation card with value:', totals.actualGeneration);
+          this.components.actualGeneration.update({
+            value: totals.actualGeneration,
+            trend: trends.actualGeneration,
+            trendDirection: trends.actualGeneration > 0 ? 'up' : trends.actualGeneration < 0 ? 'down' : 'neutral'
+          });
+        } else {
+          console.error('Actual Generation component not found or update method missing');
+        }
+
+        if (this.components.irrGauge && this.components.irrGauge.update) {
+          console.log('Updating IRR Gauge card with value:', totals.irr);
+          this.components.irrGauge.update({
+            value: totals.irr,
+            trend: trends.irr,
+            trendDirection: trends.irr > 0 ? 'up' : trends.irr < 0 ? 'down' : 'neutral'
+          });
+        } else {
+          console.error('IRR Gauge component not found or update method missing');
+        }
+      }
+
+      updateCharts() {
+        console.log('Updating charts with filtered data length:', this.filteredData.length);
+        this.updateGenerationChart();
+        this.updatePortfolioChart();
+        this.updateMonthlyChart();
+        this.updateCountryChart();
+      }
+
+      updateGenerationChart() {
+        console.log('Updating generation chart...');
+        const monthlyData = this.aggregateDataByMonth();
+        console.log('Monthly data for generation chart:', monthlyData);
+        
+        if (this.components.generationChart && this.components.generationChart.updateData) {
+          this.components.generationChart.updateData({
+            labels: monthlyData.labels,
+            datasets: [
+              {
+                label: 'Actual Generation',
+                data: monthlyData.actualGeneration,
+                borderColor: '#0072CE',
+                backgroundColor: 'rgba(0, 114, 206, 0.1)',
+                tension: 0.4
+              },
+              {
+                label: 'Expected Budget',
+                data: monthlyData.expectedBudget,
+                borderColor: '#FF6B35',
+                backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                tension: 0.4
+              }
+            ]
+          });
+          console.log('Generation chart updated successfully');
+        } else {
+          console.error('Generation chart component not found or updateData method missing');
+        }
+      }
+
+      updatePortfolioChart() {
+        const portfolioData = this.aggregateDataByPortfolio();
+        
+        this.components.portfolioChart.updateData({
+          labels: portfolioData.labels,
+          datasets: [{
+            label: 'Performance',
+            data: portfolioData.performance,
+            backgroundColor: window.DashboardChartUtils ? 
+              window.DashboardChartUtils.createColorPalette(portfolioData.labels.length) : 
+              ['#0072CE', '#FF6B35', '#28A745', '#FFC107', '#DC3545']
+          }]
+        });
+      }
+
+      updateMonthlyChart() {
+        const monthlyData = this.aggregateDataByMonth();
+        
+        this.components.monthlyChart.updateData({
+          labels: monthlyData.labels,
+          datasets: [{
+            label: 'Monthly Generation',
+            data: monthlyData.actualGeneration,
+            backgroundColor: '#0072CE'
+          }]
+        });
+      }
+
+      updateCountryChart() {
+        const countryData = this.aggregateDataByCountry();
+        
+        this.components.countryChart.updateData({
+          labels: countryData.labels,
+          datasets: [{
+            label: 'Country Performance',
+            data: countryData.performance,
+            backgroundColor: window.DashboardChartUtils ? 
+              window.DashboardChartUtils.createColorPalette(countryData.labels.length) : 
+              ['#0072CE', '#FF6B35', '#28A745', '#FFC107', '#DC3545']
+          }]
+        });
+      }
+
+                           updateGauges() {
+                  console.log('Updating gauges with filtered data length:', this.filteredData.length);
+                  
+                  if (this.filteredData.length === 0) {
+                    console.log('No filtered data, setting gauges to zero');
+                    // Update gauge charts (only if they exist)
+                    if (this.components.icBudgetGauge && this.components.icBudgetGauge.update) {
+                      this.components.icBudgetGauge.update(0);
+                    }
+                    if (this.components.expectedBudgetGauge && this.components.expectedBudgetGauge.update) {
+                      this.components.expectedBudgetGauge.update(0);
+                    }
+                    if (this.components.actualGenerationGauge && this.components.actualGenerationGauge.update) {
+                      this.components.actualGenerationGauge.update(0);
+                    }
+                    if (this.components.irrGauge && this.components.irrGauge.update) {
+                      this.components.irrGauge.update(0);
+                    }
+                     
+                    // Update overlay values
+                    document.getElementById('icBudgetGaugeValue').textContent = '0';
+                    document.getElementById('expectedBudgetGaugeValue').textContent = '0';
+                    document.getElementById('actualGenerationGaugeValue').textContent = '0';
+                    document.getElementById('irrGaugeValue').textContent = '0';
+                    return;
+                  }
+
+                  const totals = this.calculateTotals();
+                  console.log('Gauge totals calculated:', totals);
+                  
+                  // Calculate max values for gauges (you can adjust these based on your data)
+                  const maxValues = {
+                    icBudget: Math.max(totals.icBudget * 1.2, 1000),
+                    expectedBudget: Math.max(totals.expectedBudget * 1.2, 1000),
+                    actualGeneration: Math.max(totals.actualGeneration * 1.2, 1000),
+                    irr: Math.max(totals.irr * 1.2, 200)
+                  };
+                  
+                  // Update gauge charts with proper budget vs actual comparisons
+                  if (this.components.icBudgetGauge && this.components.icBudgetGauge.update) {
+                    console.log('Updating IC Budget gauge with:', totals.actualGeneration, totals.icBudget);
+                    // IC Budget vs Actual (show actual as the filled portion)
+                    this.components.icBudgetGauge.update(totals.actualGeneration, totals.icBudget);
+                  } else {
+                    console.error('IC Budget gauge component not found or update method missing');
+                  }
+                  
+                  if (this.components.expectedBudgetGauge && this.components.expectedBudgetGauge.update) {
+                    console.log('Updating Expected Budget gauge with:', totals.actualGeneration, totals.expectedBudget);
+                    // Expected Budget vs Actual (show actual as the filled portion)
+                    this.components.expectedBudgetGauge.update(totals.actualGeneration, totals.expectedBudget);
+                  } else {
+                    console.error('Expected Budget gauge component not found or update method missing');
+                  }
+                  
+                  if (this.components.actualGenerationGauge && this.components.actualGenerationGauge.update) {
+                    // PR% (Performance Ratio)
+                    const prPercentage = totals.actualGeneration > 0 ? 
+                      Math.round((totals.actualGeneration / totals.expectedBudget) * 100) : 0;
+                    console.log('Updating Actual Generation gauge with PR%:', prPercentage);
+                    this.components.actualGenerationGauge.update(prPercentage, 100);
+                  } else {
+                    console.error('Actual Generation gauge component not found or update method missing');
+                  }
+                  
+                  if (this.components.irrGauge && this.components.irrGauge.update) {
+                    console.log('Updating IRR gauge with:', totals.irr, totals.irr * 1.1);
+                    // Irradiation (show actual vs expected)
+                    this.components.irrGauge.update(totals.irr, totals.irr * 1.1);
+                  } else {
+                    console.error('IRR gauge component not found or update method missing');
+                  }
+                  
+                  // Update overlay values with budget vs actual comparisons
+                  const formatNumber = window.DashboardChartUtils?.formatNumber || ((val) => val?.toString() || '0');
+                  
+                  // IC Budget vs Actual
+                  const icBudgetText = `${formatNumber(totals.icBudget)} / ${formatNumber(totals.actualGeneration)}`;
+                  document.getElementById('icBudgetGaugeValue').textContent = icBudgetText;
+                  console.log('Updated IC Budget overlay:', icBudgetText);
+                  
+                  // Expected Budget vs Actual
+                  const expectedBudgetText = `${formatNumber(totals.expectedBudget)} / ${formatNumber(totals.actualGeneration)}`;
+                  document.getElementById('expectedBudgetGaugeValue').textContent = expectedBudgetText;
+                  console.log('Updated Expected Budget overlay:', expectedBudgetText);
+                  
+                  // PR% (Performance Ratio)
+                  const prPercentage = totals.actualGeneration > 0 ? 
+                    Math.round((totals.actualGeneration / totals.expectedBudget) * 100) : 0;
+                  const prText = `${prPercentage} / 100`;
+                  document.getElementById('actualGenerationGaugeValue').textContent = prText;
+                  console.log('Updated PR% overlay:', prText);
+                  
+                  // Irradiation
+                  const irrText = `${formatNumber(totals.irr)} / ${formatNumber(totals.irr * 1.1)}`;
+                  document.getElementById('irrGaugeValue').textContent = irrText;
+                  console.log('Updated IRR overlay:', irrText);
+                }
+
+             calculateTotals() {
+         const totals = this.filteredData.reduce((acc, row) => {
+           // Map CSV columns to expected field names
+           acc.icBudget += parseFloat(row.ic_approved_budget || 0);
+           acc.expectedBudget += parseFloat(row.expected_budget || 0);
+           acc.actualGeneration += parseFloat(row.actual_generation || 0);
+           acc.irr += parseFloat(row.actual_irradiation || 0);
+           return acc;
+         }, { icBudget: 0, expectedBudget: 0, actualGeneration: 0, irr: 0 });
+         
+         // Debug: Log totals calculation
+         console.log('Totals calculated:', {
+           filteredDataLength: this.filteredData.length,
+           totals,
+           sampleRow: this.filteredData[0]
+         });
+         
+         return totals;
+       }
+
+             calculateTrends() {
+         // Simple trend calculation (compare with previous period)
+         const currentTotals = this.calculateTotals();
+         
+         // For demo purposes, calculate trends based on data variance
+         const variance = this.filteredData.length > 0 ? 
+           this.filteredData.reduce((acc, row) => {
+             acc.icBudget += Math.abs(parseFloat(row.ic_approved_budget || 0) - currentTotals.icBudget / this.filteredData.length);
+             acc.expectedBudget += Math.abs(parseFloat(row.expected_budget || 0) - currentTotals.expectedBudget / this.filteredData.length);
+             acc.actualGeneration += Math.abs(parseFloat(row.actual_generation || 0) - currentTotals.actualGeneration / this.filteredData.length);
+             acc.irr += Math.abs(parseFloat(row.actual_irradiation || 0) - currentTotals.irr / this.filteredData.length);
+             return acc;
+           }, { icBudget: 0, expectedBudget: 0, actualGeneration: 0, irr: 0 }) : 
+           { icBudget: 0, expectedBudget: 0, actualGeneration: 0, irr: 0 };
+         
+         return {
+           icBudget: variance.icBudget > 0 ? Math.round((variance.icBudget / currentTotals.icBudget) * 100) : 0,
+           expectedBudget: variance.expectedBudget > 0 ? Math.round((variance.expectedBudget / currentTotals.expectedBudget) * 100) : 0,
+           actualGeneration: variance.actualGeneration > 0 ? Math.round((variance.actualGeneration / currentTotals.actualGeneration) * 100) : 0,
+           irr: variance.irr > 0 ? Math.round((variance.irr / currentTotals.irr) * 100) : 0
+         };
+       }
+
+      aggregateDataByMonth() {
+        const monthlyData = {};
+        
+        this.filteredData.forEach(row => {
+          const month = row.month || 'Unknown';
+          if (!monthlyData[month]) {
+            monthlyData[month] = { actualGeneration: 0, expectedBudget: 0 };
+          }
+          monthlyData[month].actualGeneration += parseFloat(row.actual_generation || 0);
+          monthlyData[month].expectedBudget += parseFloat(row.expected_budget || 0);
+        });
+        
+        const labels = Object.keys(monthlyData).sort();
+        return {
+          labels,
+          actualGeneration: labels.map(month => monthlyData[month].actualGeneration),
+          expectedBudget: labels.map(month => monthlyData[month].expectedBudget)
+        };
+      }
+
+      aggregateDataByPortfolio() {
+        const portfolioData = {};
+        
+        this.filteredData.forEach(row => {
+          const portfolio = row.portfolio || 'Unknown';
+          if (!portfolioData[portfolio]) {
+            portfolioData[portfolio] = 0;
+          }
+          portfolioData[portfolio] += parseFloat(row.actual_generation || 0);
+        });
+        
+        const labels = Object.keys(portfolioData).sort();
+        return {
+          labels,
+          performance: labels.map(portfolio => portfolioData[portfolio])
+        };
+      }
+
+      aggregateDataByCountry() {
+        const countryData = {};
+        
+        this.filteredData.forEach(row => {
+          const country = row.country || 'Unknown';
+          if (!countryData[country]) {
+            countryData[country] = 0;
+          }
+          countryData[country] += parseFloat(row.actual_generation || 0);
+        });
+        
+        const labels = Object.keys(countryData).sort();
+        return {
+          labels,
+          performance: labels.map(country => countryData[country])
+        };
+      }
+
+      bindEvents() {
+        // Window resize handler
+        const debounceFn = window.debounce || ((fn, delay) => {
+          let timeout;
+          return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fn(...args), delay);
+          };
+        });
+        
+        window.addEventListener('resize', debounceFn(() => {
+          Object.values(this.components).forEach(component => {
+            if (component.resize) component.resize();
+          });
+        }, 300));
+      }
+
+      showError(error) {
+        if (window.DashboardUIState) {
+          window.DashboardUIState.showErrorState(error, 'dashboard-container', () => this.loadData());
+        } else {
+          console.error('Dashboard error:', error);
+          const container = document.getElementById('dashboard-container');
+          if (container) {
+            container.innerHTML = `
+              <div class="error-message">
+                <h4>Error</h4>
+                <p>${error.message || 'An error occurred while loading the dashboard'}</p>
+                <button class="btn btn-primary" onclick="window.dashboard.loadData()">Retry</button>
+              </div>
+            `;
+          }
+        }
+      }
+
+      // Export methods
+      exportToPDF() {
+        if (window.DashboardExportUtils) {
+          window.DashboardExportUtils.exportToPDF('dashboard-container', 'kpi-analytics.pdf');
+        } else {
+          alert('Export functionality not available');
+        }
+      }
+
+      exportToExcel() {
+        if (window.DashboardExportUtils) {
+          // Create a table from the filtered data for export
+          const table = this.createExportTable();
+          window.DashboardExportUtils.exportToExcel(table, 'kpi-analytics.xlsx');
+        } else {
+          alert('Export functionality not available');
+        }
+      }
+
+      exportToCSV() {
+        if (window.DashboardExportUtils) {
+          // Create a table from the filtered data for export
+          const table = this.createExportTable();
+          window.DashboardExportUtils.exportToCSV(table, 'kpi-analytics.csv');
+        } else {
+          alert('Export functionality not available');
+        }
+      }
+
+             createExportTable() {
+         const table = document.createElement('table');
+         table.innerHTML = `
+           <thead>
+             <tr>
+               <th>Country</th>
+               <th>Portfolio</th>
+               <th>Month</th>
+               <th>IC Budget</th>
+               <th>Expected Budget</th>
+               <th>Actual Generation</th>
+               <th>Irradiation</th>
+             </tr>
+           </thead>
+           <tbody>
+             ${this.filteredData.map(row => `
+               <tr>
+                 <td>${row.country || ''}</td>
+                 <td>${row.portfolio || ''}</td>
+                 <td>${row.month || ''}</td>
+                 <td>${row.ic_approved_budget || ''}</td>
+                 <td>${row.expected_budget || ''}</td>
+                 <td>${row.actual_generation || ''}</td>
+                 <td>${row.actual_irradiation || ''}</td>
+               </tr>
+             `).join('')}
+           </tbody>
+         `;
+         return table;
+       }
+    }
+
+    // Utility function for collapsible sections
+    function toggleSection(sectionId, arrowId) {
+      const section = document.getElementById(sectionId);
+      const arrow = document.getElementById(arrowId);
+      
+      section.classList.toggle('max-h-0');
+      section.classList.toggle('max-h-[2000px]');
+      arrow.classList.toggle('rotated');
+    }
+
+         // Initialize dashboard when DOM is ready
+     document.addEventListener('DOMContentLoaded', () => {
+       window.dashboard = new KPIDashboard();
+     });
+     
+     // Debug test function
+     function testKPICards() {
+       console.log('=== TESTING KPI CARDS UPDATE ===');
+       if (window.dashboard && window.dashboard.components) {
+         console.log('Dashboard components:', Object.keys(window.dashboard.components));
+         
+         // Test updating KPI cards with test values
+         if (window.dashboard.components.icBudget) {
+           console.log('Testing IC Budget card update...');
+           window.dashboard.components.icBudget.update({
+             value: 999999,
+             trend: 25,
+             trendDirection: 'up'
+           });
+         }
+         
+         if (window.dashboard.components.expectedBudget) {
+           console.log('Testing Expected Budget card update...');
+           window.dashboard.components.expectedBudget.update({
+             value: 888888,
+             trend: 15,
+             trendDirection: 'up'
+           });
+         }
+         
+         if (window.dashboard.components.actualGeneration) {
+           console.log('Testing Actual Generation card update...');
+           window.dashboard.components.actualGeneration.update({
+             value: 777777,
+             trend: 10,
+             trendDirection: 'down'
+           });
+         }
+         
+         if (window.dashboard.components.irrGauge) {
+           console.log('Testing IRR Gauge card update...');
+           window.dashboard.components.irrGauge.update({
+             value: 666666,
+             trend: 5,
+             trendDirection: 'neutral'
+           });
+         }
+         
+         console.log('=== KPI CARDS TEST COMPLETE ===');
+       } else {
+         console.error('Dashboard not found or components not available');
+       }
+     }
+  </script>
+</body>
+</html> 

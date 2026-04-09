@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load django_vite %}
+{% load waffle_tags %}
+
+{% block title %}PR Gap Analysis{% endblock %}
+
+{% block extra_head %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% if DJANGO_VITE_DEV_MODE %}
+    {% vite_hmr_client %}
+  {% endif %}
+{% endblock %}
+
+{% block content_area_class %}light-theme{% endblock %}
+{% block content %}
+<style>
+  /* Override base template styles for PR Gap page */
+  .content-area.light-theme {
+    background: #ffffff !important;
+    color: #212529 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  #react-root.js-react-pr-gap {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Ensure iframe compatibility */
+  iframe[sandbox] ~ * #react-root.js-react-pr-gap,
+  iframe #react-root.js-react-pr-gap {
+    height: 100%;
+    min-height: 100%;
+  }
+</style>
+<div id="react-root" 
+     data-app="pr-gap" 
+     class="js-react-pr-gap">
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {% vite_asset 'src/main.tsx' %}
+{% endblock %}
+

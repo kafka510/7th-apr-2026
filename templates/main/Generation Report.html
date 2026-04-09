@@ -1,0 +1,2131 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KPI Analytics Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="{% static 'bestcalendar.js' %}"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      margin: 4px;
+      background: linear-gradient(135deg, #e6f1fc 0%, #f8fbff 100%);
+      font-size: clamp(0.7rem, 0.8vw, 0.85rem);
+    }
+    /* Enhanced Dashboard Header */
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 16px 4px 16px;
+      background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      border-radius: 0 0 16px 16px;
+      margin-bottom: 2px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+    .dashboard-header .title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      margin: 0;
+      display: block;
+      text-align: center;
+      width: 100%;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .dashboard-header .subtitle {
+      font-size: 0.8rem;
+      color: #7a8799;
+      font-weight: 400;
+      margin-top: 1px;
+      display: block;
+    }
+    
+    h2, .dashboard-title {
+      color: #0072CE;
+      font-size: clamp(0.8rem, 1.0vw, 1.0rem);
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      margin-bottom: 8px;
+    }
+    .section {
+      background: #fff;
+      padding: clamp(2px, 0.4vw, 6px);
+      margin-bottom: clamp(2px, 0.4vw, 6px);
+      border-radius: 4px;
+      box-shadow: 0 1px 4px #e6f1fc;
+      max-width: 98vw;
+      width: 100%;
+    }
+    .hidden { display: none; }
+    #reportDateSection {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left !important;
+      font-size: 0.85rem;
+      margin-bottom: 2px;
+      color: #0072CE;
+      font-weight: 600;
+      padding: 3px 6px;
+    }
+    #reportDateText { white-space: nowrap; }
+    #dateRangeSection { display: flex; align-items: center; gap: 6px; padding: 0; margin: 0; }
+    #dateRangeSection label { margin: 0; white-space: nowrap; font-size: 0.85rem; }
+    #reportDateSection .filter-pill { margin: 0; }
+    #reportDateSection .bc-trigger { height: 26px; padding: 3px 6px; font-size: 0.8rem; }
+    #reportDateSection #resetPeriodBtn { height: 26px; padding: 2px 6px; font-size: 0.8rem; }
+    button {
+      background: #e6f1fc;
+      color: #0072CE;
+      border: 1px solid #0072CE;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      min-width: 24px;
+      min-height: 24px;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #e6f1fc;
+      color: #fff;
+    }
+    .filter-pill { position: relative; display: inline-block; }
+    
+    /* Additional BestCalendar styling for this page */
+    .bc-trigger {
+      width: 200px;
+      background: #f8fbff;
+      border: 1px solid #b3d7f2;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: #0072CE;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s, border-color 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    .bc-trigger:hover { 
+      background: #e6f1fc; 
+      border-color: #0072CE; 
+    }
+    .bc-picker {
+      position: absolute;
+      z-index: 999999;
+      background: #fff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      margin-top: 4px;
+      border-radius: 10px;
+      top: 100%;
+      left: 0;
+      min-width: 280px;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .table-container { width: 100%; max-width: 98vw; overflow-x: auto; margin-bottom: 8px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: #fff;
+      font-size: clamp(0.7rem, 0.75vw, 0.85rem);
+      box-shadow: 0 1px 4px #e6f1fc;
+      border-radius: 6px;
+      min-width: 600px;
+      max-width: 98vw;
+    }
+    th, td {
+      border: 1.5px solid #c7e0f7;
+      padding: clamp(1px, 0.3vw, 4px) clamp(1px, 0.4vw, 6px);
+      text-align: center;
+      min-width: 28px;
+      max-width: 120px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    th {
+      background: #e6f1fc;
+      color: #0072CE;
+      font-size: clamp(0.75rem, 0.8vw, 0.9rem);
+      font-weight: 600;
+      border-bottom: 2.5px solid #0072CE;
+      white-space: normal;
+      word-break: break-word;
+      max-width: 120px;
+    }
+    td { white-space: nowrap; }
+    select, button, input[type="file"] { margin: 6px; }
+    @media (max-width: 1400px) {
+      body, table, th, td { font-size: 0.75rem; }
+      th, td { min-width: 30px; }
+    }
+    @media (max-width: 1200px) {
+      body, table, th, td { font-size: 0.7rem; }
+      th, td { min-width: 28px; }
+    }
+    @media (max-width: 800px) {
+      table, th, td { font-size: 0.65rem; min-width: 25px; }
+      h2, .dashboard-title { font-size: 0.8rem; }
+    }
+    input[type="text"] {
+      width: clamp(85px, 12vw, 140px);
+      font-size: clamp(0.85rem, 0.9vw, 1rem);
+      padding: clamp(1px, 0.3vw, 4px) clamp(4px, 0.7vw, 10px);
+    }
+    .grand-total-row td {
+      font-weight: bold;
+      background: #ffe;
+    }
+    @media print {
+      /*
+       Print Optimization:
+       - Forces table to fit page width and removes horizontal scroll.
+       - Reduces font size and padding for more columns per page.
+       - For best results, select 'Landscape' orientation and reduce scale (e.g., 80%) in the print dialog.
+       - This ensures all columns (including those to the right) are included in the printout.
+      */
+      .table-container, table {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        display: table !important;
+        table-layout: fixed !important;
+        font-size: 0.65em !important;
+      }
+      th, td {
+        white-space: normal !important;
+        word-break: break-word !important;
+        font-size: 0.65em !important;
+        padding: 1px 2px !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        width: auto !important;
+        border: 1.5px solid #ccc !important;
+      }
+      /* Override column width constraints for print */
+      #resultTable th:nth-child(1), #resultTable td:nth-child(1),
+      #revenueTable th:nth-child(1), #revenueTable td:nth-child(1) {
+        width: 25px !important;
+        min-width: 25px !important;
+        max-width: 25px !important;
+      }
+      #resultTable th:nth-child(2), #resultTable td:nth-child(2),
+      #revenueTable th:nth-child(2), #revenueTable td:nth-child(2) {
+        width: 70px !important;
+        min-width: 70px !important;
+        max-width: 70px !important;
+      }
+      #resultTable th:nth-child(3), #resultTable td:nth-child(3),
+      #revenueTable th:nth-child(3), #revenueTable td:nth-child(3) {
+        width: 90px !important;
+        min-width: 90px !important;
+        max-width: 90px !important;
+      }
+      #resultTable th:nth-child(4), #resultTable td:nth-child(4),
+      #revenueTable th:nth-child(4), #revenueTable td:nth-child(4) {
+        width: 110px !important;
+        min-width: 110px !important;
+        max-width: 110px !important;
+      }
+      #resultTable th:nth-child(5), #resultTable td:nth-child(5),
+      #revenueTable th:nth-child(5), #revenueTable td:nth-child(5) {
+        width: 90px !important;
+        min-width: 90px !important;
+        max-width: 90px !important;
+      }
+      #resultTable th:nth-child(6), #resultTable td:nth-child(6),
+      #revenueTable th:nth-child(6), #revenueTable td:nth-child(6) {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+      }
+      #resultTable th:nth-child(7), #resultTable td:nth-child(7),
+      #revenueTable th:nth-child(7), #revenueTable td:nth-child(7) {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+      }
+      #resultTable th:nth-child(8), #resultTable td:nth-child(8),
+      #revenueTable th:nth-child(8), #revenueTable td:nth-child(8) {
+        width: 100px !important;
+        min-width: 100px !important;
+        max-width: 100px !important;
+      }
+      /* Make remaining columns flexible */
+      #resultTable th:nth-child(n+9), #resultTable td:nth-child(n+9),
+      #revenueTable th:nth-child(n+9), #revenueTable td:nth-child(n+9) {
+        width: 80px !important;
+        min-width: 80px !important;
+        max-width: 80px !important;
+      }
+      body, html {
+        overflow-x: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      body {
+        background: #fff !important;
+        color: #111 !important;
+        font-size: 0.65em !important;
+      }
+      .dashboard-title, .section {
+        background: none !important;
+        box-shadow: none !important;
+        margin: 5px !important;
+        padding: 5px !important;
+      }
+      button, #dateRangeSection, #reportDateSection {
+        display: none !important;
+      }
+      th, td {
+        background: none !important;
+        color: #111 !important;
+        border: 1px solid #ccc !important;
+      }
+      .watermark {
+        position: fixed;
+        top: 45%;
+        left: 35%;
+        opacity: 0.07;
+        font-size: 6rem;
+        color: #0072CE;
+        transform: rotate(-30deg);
+        pointer-events: none;
+        z-index: 9999;
+      }
+    }
+    .breakdown-table tr.country-row, #resultTable tr.country-row {
+      background: #1565c0;
+      color: #fff;
+    }
+    .breakdown-table tr.portfolio-row, #resultTable tr.portfolio-row {
+      background: #42a5f5;
+      color: #fff;
+    }
+    .breakdown-table tr.asset-row, #resultTable tr.asset-row {
+      background: #e3f2fd;
+      color: #222;
+    }
+    /* Remove row-wide background, apply only to first column */
+    .breakdown-table tr.country-row td:first-child, #resultTable tr.country-row td:first-child {
+      background: #1565c0 !important;
+      color: #fff !important;
+    }
+    .breakdown-table tr.portfolio-row td:first-child, #resultTable tr.portfolio-row td:first-child {
+      background: #42a5f5 !important;
+      color: #fff !important;
+    }
+    .breakdown-table tr.asset-row td:first-child, #resultTable tr.asset-row td:first-child {
+      background: #e3f2fd !important;
+      color: #222 !important;
+    }
+    .breakdown-table tr.country-row, #resultTable tr.country-row,
+    .breakdown-table tr.portfolio-row, #resultTable tr.portfolio-row,
+    .breakdown-table tr.asset-row, #resultTable tr.asset-row {
+      background: none !important;
+      color: inherit !important;
+    }
+
+    /* Column width matching for first 8 columns - optimized for 1920x1200 */
+    #resultTable th:nth-child(1), #resultTable td:nth-child(1),
+    #revenueTable th:nth-child(1), #revenueTable td:nth-child(1) {
+      width: 30px; /* Toggle button column */
+      min-width: 30px;
+      max-width: 30px;
+    }
+    
+    #resultTable th:nth-child(2), #resultTable td:nth-child(2),
+    #revenueTable th:nth-child(2), #revenueTable td:nth-child(2) {
+      width: 70px; /* Country column */
+      min-width: 70px;
+      max-width: 70px;
+    }
+    
+    #resultTable th:nth-child(3), #resultTable td:nth-child(3),
+    #revenueTable th:nth-child(3), #revenueTable td:nth-child(3) {
+      width: 120px; /* Portfolio column */
+      min-width: 120px;
+      max-width: 120px;
+    }
+    
+    #resultTable th:nth-child(4), #resultTable td:nth-child(4),
+    #revenueTable th:nth-child(4), #revenueTable td:nth-child(4) {
+      width: 130px; /* Asset column */
+      min-width: 130px;
+      max-width: 130px;
+    }
+    
+    #resultTable th:nth-child(5), #resultTable td:nth-child(5),
+    #revenueTable th:nth-child(5), #revenueTable td:nth-child(5) {
+      width: 85px; /* DC Capacity column */
+      min-width: 85px;
+      max-width: 85px;
+    }
+    
+    #resultTable th:nth-child(6), #resultTable td:nth-child(6),
+    #revenueTable th:nth-child(6), #revenueTable td:nth-child(6) {
+      width: 95px; /* IC Approved Budget column */
+      min-width: 95px;
+      max-width: 95px;
+    }
+    
+    #resultTable th:nth-child(7), #resultTable td:nth-child(7),
+    #revenueTable th:nth-child(7), #revenueTable td:nth-child(7) {
+      width: 95px; /* Expected Budget column */
+      min-width: 95px;
+      max-width: 95px;
+    }
+    
+    #resultTable th:nth-child(8), #resultTable td:nth-child(8),
+    #revenueTable th:nth-child(8), #revenueTable td:nth-child(8) {
+      width: 85px; /* Actual Generation/Revenue column */
+      min-width: 85px;
+      max-width: 85px;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="section" id="reportDateSection" style="display:none;">
+    <div id="reportDateText"></div>
+    <div id="dateRangeSection" style="display:none; font-size: 1.0rem; color:#0072CE; font-weight:600;">
+      <label for="periodSelector">Select Period:</label>
+      <div class="filter-pill filter-date">
+        <button id="periodTrigger" type="button" class="bc-trigger">
+          <span id="periodLabel">Select Period</span>
+          <span style="font-size: 12px;">▼</span>
+        </button>
+        <div id="periodPicker" class="bc-picker" style="display: none;"></div>
+      </div>
+      <button id="resetPeriodBtn" type="button" style="margin-left:6px;">Reset</button>
+    </div>
+  </div>
+  <div class="section" id="resultSection" style="display:none;">
+    <div class="watermark" style="display:none;" id="pdfWatermark">PEAK ENERGY</div>
+    <div class="table-container">
+      <table id="resultTable"></table>
+    </div>
+    <div class="table-container" style="margin-top:8px;">
+      <table id="revenueTable"></table>
+    </div>
+  </div>
+
+<script>
+/*
+  Refactored JS for Generation Report - Performance Optimized
+  - Maintains all existing visual elements and functionality
+  - Adds performance improvements through data indexing
+  - Preserves expand/collapse logic and revenue table
+*/
+
+let files = {}, mapData = [], icBudget = [], expBudget = [], actualGen = [], budgetGii = [], actualGii = [], yieldData = [];
+
+// === CONFIG ===
+const UNIT = 'kWh'; // set to 'kWh' or 'MWh' depending on your CSVs
+const UNIT_TO_MWH = (v) => {
+  if (v === null || v === undefined || v === '') return 0;
+  const num = Number(v);
+  if (isNaN(num)) return 0;
+  return UNIT === 'kWh' ? num / 1000 : num;
+};
+
+// === PERFORMANCE INDEXES ===
+let actualGenByAsset = new Map(); // asset -> [{date: Date, value: number}, ...]
+let actualGenByDate = new Map();  // yyyy-mm-dd -> { asset: value, ... }
+let yieldByAssetMonth = new Map(); // asset_month -> row
+
+// --- Helper: Convert any date string to YYYY-MM ---
+function toYYYYMM(dateStr) {
+  let d = parseCsvDate(dateStr);
+  if (!d || isNaN(d)) return '';
+  let y = d.getUTCFullYear();
+  let m = d.getUTCMonth() + 1;
+  return y + '-' + (m < 10 ? '0' + m : m);
+}
+
+// --- Helper: Get latest report date (80% of asset columns filled) ---
+function getLatestReportDate() {
+  if (!actualGen || !actualGen.length) return '';
+  
+  // Get all asset columns (excluding Date/date)
+  let assetCols = Object.keys(actualGen[0] || {}).filter(k => k !== 'Date' && k !== 'date');
+  let totalAssets = assetCols.length;
+  let threshold = Math.ceil(totalAssets * 0.8); // 80% threshold
+  
+  // Find the latest date where at least 80% of assets have data
+  let latestDate = null;
+  let latestDateStr = '';
+  
+  // Sort rows by date in descending order to check from most recent
+  let sortedRows = [...actualGen].sort((a, b) => {
+    let dateA = parseCsvDate(a.Date || a.date);
+    let dateB = parseCsvDate(b.Date || b.date);
+    if (!dateA || !dateB) return 0;
+    return dateB - dateA; // Descending order
+  });
+  
+  for (let row of sortedRows) {
+    const dateStr = row.Date || row.date;
+    if (!dateStr) continue;
+    
+    const parsedDate = parseCsvDate(dateStr);
+    if (!parsedDate) continue;
+    
+    // Count how many assets have data (non-empty, non-null, non-zero)
+    let filledAssets = 0;
+    assetCols.forEach(col => {
+      let val = row[col];
+      if (val !== undefined && val !== null && val !== '' && parseFloat(val) > 0) {
+        filledAssets++;
+      }
+    });
+    
+    // Check if this date meets the 80% threshold
+    if (filledAssets >= threshold) {
+      latestDate = parsedDate;
+      latestDateStr = dateStr;
+      break; // Found the most recent date meeting criteria
+    }
+  }
+  
+  // Fallback: if no date meets 80% threshold, use the most recent date with any data
+  if (!latestDateStr && sortedRows.length > 0) {
+    latestDateStr = sortedRows[0].Date || sortedRows[0].date;
+  }
+  return latestDateStr;
+}
+
+// === ENHANCED DATE PARSING (robust, handles multiple formats) ===
+function parseCsvDate(str) {
+  if (!str && str !== 0) return null;
+  // If already Date
+  if (str instanceof Date && !isNaN(str)) return new Date(Date.UTC(str.getFullYear(), str.getMonth(), str.getDate()));
+  str = String(str).trim();
+  
+  // DD-MM-YYYY
+  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(str)) {
+    const [d, mo, y] = str.split('-').map(Number);
+    return new Date(Date.UTC(y, mo - 1, d));
+  }
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const [y, mo, d] = str.split('-').map(Number);
+    return new Date(Date.UTC(y, mo - 1, d));
+  }
+  // M/D/YYYY or MM/DD/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+    const [mo, d, y] = str.split('/').map(Number);
+    return new Date(Date.UTC(y, mo - 1, d));
+  }
+  // ISO / fallback to Date(); convert to UTC date-only
+  const m = Date.parse(str);
+  if (!isNaN(m)) {
+    const d = new Date(m);
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  }
+  return null;
+}
+
+// === PERFORMANCE INDEXING (builds efficient lookup structures) ===
+function buildIndexes() {
+  actualGenByAsset.clear();
+  actualGenByDate.clear();
+  (actualGen || []).forEach(row => {
+    const dateKey = (row.Date || row.date) ? parseCsvDate(row.Date || row.date) : null;
+    if (!dateKey) return;
+    const dateIso = dateKey.toISOString().slice(0, 10);
+    if (!actualGenByDate.has(dateIso)) actualGenByDate.set(dateIso, {});
+    Object.keys(row).forEach(k => {
+      if (k === 'Date' || k === 'date') return;
+      const raw = row[k];
+      if (raw === '' || raw === null || raw === undefined) return;
+      const v = Number(raw);
+      if (isNaN(v)) return;
+      // push into asset index
+      if (!actualGenByAsset.has(k)) actualGenByAsset.set(k, []);
+      actualGenByAsset.get(k).push({ date: dateKey, value: v });
+      // store in date index
+      actualGenByDate.get(dateIso)[k] = v;
+    });
+  });
+  // sort each asset's array by date
+  actualGenByAsset.forEach((arr, k) => arr.sort((a, b) => a.date - b.date));
+
+  yieldByAssetMonth.clear();
+  (yieldData || []).forEach(r => {
+    if (!r.assetno || !r.month) return;
+    const key = `${r.assetno.trim()}|${r.month.trim()}`;
+    yieldByAssetMonth.set(key, r);
+  });
+}
+function getDateRangeFromActualGen() {
+  let allDates = (actualGen || []).map(row => row.Date || row.date).filter(Boolean);
+  if (!allDates.length) return { min: '2025-01-01', max: '2025-12-31' };
+  
+  // Parse all dates and find min/max
+  let parsedDates = allDates.map(parseCsvDate).filter(d => d !== null);
+  if (!parsedDates.length) return { min: '2025-01-01', max: '2025-12-31' };
+  
+  parsedDates.sort((a, b) => a - b);
+  
+  const minDate = parsedDates[0].toISOString().slice(0, 10);
+  const maxDate = parsedDates[parsedDates.length - 1].toISOString().slice(0, 10);
+  
+  // Always show the complete year (Jan to Dec) regardless of data availability
+  const year = new Date(minDate).getFullYear();
+  const fullYearMin = `${year}-01-01`;
+  const fullYearMax = `${year}-12-31`;
+  
+  return {
+    min: fullYearMin,
+    max: fullYearMax
+  };
+}
+  // Initialize BestCalendar instance
+  let periodCalendar = null;
+  
+  // Fallback function to get selected period if bestcalendar is not available
+  function getSelectedPeriod(calendar) {
+    if (calendar && typeof calendar.getSelectedPeriod === 'function') {
+      return calendar.getSelectedPeriod();
+    }
+    return { month: null, year: null, range: null };
+  }
+
+function setupDatePickers() {
+  const { min, max } = getDateRangeFromActualGen();
+  // Use helper to get latest report date
+  let latestReportDate = getLatestReportDate();
+  let minMonth = toYYYYMM(min);
+  let maxMonth = toYYYYMM(max);
+  let reportMonth = toYYYYMM(latestReportDate);
+  
+  // If we can't get the report month from latest report date, use the max month
+  if (!reportMonth) {
+    reportMonth = maxMonth;
+  }
+  
+  // Always use full year (Jan-Dec) for the period selection
+  const currentYear = new Date().getFullYear();
+  const fullYearStart = `${currentYear}-01`;
+  const fullYearEnd = `${currentYear}-12`;
+  
+  // Create data array for bestcalendar - always include full year
+  const calendarData = [];
+  
+  // Generate all months for the current year (Jan-Dec)
+  for (let month = 1; month <= 12; month++) {
+    const monthKey = `${currentYear}-${String(month).padStart(2, '0')}`;
+    calendarData.push({
+      month: monthKey
+    });
+  }
+  
+  // Initialize period calendar with range support
+  periodCalendar = new BestCalendar({
+    triggerId: 'periodTrigger',
+    pickerId: 'periodPicker',
+    labelId: 'periodLabel',
+    data: calendarData,
+    options: {
+      range: true,
+      autoCloseDelay: 1000,
+      onPeriodChange: function(period) {
+        // Manually hide the picker when a period is selected (same as yield report)
+        const pickerElement = document.getElementById('periodPicker');
+        if (pickerElement) {
+          pickerElement.style.display = 'none';
+          pickerElement.classList.add('bc-hidden');
+        }
+        
+        buildKpiTable();
+      }
+    }
+  });
+  
+  // Set default values - always use full year (Jan-Dec)
+  if (periodCalendar) {
+    // Set the selected year to current year
+    periodCalendar.selectedYear = currentYear;
+    
+    // Set as a range from January to December
+    periodCalendar.selectedRange = {
+      start: fullYearStart,
+      end: fullYearEnd
+    };
+    
+    // Set range start and end for range view
+    periodCalendar.rangeStart = 1; // January
+    periodCalendar.rangeEnd = 12;  // December
+    
+    // Ensure no month is pre-selected to avoid confusion
+    periodCalendar.selectedMonth = null;
+    
+    periodCalendar.updateLabel();
+    
+  }
+  
+  // Reset button logic - reset to full year
+  document.getElementById('resetPeriodBtn').addEventListener('click', function() {
+    if (periodCalendar) {
+      periodCalendar.selectedYear = currentYear;
+      periodCalendar.selectedRange = {
+        start: fullYearStart,
+        end: fullYearEnd
+      };
+      periodCalendar.updateLabel();
+    }
+    buildKpiTable();
+  });
+}
+
+// --- MAIN DATA LOADING ---
+function fetchAndParseCSV(url, label) {
+  return fetch(url)
+    .then(resp => {
+      if (!resp.ok) throw new Error('Failed to fetch ' + url + ' (status: ' + resp.status + ')');
+      return resp.text();
+    })
+    .then(csvText => new Promise((resolve) => {
+      Papa.parse(csvText, {
+        header: true, skipEmptyLines: true,
+        complete: function(results) { resolve({ label, data: results.data }); }
+      });
+    }))
+    .catch(err => {
+      showDashboardError('Error loading ' + label + ': ' + err.message);
+      throw err;
+    });
+}
+function showDashboardError(msg) {
+  let errDiv = document.getElementById('dashboardError');
+  if (!errDiv) {
+    errDiv = document.createElement('div');
+    errDiv.id = 'dashboardError';
+    errDiv.style.background = '#ffe6e6';
+    errDiv.style.color = '#b30000';
+    errDiv.style.padding = '18px';
+    errDiv.style.margin = '18px 0';
+    errDiv.style.fontSize = '3.0rem';
+    errDiv.style.border = '2px solid #b30000';
+    errDiv.style.borderRadius = '10px';
+    errDiv.style.fontWeight = 'bold';
+    document.body.insertBefore(errDiv, document.body.firstChild);
+  }
+  errDiv.textContent = msg;
+}
+function autoLoadAllData() {
+  {% if error_message %}
+    console.error('Error loading generation report data:', '{{ error_message }}');
+  {% elif map_data_json and ic_approved_budget_daily_json and actual_gen_data_json and expected_budget_data_json and budget_gii_data_json and actual_gii_data_json %}
+    // Load data from Django view
+    files.mapData = {{ map_data_json|safe }};
+    files.icBudget = {{ ic_approved_budget_daily_json|safe }};
+    files.expBudget = {{ expected_budget_data_json|safe }};
+    files.actualGen = {{ actual_gen_data_json|safe }};
+    files.budgetGii = {{ budget_gii_data_json|safe }};
+    files.actualGii = {{ actual_gii_data_json|safe }};
+    files.yieldData = {{ yield_data_json|safe }}; // Add yield data
+    
+    mapData = files.mapData; icBudget = files.icBudget;
+    expBudget = files.expBudget; actualGen = files.actualGen;
+    budgetGii = files.budgetGii; actualGii = files.actualGii;
+    yieldData = files.yieldData;
+    
+
+    setupDatePickers();
+    buildIndexes(); // Build performance indexes
+    buildKpiTable();
+  {% else %}
+    console.error('No generation report data available');
+  {% endif %}
+}
+document.addEventListener('DOMContentLoaded', autoLoadAllData);
+
+// === ENHANCED DC CAPACITY LOOKUP (performance optimized) ===
+function getDcCapacityForMonth(asset, selectedMonth) {
+  if (!asset) return 0;
+  
+  // 1) try yieldByAssetMonth index (fastest)
+  const monthKey = (selectedMonth || '').trim();
+  if (monthKey) {
+    const row = yieldByAssetMonth.get(`${asset}|${monthKey}`);
+    if (row && (row.dc_capacity_mw || row.dc_capacity_mwp)) {
+      return Number(row.dc_capacity_mw || row.dc_capacity_mwp) || 0;
+    }
+  }
+  
+  // 2) find most recent dc_capacity in yieldData for asset
+  const cand = (yieldData || []).filter(r => 
+    r.assetno && r.assetno.trim() === asset.trim() && 
+    (r.dc_capacity_mw || r.dc_capacity_mwp)
+  );
+  if (cand.length) {
+    // pick latest by month string (ISO-like sorting)
+    cand.sort((a,b) => (b.month||'').localeCompare(a.month||''));
+    return Number(cand[0].dc_capacity_mw || cand[0].dc_capacity_mwp) || 0;
+  }
+  
+  // 3) mapData fallback
+  const mapRow = (mapData || []).find(r => 
+    (r.asset_no || r.assetno) === asset || 
+    (r.asset_no || r.assetno) === asset.trim()
+  );
+  if (mapRow && (mapRow.dc_capacity_mwp || mapRow.dc_capacity_mw)) {
+    return Number(mapRow.dc_capacity_mwp || mapRow.dc_capacity_mw) || 0;
+  }
+  
+  return 0;
+}
+
+// Helper: get the appropriate month for DC capacity lookup based on selection type
+function getDcCapacityMonth(period, startMonth, endMonth) {
+  if (period && period.range && period.range.start && period.range.end) {
+    // Range selection: use the latest month (endMonth)
+    return endMonth;
+  } else if (period && period.month) {
+    // Individual month selection: use the specific month
+    return period.month;
+  } else {
+    // Fallback: use endMonth
+    return endMonth;
+  }
+}
+
+// === SAFE PR CALCULATION ===
+function safePR(ic, dc, gii) {
+  // ic: MWh, dc: MW, gii: dimensionless (hours/day or similar). We expect gii > 0 and dc > 0
+  if (!dc || dc <= 0) return null;
+  if (!gii || gii <= 0) return null;
+  const pr = (ic / (dc * gii)) * 100;
+  return Number.isFinite(pr) ? pr : null;
+}
+
+// --- MAIN KPI TABLE LOGIC (performance optimized) ---
+function buildKpiTable() {
+  // Ensure indexes are up-to-date for performance
+  buildIndexes();
+  
+  // Use helper to get latest report date
+  let latestReportDate = getLatestReportDate();
+  
+  // Get values from period calendar
+  let period = getSelectedPeriod(periodCalendar);
+  let startMonth = null;
+  let endMonth = null;
+  
+  if (period && period.range && period.range.start && period.range.end) {
+    // Range selection
+    startMonth = period.range.start;
+    endMonth = period.range.end;
+  } else if (period && period.month) {
+    // Single month selection
+    startMonth = period.month;
+    endMonth = period.month;
+  } else {
+    // Fallback to default range
+    const { min, max } = getDateRangeFromActualGen();
+    startMonth = toYYYYMM(min);
+    endMonth = toYYYYMM(latestReportDate) || toYYYYMM(max);
+  }
+  
+  const startDate = startMonth ? new Date(startMonth + '-01T00:00:00Z') : new Date('2025-01-01T00:00:00Z');
+  const reportEnd = endMonth ? (function() {
+    let [y, m] = endMonth.split('-').map(Number);
+    let lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return new Date(Date.UTC(y, m - 1, lastDay));
+  })() : new Date(latestReportDate + 'T00:00:00Z');
+
+  // Define selectedMonth here before any usage - use the appropriate month for DC capacity
+  const selectedMonth = getDcCapacityMonth(period, startMonth, endMonth);
+
+  // Helper: parse month string to Date (same as second table)
+  function parseMonth(monthStr) {
+    if (!monthStr) return null;
+    let [y, m] = monthStr.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, 1));
+  }
+
+  // Filter yieldData for selected months (same as second table)
+  let filtered = (yieldData || []).filter(row => {
+    let m = parseMonth(row.month);
+    return m && m >= startDate && m <= reportEnd;
+  });
+
+  // Build portfolio mapping from filtered yieldData (date-filtered)
+  // Normalize portfolio names to prevent duplicates (trim whitespace)
+  const portfolioMapRaw = {};
+  const portfolioNameMap = {}; // Maps normalized name to original name
+  filtered.forEach(row => {
+    if (row.portfolio && row.assetno) {
+      // Normalize portfolio name (trim whitespace to handle variations)
+      const normalizedPortfolio = row.portfolio.trim();
+      const originalPortfolio = row.portfolio;
+      
+      // Store mapping from normalized to original (use first occurrence as canonical)
+      if (!portfolioNameMap[normalizedPortfolio]) {
+        portfolioNameMap[normalizedPortfolio] = originalPortfolio;
+      }
+      
+      if (!portfolioMapRaw[normalizedPortfolio]) portfolioMapRaw[normalizedPortfolio] = new Set();
+      portfolioMapRaw[normalizedPortfolio].add(row.assetno.trim());
+    }
+  });
+  
+  // Sort assets within each portfolio by numeric part
+  const portfolioMap = {};
+  Object.keys(portfolioMapRaw).forEach(normalizedPortfolio => {
+    const assets = Array.from(portfolioMapRaw[normalizedPortfolio]);
+    const sortedAssets = assets.sort((a, b) => {
+      // Extract numeric part from asset names (e.g., "01" from "KR_BW_01")
+      const getNumericPart = (assetName) => {
+        const match = assetName.match(/(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      };
+      return getNumericPart(a) - getNumericPart(b);
+    });
+    // Use original portfolio name for display
+    portfolioMap[portfolioNameMap[normalizedPortfolio]] = new Set(sortedAssets);
+  });
+  
+
+  // Initialize data structures using filtered yieldData (same as second table)
+  const countries = {};
+  const portfolios = Array.from(new Set(Object.keys(portfolioMap)));
+  
+  // Process portfolios and build country structure (same as second table)
+  portfolios.forEach(p => {
+    const pAssets = Array.from(portfolioMap[p] || new Set());
+    
+    // Process assets within portfolio
+    pAssets.forEach(a => {
+      const country = getAssetCountry(a);
+      if (!countries[country]) countries[country] = {};
+      if (!countries[country][p]) countries[country][p] = [];
+      countries[country][p].push({ 
+        asset_no: a,
+        dc: getDcCapacityForMonth(a, selectedMonth)
+      });
+    });
+  });
+  
+  // Group by country, portfolio, asset using the same structure as second table
+  let countryMap = {};
+  Object.entries(countries).forEach(([country, portfolios]) => {
+    countryMap[country] = {};
+    Object.entries(portfolios).forEach(([portfolio, assets]) => {
+      countryMap[country][portfolio] = {};
+      assets.forEach(asset => {
+        // Find corresponding rows in filtered yieldData for this asset
+        const assetRows = filtered.filter(row => 
+          row.assetno && row.assetno.trim() === asset.asset_no.trim()
+        );
+        // Always include the asset in countryMap, even if no yieldData
+        countryMap[country][portfolio][asset.asset_no] = assetRows;
+      });
+    });
+  });
+
+  // Calculate country DC capacities from unique assets (using countryMap like second table)
+  const countryDcCapacities = {};
+  Object.entries(countryMap).sort(([a], [b]) => a.localeCompare(b)).forEach(([country, portfolios]) => {
+    const countryAssets = new Set();
+    Object.values(portfolios).forEach(assets => {
+      Object.keys(assets).forEach(asset => countryAssets.add(asset));
+    });
+    countryDcCapacities[country] = Array.from(countryAssets).reduce((sum, assetNo) => 
+      sum + getDcCapacityForMonth(assetNo, selectedMonth), 0
+    );
+  });
+
+  // Calculate grand total DC capacity (using countryMap like second table)
+  const allAssets = new Set();
+  Object.values(countryMap).forEach(portfolios => {
+    Object.values(portfolios).forEach(assets => {
+      Object.keys(assets).forEach(asset => allAssets.add(asset));
+    });
+  });
+  const totalDc = Array.from(allAssets).reduce((sum, assetNo) => 
+    sum + getDcCapacityForMonth(assetNo, selectedMonth), 0
+  );
+  const totalAssetCount = allAssets.size;
+
+  // Initialize grand total row after we have all the necessary data
+  const grandTotalRow = calcGrandTotal();
+  grandTotalRow.dc = totalDc;
+  grandTotalRow.a = `<b>${totalAssetCount}</b>`;
+
+  // For asset counting, count all assets that exist in the system
+  function countValidAssets(assetList) {
+    if (!assetList || !assetList.length) return 0;
+    return assetList.length;
+  }
+  let rowId = 0;
+  // Find latest date in Actual Generation where at least 80% of asset columns have data
+  let assetCols = Object.keys(actualGen[0] || {}).filter(k => k !== 'Date' && k !== 'date');
+  let totalAssets = assetCols.length;
+  let threshold = Math.ceil(totalAssets * 0.8); // 80% threshold
+  let reportDate = '';
+  
+  // Sort rows by date in descending order to check from most recent
+  let sortedRows = [...actualGen].sort((a, b) => {
+    let dateA = parseCsvDate(a.Date || a.date);
+    let dateB = parseCsvDate(b.Date || b.date);
+    if (!dateA || !dateB) return 0;
+    return dateB - dateA; // Descending order
+  });
+  
+  for (let row of sortedRows) {
+    if (!row.Date && !row.date) continue;
+    
+    // Count how many assets have data (non-empty, non-null, non-zero)
+    let filledAssets = 0;
+    assetCols.forEach(col => {
+      let val = row[col];
+      if (val !== undefined && val !== null && val !== '' && parseFloat(val) > 0) {
+        filledAssets++;
+      }
+    });
+    
+    // Check if this date meets the 80% threshold
+    if (filledAssets >= threshold) {
+      reportDate = row.Date || row.date;
+      break; // Found the most recent date meeting criteria
+    }
+  }
+  
+  // Fallback: if no date meets 80% threshold, use the most recent date with any data
+  if (!reportDate && sortedRows.length > 0) {
+    reportDate = sortedRows[0].Date || sortedRows[0].date;
+  }
+  const reportDateSection = document.getElementById('reportDateSection');
+  if (reportDateSection) {
+    reportDateSection.style.display = '';
+    const reportDateTextEl = document.getElementById('reportDateText');
+    if (reportDateTextEl) {
+      reportDateTextEl.innerHTML = `<b>Report Date:</b> ${formatReportDate(reportDate)}`;
+    }
+  }
+  // Show date range section
+  const dateRangeSection = document.getElementById('dateRangeSection');
+  if (dateRangeSection) dateRangeSection.style.display = '';
+  const endDateDisplay = document.getElementById('endDateDisplay');
+  if (endDateDisplay) endDateDisplay.innerHTML = `<b>End Date:</b> ${reportDate}`;
+  // Get start and end date from input
+  // let startDateInput = document.getElementById('startMonthInput'); // Moved up
+  // let endDateInput = document.getElementById('endMonthInput'); // Moved up
+  // const startDate = startDateInput && startDateInput.value ? new Date(startDateInput.value + '-01T00:00:00Z') : new Date('2025-01-01T00:00:00Z');
+  // const reportEnd = endDateInput && endDateInput.value ? (function() {
+  //   let [y, m] = endDateInput.value.split('-').map(Number);
+  //   let lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  //   return new Date(Date.UTC(y, m - 1, lastDay));
+  // })() : new Date(reportDate + 'T00:00:00Z');
+
+  // === OPTIMIZED SUMMING FUNCTIONS (performance improved) ===
+  function sumDaily(df, assets, startDate, endDate) {
+    if (!df.length) return 0;
+    // More robust asset column detection - check if any row has the asset column
+    let assetCols = assets.filter(a => {
+      return df.some(row => row[a] !== undefined);
+    });
+    let sum = 0;
+    df.forEach(row => {
+      let rowDate = parseCsvDate(row.Date || row.date);
+      if (!rowDate) return;
+      if (rowDate >= startDate && rowDate <= endDate) {
+        assetCols.forEach(a => {
+          let val = row[a];
+          if (val !== undefined && val !== null && val !== '') {
+            sum += parseFloat(val);
+          }
+        });
+      }
+    });
+    return sum;
+  }
+
+  // Enhanced summing with indexing for better performance
+  function sumSeriesOverRangeByAssets(df, assetList, startDate, endDate, isGii=false) {
+    if (!assetList || !assetList.length) return 0;
+    let sum = 0;
+    // Use indexes when possible for better performance
+    for (const asset of assetList) {
+      const series = actualGenByAsset.get(asset);
+      if (!series || !series.length) {
+        // fallback scanning df rows (less likely)
+        (df || []).forEach(row => {
+          const rd = parseCsvDate(row.Date || row.date);
+          if (!rd || rd < startDate || rd > endDate) return;
+          const raw = row[asset];
+          if (raw === undefined || raw === null || raw === '') return;
+          sum += Number(raw);
+        });
+        continue;
+      }
+      // Use pre-indexed data for better performance
+      for (const point of series) {
+        if (point.date < startDate || point.date > endDate) continue;
+        sum += point.value;
+      }
+    }
+    // Convert to MWh if series was actualGen (likely kWh)
+    return UNIT === 'kWh' ? sum / 1000 : sum;
+  }
+  function sumGii(df, assets, startDate, endDate) {
+    if (!df.length) return 0;
+    // More robust asset column detection - check if any row has the asset column
+    let assetCols = assets.filter(a => {
+      return df.some(row => row[a] !== undefined);
+    });
+    
+    let sum = 0;
+    df.forEach(row => {
+      let rowDate = parseCsvDate(row.Date || row.date);
+      if (!rowDate) return;
+      if (rowDate >= startDate && rowDate <= endDate) {
+        assetCols.forEach(a => {
+          let val = row[a];
+          if (val !== undefined && val !== null && val !== '') {
+            sum += parseFloat(val);
+          }
+        });
+      }
+    });
+    
+    return sum;
+  }
+
+
+  function getLatestDcCapacity(asset, startDate, reportEnd) {
+    let latestDate = null;
+    let latestDc = null;
+    (actualGen || []).forEach(row => {
+      let rowDate = parseCsvDate(row.Date || row.date || row.month);
+      if (!rowDate || rowDate < startDate || rowDate > reportEnd) return;
+      if (row.assetno && asset && row.assetno.trim() === asset.trim() && row.dc_capacity_mw !== undefined && row.dc_capacity_mw !== null && row.dc_capacity_mw !== '') {
+        if (!latestDate || rowDate > latestDate) {
+          latestDate = rowDate;
+          latestDc = parseFloat(row.dc_capacity_mw) || 0;
+        }
+      }
+    });
+    return latestDc !== null ? latestDc : 0;
+  }
+  // Helper function to get country for an asset number
+  function getAssetCountry(assetNo) {
+    if (!assetNo || !filtered) return '';
+    // Try to find a row matching this asset, prefer rows with country info
+    const row = filtered.find(r => r.assetno && r.assetno.trim() === assetNo.trim() && r.country && r.country.trim());
+    if (row && row.country) return row.country.trim();
+    // Fallback: find any row with this asset (even without country)
+    const fallbackRow = filtered.find(r => r.assetno && r.assetno.trim() === assetNo.trim());
+    return fallbackRow && fallbackRow.country ? fallbackRow.country.trim() : '';
+  }
+  // Build hierarchy: country → portfolio → asset
+  let html = `
+    <tr>
+      <th></th>
+      <th>Country</th>
+      <th>Portfolio</th>
+      <th>Asset</th>
+      <th>DC Capacity (MWp)</th>
+      <th>IC Approved Budget (MWh)</th>
+      <th>Expected Budget (MWh)</th>
+      <th>Actual Generation (MWh)</th>
+      <th>Actual Vs IC Budget (MWh)</th>
+      <th>Forecasted Generation (MWh)</th>
+      <th>Budget PR (%)</th>
+      <th>Actual PR (%)</th>
+      <th>Actual PR vs Expected PR</th>
+    </tr>`;
+
+  // --- Grand Total Row Calculation ---
+  function calcGrandTotal() {
+    // Get all asset numbers from countryMap (same as second table - only assets with data)
+    const allAssets = [];
+    Object.values(countryMap).forEach(portfolios => {
+      Object.values(portfolios).forEach(assets => {
+        Object.keys(assets).forEach(asset => allAssets.push(asset));
+      });
+    });
+    // Use selected month for DC capacity lookup
+    let selectedMonth = startDate ? startDate.toISOString().slice(0, 7) : '';
+    // Grand total DC capacity: sum of all unique assets only
+    const totalDc = allAssets.reduce((sum, asset) => sum + getDcCapacityForMonth(asset, selectedMonth), 0);
+    // Sums over the date range
+    const totalIc = sumDaily(icBudget, allAssets, startDate, reportEnd);
+    const totalExp = sumDaily(expBudget, allAssets, startDate, reportEnd);
+    const totalAg = sumDaily(actualGen, allAssets, startDate, reportEnd) / 1000;
+    const totalBgii = sumDaily(budgetGii, allAssets, startDate, reportEnd);
+    const totalAgii = sumDaily(actualGii, allAssets, startDate, reportEnd);
+    const totalBgiiGii = sumGii(budgetGii, allAssets, startDate, reportEnd);
+    const totalAgiiGii = sumGii(actualGii, allAssets, startDate, reportEnd);
+
+    // Yield
+    const totalYield = totalDc ? totalAg / totalDc : '';
+    const totalFYield = totalYield;
+
+    // --- Forecasted Generation (MWh) for Grand Total ---
+    let forecastedGen = '';
+    if (Number.isFinite(totalAg) && totalAg > 0 && startDate && reportEnd) {
+      // Check if this is a single month selection
+      const isSingleMonth = startMonth === endMonth;
+      
+      if (isSingleMonth) {
+        // For single month selection, forecasted = actual (no projection needed)
+        forecastedGen = totalAg.toLocaleString();
+      } else {
+        // For range selection, use projection logic
+        let datesWithData = new Set();
+        (actualGen || []).forEach(row => {
+          let rowDate = parseCsvDate(row.Date || row.date);
+          if (!rowDate) return;
+          let hasAnyData = false;
+          allAssets.forEach(asset => {
+            if (row[asset] !== undefined && row[asset] !== null && row[asset] !== '') hasAnyData = true;
+          });
+          if (hasAnyData && rowDate >= startDate && rowDate <= reportEnd) {
+            datesWithData.add(rowDate.getTime());
+          }
+        });
+        datesWithData = Array.from(datesWithData);
+        if (datesWithData.length) {
+          datesWithData.sort((a, b) => a - b);
+          let firstDate = new Date(startDate); // always first day of start month
+          let lastDataDate = new Date(datesWithData[datesWithData.length - 1]);
+          // Denominator: number of days from firstDate to lastDataDate (inclusive)
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const denomDays = Math.floor((lastDataDate - firstDate) / msPerDay) + 1;
+          // Multiplier: number of days from firstDate to last day of end month (inclusive)
+          let [endY, endM] = [reportEnd.getUTCFullYear(), reportEnd.getUTCMonth() + 1];
+          let lastDayOfEndMonth = new Date(Date.UTC(endY, endM, 0));
+          const multDays = Math.floor((lastDayOfEndMonth - firstDate) / msPerDay) + 1;
+          if (denomDays > 0 && multDays > 0) {
+            forecastedGen = Math.round((totalAg / denomDays) * multDays).toLocaleString();
+          }
+        }
+      }
+    }
+
+    // Calculate avg PR for all assets (like in country/portfolio logic)
+    // To do this, get all asset PRs
+    const allAssetPRs = mapData.map(row => {
+      const a = row.asset_no;
+      const aDc = parseFloat(row.dc_capacity_mwp) || 0;
+      const aIc = sumDaily(icBudget, [a], startDate, reportEnd);
+      const aAg = sumDaily(actualGen, [a], startDate, reportEnd) / 1000;
+      const aBgiiGii = sumGii(budgetGii, [a], startDate, reportEnd);
+      const aAgiiGii = sumGii(actualGii, [a], startDate, reportEnd);
+      // Robust PR calculation
+      let aExpPR = '';
+      if (aDc && aBgiiGii && aBgiiGii > 0) {
+        aExpPR = ((aIc / (aDc * aBgiiGii)) * 100);
+      } else if (!aDc) {
+        aExpPR = 'No DC';
+      } else if (!aBgiiGii || aBgiiGii === 0) {
+        aExpPR = 'No GII';
+      }
+      let aActPR = '';
+      if (aDc && aAgiiGii && aAgiiGii > 0) {
+        aActPR = ((aAg / (aDc * aAgiiGii)) * 100);
+      } else if (!aDc) {
+        aActPR = 'No DC';
+      } else if (!aAgiiGii || aAgiiGii === 0) {
+        aActPR = 'No GII';
+      }
+      return { aExpPR, aActPR };
+    }).filter(r => typeof r.aExpPR === 'number' && !isNaN(r.aExpPR) && typeof r.aActPR === 'number' && !isNaN(r.aActPR));
+
+    const avgExpPR = allAssetPRs.length ? allAssetPRs.map(r => r.aExpPR).reduce((a, b) => a + b, 0) / allAssetPRs.length : '';
+    const avgActPR = allAssetPRs.length ? allAssetPRs.map(r => r.aActPR).reduce((a, b) => a + b, 0) / allAssetPRs.length : '';
+    
+    // Grand Total PR calculation completed
+
+    return {
+      id: 'grandTotal',
+      parentId: null,
+      level: -1,
+      c: '<b>All</b>',
+      p: '<b>All</b>',
+      a: '<b>All Assets</b>',
+      dc: totalDc,
+      ic: totalIc,
+      exp: totalExp,
+      ag: totalAg,
+      yieldVal: totalYield,
+      fYield: forecastedGen !== '' ? forecastedGen : '0',
+      expPR: avgExpPR,
+      actPR: avgActPR,
+      isTotal: true,
+      isExpandable: Object.keys(countryMap).length > 0,
+      isHidden: false
+    };
+  }
+  let rows = [];
+  // --- Grand Total Row ---
+  // We'll push the grand total row after country rows, so we can sum country-level forecastedGen
+
+  Object.entries(countryMap).sort(([a], [b]) => a.localeCompare(b)).forEach(([country, portfolios]) => {
+    let cId = `c${rowId++}`;
+    let cAssets = [];
+    let cDc = 0, cIc = 0, cExp = 0, cAg = 0, cBgii = 0, cAgii = 0;
+    // Use appropriate month for DC capacity lookup based on selection type
+    let countryAssets = Object.values(portfolios).flat().map(assets => Object.keys(assets)).flat();
+    let uniqueCountryAssets = Array.from(new Set(countryAssets));
+    let countryAssetDcs = uniqueCountryAssets.map(assetNo => ({ asset: assetNo, dc: getDcCapacityForMonth(assetNo, selectedMonth) }));
+    cDc = countryAssetDcs.reduce((sum, a) => sum + a.dc, 0);
+    // We'll calculate PRs after portfolios
+    let portfolioRows = [];
+    Object.entries(portfolios).forEach(([portfolio, assets]) => {
+      let pId = `p${rowId++}`;
+      let pAssets = Object.keys(assets);
+      
+      // Use appropriate month for DC capacity lookup based on selection type
+      let portfolioAssetDcs = pAssets.map(assetNo => ({ asset: assetNo, dc: getDcCapacityForMonth(assetNo, selectedMonth) }));
+      // Portfolio DC capacity: sum of its assets only
+      let pDc = pAssets.reduce((sum, assetNo) => sum + getDcCapacityForMonth(assetNo, selectedMonth), 0);
+      let pIc = sumDaily(icBudget, pAssets, startDate, reportEnd);
+      let pExp = sumDaily(expBudget, pAssets, startDate, reportEnd);
+      let pAg = pAssets.reduce((sum, assetNo) => sum + (sumDaily(actualGen, [assetNo], startDate, reportEnd) / 1000), 0);
+      let pBgii = sumDaily(budgetGii, pAssets, startDate, reportEnd);
+      let pAgii = sumDaily(actualGii, pAssets, startDate, reportEnd);
+      let pBgiiGii = sumGii(budgetGii, pAssets, startDate, reportEnd);
+      let pAgiiGii = sumGii(actualGii, pAssets, startDate, reportEnd);
+      let pYield = pDc ? pAg/pDc : '';
+      let pFYield = pYield;
+      // Asset rows for this portfolio
+      let assetRows = [];
+      Object.entries(assets).forEach(([assetNo, assetDataRows]) => {
+        let aId = `a${rowId++}`;
+        let a = assetNo;
+        // Use appropriate month for DC capacity lookup based on selection type
+        let aDc = getDcCapacityForMonth(a, selectedMonth);
+        let aIc = sumDaily(icBudget, [a], startDate, reportEnd);
+        let aExp = sumDaily(expBudget, [a], startDate, reportEnd);
+        let aAg = sumDaily(actualGen, [a], startDate, reportEnd) / 1000;
+        let aBgii = sumDaily(budgetGii, [a], startDate, reportEnd);
+        let aAgii = sumDaily(actualGii, [a], startDate, reportEnd);
+        let aBgiiGii = sumGii(budgetGii, [a], startDate, reportEnd);
+        let aAgiiGii = sumGii(actualGii, [a], startDate, reportEnd);
+        
+        
+        // Special handling for TW1 - ensure we get the correct GII value
+        if (a === 'TW1' && aAgiiGii === 0) {
+          // Check if TW1 column exists in the dataset
+          if (actualGii && actualGii.length > 0 && actualGii[0]['TW1'] !== undefined) {
+            aAgiiGii = sumGii(actualGii, [a], startDate, reportEnd);
+          } else {
+            // Try to find TW1 data in any row of the dataset
+            if (actualGii && actualGii.length > 0) {
+              let foundTw1Data = false;
+              for (let i = 0; i < Math.min(10, actualGii.length); i++) {
+                if (actualGii[i]['TW1'] !== undefined) {
+                  foundTw1Data = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        // Final fallback for TW1: if still 0, try manual calculation
+        if (a === 'TW1' && aAgiiGii === 0) {
+          if (actualGii && actualGii.length > 0) {
+            let manualSum = 0;
+            let foundAnyData = false;
+            
+            actualGii.forEach(row => {
+              let rowDate = parseCsvDate(row.Date || row.date);
+              if (!rowDate) return;
+              if (rowDate >= startDate && rowDate <= reportEnd) {
+                // Check if this row has TW1 data (even if column doesn't exist in header)
+                if (row['TW1'] !== undefined && row['TW1'] !== null && row['TW1'] !== '') {
+                  manualSum += parseFloat(row['TW1']);
+                  foundAnyData = true;
+                }
+              }
+            });
+            
+            if (foundAnyData) {
+              aAgiiGii = manualSum;
+            }
+          }
+        }
+        let aYield = aDc ? aAg/aDc : '';
+        let aFYield = aYield;
+        
+        // Enhanced PR calculation
+        let aExpPR = '';
+        if (aDc && aBgiiGii && aBgiiGii > 0) {
+          aExpPR = ((aIc / (aDc * aBgiiGii)) * 100);
+        } else if (!aDc) {
+          aExpPR = 'No DC';
+        } else if (!aBgiiGii || aBgiiGii === 0) {
+          aExpPR = 'No GII';
+        }
+        
+        let aActPR = '';
+        if (aDc && aAgiiGii && aAgiiGii > 0) {
+          aActPR = ((aAg / (aDc * aAgiiGii)) * 100);
+        } else if (!aDc) {
+          aActPR = 'No DC';
+        } else if (!aAgiiGii || aAgiiGii === 0) {
+          aActPR = 'No GII';
+        }
+        // --- Asset row forecastedGen calculation ---
+        let assetForecastedGen = '';
+        if (Number.isFinite(aAg) && aAg > 0 && startDate && reportEnd) {
+          // Check if this is a single month selection
+          const isSingleMonth = startMonth === endMonth;
+          
+          if (isSingleMonth) {
+            // For single month selection, forecasted = actual (no projection needed)
+            assetForecastedGen = aAg.toLocaleString();
+          } else {
+            // For range selection, use projection logic
+            let datesWithData = new Set();
+            (actualGen || []).forEach(row => {
+              let rowDate = parseCsvDate(row.Date || row.date);
+              if (!rowDate) return;
+              if (row[a] !== undefined && row[a] !== null && row[a] !== '' && rowDate >= startDate && rowDate <= reportEnd) {
+                datesWithData.add(rowDate.getTime());
+              }
+            });
+            datesWithData = Array.from(datesWithData);
+            if (datesWithData.length) {
+              datesWithData.sort((a, b) => a - b);
+              let firstDate = new Date(startDate);
+              let lastDataDate = new Date(datesWithData[datesWithData.length - 1]);
+              const msPerDay = 24 * 60 * 60 * 1000;
+              const denomDays = Math.floor((lastDataDate - firstDate) / msPerDay) + 1;
+              let [endY, endM] = [reportEnd.getUTCFullYear(), reportEnd.getUTCMonth() + 1];
+              let lastDayOfEndMonth = new Date(Date.UTC(endY, endM, 0));
+              const multDays = Math.floor((lastDayOfEndMonth - firstDate) / msPerDay) + 1;
+              if (denomDays > 0 && multDays > 0) {
+                assetForecastedGen = Math.round((aAg / denomDays) * multDays).toLocaleString();
+              }
+            }
+          }
+        }
+        assetRows.push({id: aId, parentId: pId, level: 2, c: country, p: portfolio, a, dc: aDc, ic: aIc, exp: aExp, ag: aAg, yieldVal: aYield, fYield: assetForecastedGen, expPR: aExpPR, actPR: aActPR, isTotal: false, isExpandable: false, isHidden: true});
+      });
+      
+      
+      // Calculate average PRs for this portfolio from its assets
+      let allAssetPRs = assetRows.filter(r => typeof r.expPR === 'number' && !isNaN(r.expPR)).map(r => r.expPR);
+      let allAssetActPRs = assetRows.filter(r => typeof r.actPR === 'number' && !isNaN(r.actPR)).map(r => r.actPR);
+      let pExpPR = allAssetPRs.length ? allAssetPRs.reduce((a,b)=>a+b,0)/allAssetPRs.length : '';
+      let pActPR = allAssetActPRs.length ? allAssetActPRs.reduce((a,b)=>a+b,0)/allAssetActPRs.length : '';
+      // Portfolio row
+      let portfolioRow = {
+        id: pId,
+        parentId: cId,
+        level: 1,
+        c: country,
+        p: portfolio,
+        a: countValidAssets(pAssets),
+        dc: pDc,
+        ic: pIc,
+        exp: pExp,
+        ag: pAg,
+        yieldVal: pYield,
+        // --- Portfolio row forecastedGen calculation ---
+        fYield: (function() {
+          let forecastedGen = '';
+          if (Number.isFinite(pAg) && pAg > 0 && startDate && reportEnd) {
+            let portfolioAssets = pAssets;
+            let datesWithData = new Set();
+            (actualGen || []).forEach(row => {
+              let rowDate = parseCsvDate(row.Date || row.date);
+              if (!rowDate) return;
+              let hasAnyData = false;
+              portfolioAssets.forEach(asset => {
+                if (row[asset] !== undefined && row[asset] !== null && row[asset] !== '') hasAnyData = true;
+              });
+              if (hasAnyData && rowDate >= startDate && rowDate <= reportEnd) {
+                datesWithData.add(rowDate.getTime());
+              }
+            });
+            datesWithData = Array.from(datesWithData);
+            if (datesWithData.length) {
+              datesWithData.sort((a, b) => a - b);
+              let firstDate = new Date(startDate);
+              let lastDataDate = new Date(datesWithData[datesWithData.length - 1]);
+              const msPerDay = 24 * 60 * 60 * 1000;
+              const denomDays = Math.floor((lastDataDate - firstDate) / msPerDay) + 1;
+              let [endY, endM] = [reportEnd.getUTCFullYear(), reportEnd.getUTCMonth() + 1];
+              let lastDayOfEndMonth = new Date(Date.UTC(endY, endM, 0));
+              const multDays = Math.floor((lastDayOfEndMonth - firstDate) / msPerDay) + 1;
+              if (denomDays > 0 && multDays > 0) {
+                forecastedGen = Math.round((pAg / denomDays) * multDays).toLocaleString();
+              }
+            }
+          }
+          return forecastedGen;
+        })(),
+        expPR: pExpPR,
+        actPR: pActPR,
+        isTotal: false,
+        isExpandable: Object.keys(assets).length > 0,
+        isHidden: true
+      };
+      portfolioRows.push(portfolioRow, ...assetRows);
+      cAssets = cAssets.concat(pAssets);
+      cDc += pDc; cIc += pIc; cExp += pExp; cAg += pAg; cBgii += pBgii; cAgii += pAgii;
+    });
+    // After all portfolio rows for this country are added:
+    let countryPortfolioExpPRs = portfolioRows.filter(r => r.level === 1 && typeof r.expPR === 'number' && !isNaN(r.expPR)).map(r => r.expPR);
+    let countryPortfolioActPRs = portfolioRows.filter(r => r.level === 1 && typeof r.actPR === 'number' && !isNaN(r.actPR)).map(r => r.actPR);
+    let cExpPR = countryPortfolioExpPRs.length ? countryPortfolioExpPRs.reduce((a,b)=>a+b,0)/countryPortfolioExpPRs.length : '';
+    let cActPR = countryPortfolioActPRs.length ? countryPortfolioActPRs.reduce((a,b)=>a+b,0)/countryPortfolioActPRs.length : '';
+    
+    // Country PR calculation completed
+    // --- Country row forecastedGen calculation ---
+    // Calculate forecastedGen for this country before creating countryRow
+    let forecastedGen = '';
+    if (Number.isFinite(cAg) && cAg > 0 && startDate && reportEnd) {
+      // Check if this is a single month selection
+      const isSingleMonth = startMonth === endMonth;
+      
+      if (isSingleMonth) {
+        // For single month selection, forecasted = actual (no projection needed)
+        forecastedGen = cAg.toLocaleString();
+      } else {
+        // For range selection, use projection logic
+        let countryAssets = cAssets;
+        let datesWithData = new Set();
+        (actualGen || []).forEach(row => {
+          let rowDate = parseCsvDate(row.Date || row.date);
+          if (!rowDate) return;
+          let hasAnyData = false;
+          countryAssets.forEach(asset => {
+            if (row[asset] !== undefined && row[asset] !== null && row[asset] !== '') hasAnyData = true;
+          });
+          if (hasAnyData && rowDate >= startDate && rowDate <= reportEnd) {
+            datesWithData.add(rowDate.getTime());
+          }
+        });
+        datesWithData = Array.from(datesWithData);
+        if (datesWithData.length) {
+          datesWithData.sort((a, b) => a - b);
+          let firstDate = new Date(startDate); // always first day of start month
+          let lastDataDate = new Date(datesWithData[datesWithData.length - 1]);
+          // Denominator: number of days from firstDate to lastDataDate (inclusive)
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const denomDays = Math.floor((lastDataDate - firstDate) / msPerDay) + 1;
+          // Multiplier: number of days from firstDate to last day of end month (inclusive)
+          let [endY, endM] = [reportEnd.getUTCFullYear(), reportEnd.getUTCMonth() + 1];
+          let lastDayOfEndMonth = new Date(Date.UTC(endY, endM, 0));
+          const multDays = Math.floor((lastDayOfEndMonth - firstDate) / msPerDay) + 1;
+          if (denomDays > 0 && multDays > 0) {
+            forecastedGen = Math.round((cAg / denomDays) * multDays).toLocaleString();
+          }
+        }
+      }
+    }
+    // Country row
+    let countryRow = {
+      id: cId,
+      parentId: null,
+      level: 0,
+      c: country,
+      p: 'Total',
+      a: countValidAssets(uniqueCountryAssets),
+      dc: countryDcCapacities[country] || 0,
+      ic: cIc,
+      exp: cExp,
+      ag: cAg,
+      yieldVal: cDc ? cAg/cDc : '',
+      fYield: forecastedGen, // forecastedGen is calculated in the country row logic
+      expPR: cExpPR,
+      actPR: cActPR,
+      isTotal: true,
+      isExpandable: Object.keys(portfolios).length > 0,
+      isHidden: false
+    };
+    rows.push(countryRow, ...portfolioRows);
+  });
+  // Now sum country-level forecastedGen for grand total
+  let totalForecastedGen = rows.filter(r => {
+    if (r.level !== 0) return false;
+    let val = String(r.fYield).replace(/,/g, '');
+    let num = Number(val);
+    return val !== '' && !isNaN(num) && num > 0;
+  }).reduce((sum, r) => sum + Number(String(r.fYield).replace(/,/g, '')), 0);
+  grandTotalRow.fYield = totalForecastedGen > 0 ? totalForecastedGen.toLocaleString() : '0';
+  rows.unshift(grandTotalRow);
+  // Define addRow before using it
+  function addRow({id, parentId, level, c, p, a, dc, ic, exp, ag, yieldVal, fYield, expPR, actPR, isTotal, isExpandable, isHidden}) {
+    
+    let ach = (Number.isFinite(ag) && Number.isFinite(ic) && ic > 0) ? (ag/ic)*100 : 0;
+    let agVal = Number.isFinite(ag) ? Math.round(ag).toLocaleString() : '';
+    let achBar = `
+      <div style="position:relative;width:100%;height:24px;background:#e6f1fc;border-radius:4px;overflow:hidden;border:2px solid #fff;">
+        <div style="height:100%;width:${Math.min(ach,100)}%;background:#0072CE;"></div>
+        <span style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.9em;color:#111;">${Math.round(ach)}%</span>
+      </div>`;
+    let prVsExp = (Number.isFinite(actPR) && Number.isFinite(expPR) && expPR !== 0) ? (actPR/expPR)*100 : 0;
+    let prVsExpBar = `
+      <div style="position:relative;width:100%;height:24px;background:#e6f1fc;border-radius:4px;overflow:hidden;border:2px solid #fff;">
+        <div style="height:100%;width:${Math.min(prVsExp,100)}%;background:#0072CE;"></div>
+        <span style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.9em;color:#222;">${Math.round(prVsExp)}%</span>
+      </div>`;
+    let boldStyle = '';
+    if (level === -1) boldStyle = 'font-weight:bold;background:#ffe;color:#0072CE;';
+    else if (level === 0) boldStyle = 'font-weight:bold;background:#e0e6ee;color:#0072CE;';
+    else if (level === 1) boldStyle = 'font-weight:bold;background:#f3f6fa;color:#0072CE;';
+    else if (level === 2) boldStyle = 'color:#222;';
+
+    // Forecasted Generation (MWh) logic
+    let forecastedGen = '';
+    if (Number.isFinite(ag) && ag > 0 && startDate && reportEnd) {
+      // Check if this is a single month selection
+      const isSingleMonth = startMonth === endMonth;
+      
+      if (isSingleMonth) {
+        // For single month selection, forecasted = actual (no projection needed)
+        forecastedGen = ag.toLocaleString();
+      } else {
+        // For range selection, use projection logic
+        let assetList = [];
+        if (a) assetList = [a];
+        else if (Array.isArray(p) && p.length) assetList = p;
+        else if (Array.isArray(c) && c.length) assetList = c;
+        else assetList = [];
+        // Fallback: for totals, use all assets from filtered data
+        if (!assetList.length && filtered) assetList = filtered.map(row => row.assetno).filter(Boolean);
+        // Find all dates with data for these assets in actualGen
+        let datesWithData = [];
+        (actualGen || []).forEach(row => {
+          let rowDate = parseCsvDate(row.Date || row.date);
+          if (!rowDate) return;
+          let hasData = false;
+          assetList.forEach(asset => {
+            if (row[asset] !== undefined && row[asset] !== null && row[asset] !== '') hasData = true;
+          });
+          if (hasData && rowDate >= startDate && rowDate <= reportEnd) {
+            datesWithData.push(rowDate.getTime());
+          }
+        });
+        if (datesWithData.length) {
+          datesWithData.sort((a, b) => a - b);
+          let firstDate = new Date(startDate); // always first day of start month
+          let lastDataDate = new Date(datesWithData[datesWithData.length - 1]);
+          // Denominator: number of days from firstDate to lastDataDate (inclusive)
+          const msPerDay = 24 * 60 * 60 * 1000;
+          const denomDays = Math.floor((lastDataDate - firstDate) / msPerDay) + 1;
+          // Multiplier: number of days from firstDate to last day of end month (inclusive)
+          let [endY, endM] = [reportEnd.getUTCFullYear(), reportEnd.getUTCMonth() + 1];
+          let lastDayOfEndMonth = new Date(Date.UTC(endY, endM, 0));
+          const multDays = Math.floor((lastDayOfEndMonth - firstDate) / msPerDay) + 1;
+          if (denomDays > 0 && multDays > 0) {
+            forecastedGen = Math.round((ag / denomDays) * multDays).toLocaleString();
+          }
+        }
+      }
+    }
+
+    // First column color logic (match revenue table)
+    let firstColBg = '';
+    if (level === -1) { firstColBg = 'background:#ffe;color:#0072CE;font-weight:bold;'; }
+    else if (level === 0) { firstColBg = 'background:#1565c0;color:#fff;font-weight:bold;'; }
+    else if (level === 1) { firstColBg = 'background:#42a5f5;color:#fff;font-weight:bold;'; }
+    else if (level === 2) { firstColBg = 'background:#e3f2fd;color:#222;font-weight:bold;'; }
+
+    html += `
+      <tr id="row-${id}"${isHidden ? ' style=\"display:none\"' : ''} class="${id === 'grandTotal' ? 'grand-total-row' : (level === 0 ? 'country-row' : (level === 1 ? 'portfolio-row' : (level === 2 ? 'asset-row' : '')))}">
+        <td style="text-align:center;vertical-align:middle;${firstColBg}">${isExpandable ? `<button onclick=\"toggleRow('${id}')\">+</button>` : ''}</td>
+        <td style="${level === -1 ? 'font-weight:bold;background:#ffe;' : (level === 0 ? 'font-weight:bold;background:#e0e6ee;' : '')}">${c || ''}</td>
+        <td style="${isTotal ? 'font-weight:bold;background:#ffe;' : (level === 1 ? 'font-weight:bold;background:#f3f6fa;' : '')}">${p || ''}</td>
+        <td style="${isTotal ? 'font-weight:bold;background:#ffe;' : (level === 2 ? 'padding-left:2em;' : '')}">${a || ''}</td>
+        <td style="${boldStyle}">${Number.isFinite(dc) ? dc.toFixed(1) : ''}</td>
+        <td style="${boldStyle}">${Number.isFinite(ic) ? Math.round(ic).toLocaleString() : ''}</td>
+        <td style="${boldStyle}">${Number.isFinite(exp) ? Math.round(exp).toLocaleString() : ''}</td>
+        <td style="${boldStyle}">${agVal}</td>
+        <td style="${boldStyle}">${achBar}</td>
+        <td style="${boldStyle}">
+          ${(function() {
+            let fYieldNum = Number(String(fYield).replace(/,/g, ''));
+            let forecastedVsBudgeted = (Number.isFinite(fYieldNum) && Number.isFinite(ic) && ic > 0) ? (fYieldNum / ic) * 100 : 0;
+            return `<div style="position:relative;width:100%;height:24px;background:#e6f1fc;border-radius:4px;overflow:hidden;border:2px solid #fff;">
+              <div style=\"height:100%;width:${Math.min(forecastedVsBudgeted,100)}%;background:#0072CE;\"></div>
+              <span style=\"position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.9em;color:#111;\">${Math.round(forecastedVsBudgeted)}%</span>
+            </div>`;
+          })()}
+        </td>
+        <td style="${boldStyle}">${typeof expPR === "number" && !isNaN(expPR) ? Math.round(expPR) + '%' : (expPR || '-')}</td>
+        <td style="${boldStyle}">${typeof actPR === "number" && !isNaN(actPR) ? Math.round(actPR) + '%' : (actPR || '-')}</td>
+        <td style="${boldStyle}">${prVsExpBar}</td>
+      </tr>`;
+  }
+  
+  
+  // Data prepared for display
+  
+  rows.forEach(r => addRow(r));
+  window.kpiRows = rows;
+  const resultTable = document.getElementById('resultTable');
+  if (resultTable) resultTable.innerHTML = html;
+  const resultSection = document.getElementById('resultSection');
+  if (resultSection) resultSection.style.display = '';
+  // At the end of buildKpiTable, after rendering the first table, build the revenue table
+  buildRevenueTable();
+}
+// Expand/collapse logic
+function toggleRow(id) {
+  const btn = document.querySelector(`#row-${id} button`);
+  const isExpand = btn.textContent === '+';
+  btn.textContent = isExpand ? '-' : '+';
+
+  function setDescendantsVisibility(parentId, show) {
+    window.kpiRows.forEach(dataRow => {
+      if (dataRow.parentId === parentId) {
+        const row = document.getElementById(`row-${dataRow.id}`);
+        if (row) {
+          row.style.display = show ? '' : 'none';
+          // If expanding, only show direct children; deeper levels remain hidden unless their own parent is expanded
+          if (show && dataRow.isExpandable && btn.textContent === '-') {
+            // When expanding, don't show grandchildren yet
+            setDescendantsVisibility(dataRow.id, false);
+          }
+          // When collapsing, recursively hide all descendants
+          if (!show) {
+            if (dataRow.isExpandable) {
+              const btn2 = row.querySelector('button');
+              if (btn2) btn2.textContent = '+';
+            }
+            setDescendantsVisibility(dataRow.id, false);
+          }
+        }
+      }
+    });
+  }
+  setDescendantsVisibility(id, isExpand);
+}
+
+function formatReportDate(dateStr) {
+  if (!dateStr) return '';
+  let d = parseCsvDate(dateStr);
+  if (isNaN(d)) return dateStr;
+  const day = d.getDate();
+  const month = d.toLocaleString('default', { month: 'long' });
+  const year = d.getFullYear();
+  function ordinal(n) {
+    if (n > 3 && n < 21) return n + 'th';
+    switch (n % 10) {
+      case 1: return n + 'st';
+      case 2: return n + 'nd';
+      case 3: return n + 'rd';
+      default: return n + 'th';
+    }
+  }
+  return `${ordinal(day)} ${month} ${year}`;
+}
+window.toggleRow = toggleRow;
+
+// --- REVENUE TABLE LOGIC ---
+function buildRevenueTable() {
+  
+  // Helper: parse month string to Date
+  function parseMonth(monthStr) {
+    if (!monthStr) return null;
+    let [y, m] = monthStr.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, 1));
+  }
+  
+  // Get selected date range from period calendar
+  let period = getSelectedPeriod(periodCalendar);
+  let startMonth = '';
+  let endMonth = '';
+  
+  if (period && period.range && period.range.start && period.range.end) {
+    // Range selection
+    startMonth = period.range.start;
+    endMonth = period.range.end;
+  } else if (period && period.month) {
+    // Single month selection
+    startMonth = period.month;
+    endMonth = period.month;
+  } else {
+    // Fallback to default range
+    const { min, max } = getDateRangeFromActualGen();
+    startMonth = toYYYYMM(min);
+    endMonth = toYYYYMM(getLatestReportDate()) || toYYYYMM(max);
+  }
+  
+  let start = parseMonth(startMonth);
+  let end = parseMonth(endMonth);
+  
+  // Get the month to use for DC capacity
+  const dcCapacityMonth = getDcCapacityMonth(period, startMonth, endMonth);
+  
+
+  
+  // Filter yieldData for selected months
+  let filtered = (yieldData || []).filter(row => {
+    let m = parseMonth(row.month);
+    return m && m >= start && m <= end;
+  });
+  
+  
+  // Build portfolio mapping from filtered yieldData (date-filtered)
+  // Normalize portfolio names to prevent duplicates (trim whitespace)
+  const portfolioMapRaw = {};
+  const portfolioNameMap = {}; // Maps normalized name to original name
+  filtered.forEach(row => {
+    if (row.portfolio && row.assetno) {
+      // Normalize portfolio name (trim whitespace to handle variations)
+      const normalizedPortfolio = row.portfolio.trim();
+      const originalPortfolio = row.portfolio;
+      
+      // Store mapping from normalized to original (use first occurrence as canonical)
+      if (!portfolioNameMap[normalizedPortfolio]) {
+        portfolioNameMap[normalizedPortfolio] = originalPortfolio;
+      }
+      
+      if (!portfolioMapRaw[normalizedPortfolio]) portfolioMapRaw[normalizedPortfolio] = new Set();
+      portfolioMapRaw[normalizedPortfolio].add(row.assetno.trim());
+    }
+  });
+  
+  // Sort assets within each portfolio by numeric part
+  const portfolioMap = {};
+  Object.keys(portfolioMapRaw).forEach(normalizedPortfolio => {
+    const assets = Array.from(portfolioMapRaw[normalizedPortfolio]);
+    const sortedAssets = assets.sort((a, b) => {
+      // Extract numeric part from asset names (e.g., "01" from "KR_BW_01")
+      const getNumericPart = (assetName) => {
+        const match = assetName.match(/(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      };
+      return getNumericPart(a) - getNumericPart(b);
+    });
+    // Use original portfolio name for display
+    portfolioMap[portfolioNameMap[normalizedPortfolio]] = new Set(sortedAssets);
+  });
+
+  // Initialize data structures using filtered yieldData (same as main table)
+  const countries = {};
+  const portfolios = Array.from(new Set(Object.keys(portfolioMap)));
+  
+  // Process portfolios and build country structure (same as main table)
+  portfolios.forEach(p => {
+    const pAssets = Array.from(portfolioMap[p] || new Set());
+    
+    // Process assets within portfolio
+    pAssets.forEach(a => {
+      const country = getAssetCountry(a);
+      if (!countries[country]) countries[country] = {};
+      if (!countries[country][p]) countries[country][p] = [];
+      countries[country][p].push({ 
+        asset_no: a,
+        dc: getDcCapacityForMonth(a, dcCapacityMonth)
+      });
+    });
+  });
+  
+  // Group by country, portfolio, asset using the same structure as main table
+  let countryMap = {};
+  Object.entries(countries).forEach(([country, portfolios]) => {
+    countryMap[country] = {};
+    Object.entries(portfolios).forEach(([portfolio, assets]) => {
+      countryMap[country][portfolio] = {};
+      assets.forEach(asset => {
+        // Find corresponding rows in filtered yieldData for this asset (for revenue calculations)
+        const assetRows = filtered.filter(row => 
+          row.assetno && row.assetno.trim() === asset.asset_no.trim()
+        );
+        // Always include the asset in countryMap, even if no revenue data for this period
+        countryMap[country][portfolio][asset.asset_no] = assetRows;
+      });
+    });
+  });
+  
+  // Helper: get country for an asset number (same as main table)
+  function getAssetCountry(assetNo) {
+    if (!assetNo || !filtered) return '';
+    // Try to find a row matching this asset, prefer rows with country info
+    const row = filtered.find(r => r.assetno && r.assetno.trim() === assetNo.trim() && r.country && r.country.trim());
+    if (row && row.country) return row.country.trim();
+    // Fallback: find any row with this asset (even without country)
+    const fallbackRow = filtered.find(r => r.assetno && r.assetno.trim() === assetNo.trim());
+    return fallbackRow && fallbackRow.country ? fallbackRow.country.trim() : '';
+  }
+  
+  // Helper: sum a field for a list of rows
+  function sumField(rows, field) {
+    return rows.reduce((sum, r) => sum + (parseFloat(r[field]) || 0), 0);
+  }
+  
+  
+  // Helper: count valid assets (same logic as first table)
+  function countValidAssets(assetList) {
+    if (!assetList || !assetList.length) return 0;
+    return assetList.length;
+  }
+  
+  // Helper: forecasted revenue logic (project for the year based on actuals up to reporting date)
+  function forecastedRevenue(assetRows) {
+    if (!assetRows.length) return 0;
+    // Get reporting date (latestReportDate)
+    let reportDateStr = getLatestReportDate();
+    let reportDate = parseCsvDate(reportDateStr);
+    if (!reportDate) return 0;
+    // Only include rows up to and including the reporting date
+    let actualsUpToReport = assetRows.filter(r => {
+      let m = parseCsvDate(r.month + '-01');
+      // Use month as the date, so include if month <= reportDate's month
+      return m && m <= new Date(Date.UTC(reportDate.getUTCFullYear(), reportDate.getUTCMonth(), 1));
+    });
+    
+    // Calculate total actual from the dollar field in yieldData
+    let totalActual = sumField(actualsUpToReport, 'actual_generation_dollar');
+    
+    // Number of days from Jan 1 to reporting date (inclusive)
+    let year = reportDate.getUTCFullYear();
+    let jan1 = new Date(Date.UTC(year, 0, 1));
+    let days = Math.floor((reportDate - jan1) / (1000 * 60 * 60 * 24)) + 1;
+    if (days <= 0) return 0;
+    let perDay = totalActual / days;
+    // Determine if end month is December
+    let period = getSelectedPeriod(periodCalendar);
+    let endMonthVal = '';
+    if (period && period.range && period.range.end) {
+      endMonthVal = period.range.end;
+    } else if (period && period.month) {
+      endMonthVal = period.month;
+    }
+    let isDecember = endMonthVal.endsWith('-12');
+    // Use 366 for leap years
+    let isLeap = (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0));
+    let yearDays = isLeap ? 366 : 365;
+    let forecastDays = isDecember ? yearDays : days;
+    return Math.round(perDay * forecastDays);
+  }
+  
+  // Build rows (expand/collapse logic)
+  let rows = [];
+  let rowId = 0;
+  Object.entries(countryMap).sort(([a], [b]) => a.localeCompare(b)).forEach(([country, portfolios]) => {
+    let cId = `rc${rowId++}`;
+    let countryRows = [];
+    let countryIc = 0, countryExp = 0, countryAct = 0, countryForecast = 0;
+    Object.entries(portfolios).forEach(([portfolio, assets]) => {
+      let pId = `rp${rowId++}`;
+      let portfolioRows = [];
+      let pIc = 0, pExp = 0, pAct = 0, pForecast = 0;
+      Object.entries(assets).forEach(([asset, assetRows]) => {
+        let aId = `ra${rowId++}`;
+        
+        // Get values from the new dollar fields in yieldData (use filtered data for the selected period)
+        let ic = sumField(assetRows, 'ic_approved_budget_dollar');
+        let exp = sumField(assetRows, 'expected_budget_dollar');
+        let act = sumField(assetRows, 'actual_generation_dollar');
+        let forecast = forecastedRevenue(assetRows);
+        
+        
+        // Get DC capacity for the appropriate month based on selection type
+        let dc = getDcCapacityForMonth(asset, dcCapacityMonth);
+        
+        portfolioRows.push({
+          id: aId, parentId: pId, level: 2, country, portfolio, asset, dc, ic, exp, act, forecast, isExpandable: false, isHidden: true
+        });
+        pIc += ic; pExp += exp; pAct += act; pForecast += forecast;
+      });
+      // Portfolio row
+      // Calculate portfolio DC capacity from its assets
+      let pDc = 0;
+      Object.entries(assets).forEach(([asset, assetRows]) => {
+        pDc += getDcCapacityForMonth(asset, dcCapacityMonth);
+      });
+      
+      // Count valid assets for this portfolio (same logic as first table)
+      let portfolioAssetList = Object.keys(assets);
+      let validAssetCount = countValidAssets(portfolioAssetList);
+      
+      portfolioRows.unshift({
+        id: pId, parentId: cId, level: 1, country, portfolio, asset: validAssetCount,
+        dc: pDc, ic: pIc, exp: pExp, act: pAct, forecast: pForecast, isExpandable: Object.keys(assets).length > 0, isHidden: true
+      });
+      countryRows = countryRows.concat(portfolioRows);
+      countryIc += pIc; countryExp += pExp; countryAct += pAct; countryForecast += pForecast;
+    });
+    // Country row
+    // Calculate country DC capacity from its portfolios
+    let cDc = 0;
+    let countryAssetList = [];
+    Object.entries(portfolios).forEach(([portfolio, assets]) => {
+      Object.entries(assets).forEach(([asset, assetRows]) => {
+        cDc += getDcCapacityForMonth(asset, dcCapacityMonth);
+        countryAssetList.push(asset);
+      });
+    });
+    
+    // Count valid assets for this country (same logic as first table)
+    let validCountryAssetCount = countValidAssets(countryAssetList);
+    
+    rows.push({
+      id: cId, parentId: null, level: 0, country, portfolio: 'Total', asset: validCountryAssetCount,
+      dc: cDc, ic: countryIc, exp: countryExp, act: countryAct, forecast: countryForecast, isTotal: true, isExpandable: Object.keys(portfolios).length > 0, isHidden: false
+    });
+    rows = rows.concat(countryRows);
+  });
+  // Grand total row
+  let totalDc = rows.filter(r => r.level === 0).reduce((sum, r) => sum + (r.dc || 0), 0);
+  let totalIc = rows.filter(r => r.level === 0).reduce((sum, r) => sum + r.ic, 0);
+  let totalExp = rows.filter(r => r.level === 0).reduce((sum, r) => sum + r.exp, 0);
+  let totalAct = rows.filter(r => r.level === 0).reduce((sum, r) => sum + r.act, 0);
+  let totalForecast = rows.filter(r => r.level === 0).reduce((sum, r) => sum + r.forecast, 0);
+  
+  // Count total valid assets across all countries
+  let allAssetList = [];
+  Object.values(countryMap).forEach(portfolios => {
+    Object.values(portfolios).forEach(assets => {
+      Object.keys(assets).forEach(asset => {
+        allAssetList.push(asset);
+      });
+    });
+  });
+  let totalAssetCount = countValidAssets(allAssetList);
+  
+  rows.unshift({
+    id: 'rgrandTotal', parentId: null, level: -1, country: '<b>All</b>', portfolio: '<b>All</b>', asset: `<b>${totalAssetCount}</b>`,
+    dc: totalDc, ic: totalIc, exp: totalExp, act: totalAct, forecast: totalForecast, isExpandable: Object.keys(countryMap).length > 0, isHidden: false
+  });
+  // Render table
+  let html = `<tr>
+    <th></th>
+    <th>Country</th>
+    <th>Portfolio</th>
+    <th>Asset</th>
+    <th>DC Capacity (MWp)</th>
+    <th>IC Approved Budget ($)</th>
+    <th>Expected Budget ($)</th>
+    <th>Actual Revenue ($)</th>
+    <th>Actual vs IC Budget ($)</th>
+    <th>Forecasted Revenue ($)</th>
+  </tr>`;
+  // Helper: format number in millions
+  function formatMillion(val) {
+    if (!Number.isFinite(val)) return '';
+    let absVal = Math.abs(val);
+    if (absVal < 1e6) return (val/1e6).toFixed(2) + 'M';
+    return (val/1e6).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + 'M';
+  }
+  function addRow({id, parentId, level, country, portfolio, asset, dc, ic, exp, act, forecast, isTotal, isExpandable, isHidden}) {
+    // First column color logic (match first table)
+    let firstColBg = '';
+    let btnBg = '', btnColor = '';
+    if (level === -1) { firstColBg = 'background:#ffe;color:#0072CE;font-weight:bold;'; btnBg = '#ffe'; btnColor = '#0072CE'; }
+    else if (level === 0) { firstColBg = 'background:#1565c0;color:#fff;font-weight:bold;'; btnBg = '#1565c0'; btnColor = '#fff'; }
+    else if (level === 1) { firstColBg = 'background:#42a5f5;color:#fff;font-weight:bold;'; btnBg = '#42a5f5'; btnColor = '#fff'; }
+    else if (level === 2) { firstColBg = 'background:#e3f2fd;color:#222;font-weight:bold;'; btnBg = '#e3f2fd'; btnColor = '#222'; }
+    let actualVsIc = ic ? act - ic : 0;
+    let actualVsIcPct = ic ? (act / ic) * 100 : 0;
+    let forecastVsIcPct = ic ? (forecast / ic) * 100 : 0;
+    let actualVsIcBar = `<div style="position:relative;width:100%;height:24px;background:#e6f1fc;border-radius:4px;overflow:hidden;border:2px solid #fff;">
+      <div style="height:100%;width:${Math.min(actualVsIcPct,100)}%;background:#0072CE;"></div>
+      <span style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.9em;color:#222;">${Math.round(actualVsIcPct)}%</span>
+    </div>`;
+    let forecastBar = `<div style="position:relative;width:100%;height:24px;background:#e6f1fc;border-radius:4px;overflow:hidden;border:2px solid #fff;">
+      <div style="height:100%;width:${Math.min(forecastVsIcPct,100)}%;background:#0072CE;"></div>
+      <span style="position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.9em;color:#222;">${Math.round(forecastVsIcPct)}%</span>
+    </div>`;
+    let boldStyle = '';
+    if (level === -1) boldStyle = 'font-weight:bold;background:#ffe;color:#0072CE;';
+    else if (level === 0) boldStyle = 'font-weight:bold;background:#e0e6ee;color:#0072CE;';
+    else if (level === 1) boldStyle = 'font-weight:bold;background:#f3f6fa;color:#0072CE;';
+    else if (level === 2) boldStyle = 'color:#222;';
+    // Define background color for the entire row based on level
+    let rowBgColor = '';
+    if (level === -1) rowBgColor = 'background:#ffe;'; // Grand total - light yellow
+    else if (level === 0) rowBgColor = 'background:#e0e6ee;'; // Country level - light blue-gray
+    else if (level === 1) rowBgColor = 'background:#f3f6fa;'; // Portfolio level - very light blue
+    else if (level === 2) rowBgColor = ''; // Asset level - no background
+    
+    html += `<tr id="rrow-${id}"${isHidden ? ' style="display:none"' : ''} class="${id === 'rgrandTotal' ? 'grand-total-row' : (level === 0 ? 'country-row' : (level === 1 ? 'portfolio-row' : (level === 2 ? 'asset-row' : '')))}">
+      <td style="text-align:center;vertical-align:middle;${firstColBg}">${isExpandable ? `<button onclick="toggleRevenueRow('${id}')">+</button>` : ''}</td>
+      <td style="${level === -1 ? 'font-weight:bold;background:#ffe;' : (level === 0 ? 'font-weight:bold;background:#e0e6ee;' : '')}">${country || ''}</td>
+      <td style="${isTotal ? 'font-weight:bold;background:#ffe;' : (level === 1 ? 'font-weight:bold;background:#f3f6fa;' : '')}">${portfolio || ''}</td>
+      <td style="${isTotal ? 'font-weight:bold;background:#ffe;' : (level === 2 ? 'padding-left:2em;' : '')}">${asset || ''}</td>
+      <td style="${boldStyle}">${Number.isFinite(dc) ? dc.toFixed(1) : ''}</td>
+      <td style="${boldStyle}">${formatMillion(ic)}</td>
+      <td style="${boldStyle}">${formatMillion(exp)}</td>
+      <td style="${boldStyle}">${formatMillion(act)}</td>
+      <td style="${boldStyle}">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;">${actualVsIcBar}</div>
+          <div style="min-width:80px;text-align:right;font-weight:bold;">${formatMillion(actualVsIc)}</div>
+        </div>
+      </td>
+      <td style="${boldStyle}">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;">${forecastBar}</div>
+          <div style="min-width:80px;text-align:right;font-weight:bold;">${formatMillion(forecast)}</div>
+        </div>
+      </td>
+    </tr>`;
+  }
+  rows.forEach(r => addRow(r));
+  window.revenueRows = rows;
+  const revenueTable = document.getElementById('revenueTable');
+  if (revenueTable) revenueTable.innerHTML = html;
+}
+// Expand/collapse logic for revenue table
+function toggleRevenueRow(id) {
+  const btn = document.querySelector(`#rrow-${id} button`);
+  const isExpand = btn.textContent === '+';
+  btn.textContent = isExpand ? '-' : '+';
+  function setDescendantsVisibility(parentId, show) {
+    window.revenueRows.forEach(dataRow => {
+      if (dataRow.parentId === parentId) {
+        const row = document.getElementById(`rrow-${dataRow.id}`);
+        if (row) {
+          row.style.display = show ? '' : 'none';
+          if (show && dataRow.isExpandable && btn.textContent === '-') {
+            setDescendantsVisibility(dataRow.id, false);
+          }
+          if (!show) {
+            if (dataRow.isExpandable) {
+              const btn2 = row.querySelector('button');
+              if (btn2) btn2.textContent = '+';
+            }
+            setDescendantsVisibility(dataRow.id, false);
+          }
+        }
+      }
+    });
+  }
+  setDescendantsVisibility(id, isExpand);
+}
+window.toggleRevenueRow = toggleRevenueRow;
+
+
+</script>
+<div class="section" style="text-align: center; font-style: italic; color: #475569;">
+  All the values are calculated from the actual generation kWh recorded.
+</div>
+</body>
+</html>

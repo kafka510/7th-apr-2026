@@ -1,0 +1,445 @@
+<!--
+  Minamata - Gen Loss due to typhoon module damage Dashboard
+  --------------------------------------------------------
+  This HTML file displays a dashboard for string/module loss due to typhoon damage.
+  It loads a CSV file, parses it, and renders a styled table with notes.
+  Styling is responsive and uses Bootstrap 5 and custom CSS.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- Make pages responsive -->
+<!--
+  Meta viewport for responsive design
+  Ensures the dashboard scales on all devices
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /*
+    General layout and flexbox for full height/width containers
+    Ensures dashboard stretches to fill the screen
+  */
+  /* Modern styling inspired by KPI.html */
+  :root {
+    --bg-color: #f5f7fa;
+    --card-bg: #ffffff;
+    --accent: #4e89ae;
+    --accent-light: #a8dadc;
+    --text-color: #333;
+    --border-color: #e0e0e0;
+    --primary-blue: #2563eb;
+    --primary-green: #16a34a;
+    --kpi-accent: #0072CE;
+  }
+
+  html, body { 
+    width:100%; 
+    height:100vh; 
+    margin:0; 
+    padding:0; 
+    background: var(--bg-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+    overflow: hidden;
+  }
+  .container-fluid, .main-container, .dashboard-content, .main-content, .card-content {
+    display: flex; flex-direction: column; width: 100%; height: 100vh;
+  }
+  /*
+    Make chart and map containers fluid and fill available space
+    Applies to any element with id ending in Chart/Line, #mapid, or Plotly graphs
+  */
+  [id$="Chart"], [id$="Line"], #mapid, .plotly-graph-div {
+    width: 100% !important; height: 100% !important; flex: 1;
+  }
+  /*
+    Responsive tweaks for smaller screens (not used here, but placeholder)
+  */
+  @media (max-width: 1200px) {
+    /* adjust font-sizes or layout as needed */
+  }
+  /*
+    Dashboard header and title styling
+    Large, bold, colored title centered at the top
+  */
+  /* Enhanced Dashboard Header */
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px 4px 16px;
+    background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border-radius: 0 0 24px 24px;
+    margin-bottom: 4px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+  }
+  .dashboard-header .title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin: 0;
+    display: block;
+    text-align: center;
+    width: 100%;
+    background: linear-gradient(90deg, #0a73d1, #10b981);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .dashboard-header .subtitle {
+    font-size: 0.9rem;
+    color: #7a8799;
+    font-weight: 400;
+    margin-top: 4px;
+    display: block;
+  }
+</style>
+
+  <meta charset="UTF-8">
+  <title>Minamata - Gen Loss due to typhoon module damage</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--
+    Bootstrap 5 for responsive layout and table styling
+    CDN link for quick inclusion
+  -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /*
+      Light blue background for the dashboard - updated to match KPI style
+    */
+    body { 
+      background: var(--bg-color);
+      overflow: hidden;
+    }
+    /*
+      Main container with white background, rounded corners, and shadow
+      Contains the table and note box
+    */
+    .main-container {
+      background: #fff;
+      border-radius: 0 0 10px 10px;
+      border: 1.5px solid #b2d8fc;
+      box-shadow: 0 2px 10px rgba(99,171,221,0.07);
+      margin-bottom: 0;
+      padding: 0.8rem 1.2rem 0.2rem 1.2rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    /*
+      Custom table styles for large, readable data
+      Centered text, large font, alternating row colors
+    */
+    .custom-table th, .custom-table td {
+      text-align: center;
+      vertical-align: middle;
+      font-size: 0.9rem;
+      padding: 0.15rem 0.4rem;
+      height: 1.6rem;
+    }
+    .custom-table th {
+      background: #212121;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .custom-table tr:nth-child(even) td {
+      background: #eaf3fb;
+    }
+    .custom-table td {
+      background: #fff;
+      font-size: 0.9rem;
+    }
+    /*
+      Note box for explanatory text below the table
+    */
+    .note-box {
+      background: #b2d8fc;
+      border-radius: 10px;
+      color: #123155;
+      padding: 0.6rem 1.2rem;
+      margin-top: 0.1rem;
+      font-size: 0.9rem;
+      min-height: 50px;
+      flex-shrink: 0;
+    }
+    /*
+      Highlight the total row in the table
+    */
+    .table-total-row {
+      font-weight: bold;
+      background: #eaf3fb;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid py-1">
+    <div class="main-container">
+      <!-- Table will be rendered here by JavaScript -->
+      <div class="table-responsive" id="tableBox" style="overflow: auto;"></div>
+      <!-- Explanatory note below the table -->
+      <div class="note-box">
+        <b>Note:</b><br>
+        1.*Jan-25-July-25 : Actual breakdown & revenue losses are considered. July-25 to Dec-25: Expected losses are considered as per budgeted. Breakdown capacity: 3.82 MWp.
+      </div>
+    </div>
+  </div>
+  <!--
+    PapaParse library for parsing CSV files in the browser
+    Used to load and process the data file
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script>
+    // Wait for the DOM to be fully loaded
+    document.addEventListener("DOMContentLoaded", function() {
+      {% if minamata_data_json %}
+        // Load data from Django view
+        const data = {{ minamata_data_json|safe }};
+  
+        
+        // Clean up header names for robustness (remove invisible chars, trim)
+        const cleanedData = data.map(row => {
+          const fixed = {};
+          Object.keys(row).forEach(k => {
+            let nk = k.trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
+            fixed[nk] = row[k];
+          });
+          return fixed;
+        });
+        
+        // Render the table with the cleaned data
+        renderTable(cleanedData);
+      {% else %}
+        console.error('No Minamata data available');
+        document.getElementById('tableBox').innerHTML = "<div>No data available.</div>";
+      {% endif %}
+
+      // Function to render the table in the #tableBox div
+      function renderTable(data) {
+        if (!data.length) {
+          document.getElementById('tableBox').innerHTML = "<div>No data found.</div>";
+          return;
+        }
+
+        // Helper: match column names flexibly (case/space insensitive)
+        function match(col, test) {
+          return col.replace(/\s+/g, ' ').trim().toLowerCase().includes(test.toLowerCase());
+        }
+        
+        // Robust dynamic column detection by keywords
+        const keys = Object.keys(data[0] || {});
+        function norm(s){ return String(s).toLowerCase().replace(/\s+/g,' ').trim(); }
+        function findCol(keywords){
+          return keys.find(k => {
+            const n = norm(k);
+            return keywords.every(kw => n.includes(kw));
+          }) || "";
+        }
+        const colMonth    = findCol(["month"]) || findCol(["period"]) || "";
+        const colString   = findCol(["string","breakdown"]) || findCol(["no","string","breakdown"]) || "";
+        const colBudgeted = findCol(["budgeted","mwh"]) || findCol(["budget","gen"]) || "";
+        const colLossMWh  = findCol(["loss","string","mwh"]) || findCol(["loss","failure","mwh"]) || "";
+        const colUSD      = findCol(["usd"]) || findCol(["loss","usd"]) || "";
+        
+
+
+        // Sort data by month (chronological order), but keep Total row at the end
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const totalRows = data.filter(row => (row[colMonth] || '').toLowerCase().includes('total'));
+        const dataRows = data.filter(row => {
+          const monthVal = row[colMonth] || '';
+          // Filter out invalid rows and total rows
+          return !monthVal.toLowerCase().includes('total') && 
+                 monthVal && 
+                 !String(monthVal).match(/^\d+$/) && // Skip pure numeric months
+                 monthVal.toLowerCase() !== 'nan';
+        });
+        
+        // Sort data rows by month
+        dataRows.sort((a, b) => {
+          const aMonth = a[colMonth] || '';
+          const bMonth = b[colMonth] || '';
+          
+          // Handle "25-Jan" format (year-month)
+          if (aMonth.includes('-') && bMonth.includes('-')) {
+            const [aYear, aMonthName] = aMonth.split('-');
+            const [bYear, bMonthName] = bMonth.split('-');
+            
+            // Convert year to full year
+            let aFullYear = parseInt(aYear);
+            let bFullYear = parseInt(bYear);
+            if (aFullYear < 100) aFullYear += 2000;
+            if (bFullYear < 100) bFullYear += 2000;
+            
+            // Sort by year first, then month
+            if (aFullYear !== bFullYear) {
+              return aFullYear - bFullYear;
+            }
+            
+            const aMonthIndex = monthNames.indexOf(aMonthName);
+            const bMonthIndex = monthNames.indexOf(bMonthName);
+            return aMonthIndex - bMonthIndex;
+          }
+          
+          // Fallback to string comparison
+          return aMonth.localeCompare(bMonth);
+        });
+        
+        // If no total row exists, create one manually
+        let finalTotalRows = totalRows;
+        // Determine latest month's strings breakdown value
+        const latestMonthRow = dataRows.length > 0 ? dataRows[dataRows.length - 1] : null;
+        const latestStrings = latestMonthRow ? (parseFloat(latestMonthRow[colString]) || latestMonthRow[colString] || '') : '';
+
+        if (totalRows.length === 0 && dataRows.length > 0) {
+          // Calculate totals from data rows
+          let totalBudgeted = 0;
+          let totalLossUSD = 0;
+          let totalLossMWh = 0;
+          
+          dataRows.forEach(row => {
+            const budgeted = parseFloat(row[colBudgeted]) || 0;
+            const lossUSD = parseFloat(row[colUSD]) || 0;
+            const lossMWh = parseFloat(row[colLossMWh]) || 0;
+            totalBudgeted += budgeted;
+            totalLossUSD += lossUSD;
+            totalLossMWh += lossMWh;
+          });
+          
+          const manualTotalRow = {};
+          manualTotalRow[colMonth] = 'Total';
+          // Use latest month's strings breakdown
+          manualTotalRow[colString] = latestStrings;
+          manualTotalRow[colBudgeted] = Math.round(totalBudgeted);
+          // Sum total for loss_due_to_string_failure_mwh
+          if (colLossMWh) manualTotalRow[colLossMWh] = Math.round(totalLossMWh);
+          manualTotalRow[colUSD] = Math.round(totalLossUSD);
+          
+          finalTotalRows = [manualTotalRow];
+        } else if (totalRows.length > 0) {
+          // Update existing total row to use latest month's strings breakdown and recompute totals
+          if (totalRows[0]) {
+            totalRows[0][colString] = latestStrings;
+            // Recompute total for loss_due_to_string_failure_mwh
+            let totalLossMWh = 0;
+            dataRows.forEach(row => { totalLossMWh += (parseFloat(row[colLossMWh]) || 0); });
+            if (colLossMWh) totalRows[0][colLossMWh] = Math.round(totalLossMWh);
+          }
+        }
+        
+        // Combine sorted data rows with total rows at the end
+        const sortedData = [...dataRows, ...finalTotalRows];
+        
+        // Debug logging
+
+        // List of columns to display in order
+        const columns = [colMonth, colString, colBudgeted, colLossMWh, colUSD].filter(Boolean);
+
+        // Build table header
+        let html = `<table class="table table-bordered custom-table">
+          <thead><tr>`;
+        columns.forEach(col => {
+          html += `<th>${col}</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+
+        // Build table rows using sorted data
+        sortedData.forEach(row => {
+          // Highlight total row if present
+          let isTotal = (row[columns[0]] || '').toLowerCase().includes("total");
+          html += `<tr${isTotal ? ' class="table-total-row"' : ''}>`;
+          columns.forEach(col => {
+            let raw = row[col];
+            let cellValue = (raw === null || raw === undefined) ? '' : raw;
+            // Ensure no decimals for numeric values
+            if (cellValue !== '' && !isNaN(cellValue)) {
+              const rounded = Math.round(Number(cellValue));
+              cellValue = rounded.toLocaleString();
+            }
+            html += `<td>${cellValue}</td>`;
+          });
+          html += `</tr>`;
+        });
+
+        html += `</tbody></table>`;
+        // Insert table into the page
+        document.getElementById('tableBox').innerHTML = html;
+      }
+    });
+  </script>
+
+<script>
+  // Responsive resizing for charts and maps (if present)
+  function onResizeAll() {
+    if (window.barChart) barChart.resize();
+    if (window.cdChart) cdChart.resize();
+    if (window.socChart) socChart.resize();
+    if (window.rteChart) rteChart.resize();
+    if (window.Plotly) {
+      ['waterfall','breakdown'].forEach(id => {
+        const gd = document.getElementById(id);
+        if (gd && gd.data) Plotly.Plots.resize(gd);
+      });
+    }
+    if (window.map) map.invalidateSize();
+  }
+  // Listen for window resize and load events to trigger resizing
+  window.addEventListener('resize', onResizeAll);
+  window.addEventListener('load', onResizeAll);
+</script>
+<script>
+function getBigFont(base = 16, max = 26, min = 10) {
+  const width = window.innerWidth;
+  return Math.max(min, Math.min(max, Math.round(base * (width / 1920))));
+}
+function applyDynamicFontSizes() {
+  try {
+    // Update dashboard title font size
+    const titleElement = document.querySelector('.dashboard-title');
+    if (titleElement && titleElement.style) {
+      titleElement.style.fontSize = getBigFont(16, 26, 10) + 'px';
+    }
+    
+    // Update table header font sizes
+    document.querySelectorAll('.custom-table th').forEach(el => {
+      if (el && el.style) {
+        el.style.fontSize = getBigFont(12, 18, 9) + 'px';
+      }
+    });
+    
+    // Update table cell font sizes
+    document.querySelectorAll('.custom-table td').forEach(el => {
+      if (el && el.style) {
+        el.style.fontSize = getBigFont(12, 18, 9) + 'px';
+      }
+    });
+    
+    // Update note box font sizes
+    document.querySelectorAll('.note-box').forEach(el => {
+      if (el && el.style) {
+        el.style.fontSize = getBigFont(12, 18, 9) + 'px';
+      }
+    });
+    
+    // Update total row font sizes
+    document.querySelectorAll('.table-total-row').forEach(el => {
+      if (el && el.style) {
+        el.style.fontSize = getBigFont(12, 18, 9) + 'px';
+      }
+    });
+  } catch (error) {
+    console.warn('Error applying dynamic font sizes:', error);
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  // Add a small delay to ensure all elements are fully rendered
+  setTimeout(applyDynamicFontSizes, 100);
+});
+window.addEventListener('resize', applyDynamicFontSizes);
+</script>
+</body>
+</html>

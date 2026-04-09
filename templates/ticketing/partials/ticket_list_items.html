@@ -1,0 +1,70 @@
+{% for ticket in tickets %}
+<div class="col-12 col-md-6 col-xl-4 mb-4">
+    <div class="ticket-card shadow-sm h-100">
+
+        <!-- Quick Action Buttons -->
+        <div class="ticket-actions">
+            <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="action-btn" title="View">
+                <i class="fas fa-eye"></i>
+            </a>
+
+            {% if perms.ticketing.change_ticket %}
+            <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="action-btn" title="Edit">
+                <i class="fas fa-edit"></i>
+            </a>
+            {% endif %}
+
+            {% if ticket.status != 'Closed' and perms.ticketing.change_ticket %}
+            <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="action-btn" title="Close Ticket">
+                <i class="fas fa-check"></i>
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Header -->
+        <div class="ticket-card-header d-flex justify-content-between">
+            <div>
+                <a href="#" class="ticket-number ticket-quickview" data-id="{{ ticket.pk }}">
+                    {{ ticket.ticket_number }}
+                </a>
+
+                <div class="mt-1">
+                    <span class="badge status-badge status-{{ ticket.status }}">
+                        {{ ticket.get_status_display }}
+                    </span>
+
+                    <span class="badge priority-badge priority-{{ ticket.priority }}">
+                        {{ ticket.get_priority_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h5 class="ticket-title">{{ ticket.title }}</h5>
+
+        <!-- Description -->
+        <p class="ticket-desc">{{ ticket.description|truncatewords:18 }}</p>
+
+        <!-- Meta -->
+        <div class="ticket-meta">
+            <div class="ticket-meta-item">
+                <i class="fas fa-building"></i> {{ ticket.asset_code.asset_name }}
+            </div>
+            <div class="ticket-meta-item">
+                <i class="fas fa-tag"></i> {{ ticket.category.name }}
+            </div>
+            {% if ticket.assigned_to %}
+            <div class="ticket-meta-item">
+                <i class="fas fa-user"></i> {{ ticket.assigned_to.username }}
+            </div>
+            {% endif %}
+            <div class="ticket-meta-item">
+                <i class="fas fa-calendar"></i> {{ ticket.created_at|date:"M d, Y" }}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endfor %}
+

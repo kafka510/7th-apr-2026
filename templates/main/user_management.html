@@ -1,0 +1,3334 @@
+{% load permission_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>User Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .access-info {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .country-access {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .portfolio-access {
+            color: #fd7e14;
+            font-weight: bold;
+        }
+        .site-access {
+            color: #007bff;
+            font-weight: bold;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .stats-card h3 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .stats-card p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        .alert-card {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .activity-card {
+            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .filter-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .section-spacing {
+            margin-top: 40px;
+            margin-bottom: 30px;
+        }
+        .card-spacing {
+            margin-bottom: 30px;
+        }
+        .alert-spacing {
+            margin-bottom: 25px;
+        }
+        .suspicious-activity {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        .download-section {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .user-table-container {
+            max-height: none;
+            overflow-y: visible;
+            overflow-x: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-top: 20px;
+            padding-bottom: 40px;
+            margin-bottom: 60px;
+        }
+        .user-table-container table {
+            margin-bottom: 0;
+        }
+        .user-table-container thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #343a40 !important;
+        }
+        .filter-badges {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .clickable-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .clickable-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>User Management & Security Dashboard</h2>
+        </div>
+    </div>
+
+    <!-- Statistics Cards - Admin Only -->
+    {% if user|has_capability:'user_management.manage' %}
+    <div class="row">
+        <div class="col-md-3">
+            <div class="stats-card clickable-card" onclick="showActiveUsersModal()" style="cursor: pointer;">
+                <h3>{{ active_users_count }}</h3>
+                <p>Active Users (Last 30 min)</p>
+                <small style="opacity: 0.8;">Click to view details</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert-card clickable-card" onclick="window.location.href='{% url 'main:security_alerts' %}'" style="cursor: pointer;">
+                <h3>{{ security_alerts_count }}</h3>
+                <p>Open Security Alerts</p>
+                <small style="opacity: 0.8;">Click to view alerts</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="activity-card clickable-card" onclick="showTotalUsersModal()" style="cursor: pointer;">
+                <h3>{{ users|length }}</h3>
+                <p>Total Users</p>
+                <small style="opacity: 0.8;">Click to view breakdown</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card clickable-card" onclick="showSuspiciousActivitiesModal()" style="cursor: pointer;">
+                <h3>{{ suspicious_activities|length }}</h3>
+                <p>Suspicious Activities (24h)</p>
+                <small style="opacity: 0.8;">Click to view details</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Chart - Admin Only -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="chart-container">
+                <h4>User Activity (Last 24 Hours)</h4>
+                <canvas id="activityChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="chart-container">
+                <h4>Recent Suspicious Activities</h4>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% for activity in suspicious_activities %}
+                    <div class="suspicious-activity">
+                        <strong>{{ activity.get_action_display }}</strong><br>
+                        <small>{{ activity.user.username|default:"Anonymous" }} - {{ activity.ip_address }}</small><br>
+                        <small>{{ activity.timestamp|date:"M d, H:i" }}</small><br>
+                        <small class="text-muted">{{ activity.resource }}</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No suspicious activities in the last 24 hours.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Download Section - Admin Only -->
+    {% if user|has_capability:'user_management.manage' %}
+    <div class="download-section">
+        <h4>Download Activity Data (Admin Only)</h4>
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle"></i>
+            <strong>Comprehensive Download:</strong> Downloads ALL user activity for today (current date in IST) with complete details including:
+            <br><small>• User information (ID, username, email) • Request details (IP, user agent, method, status) 
+            • Performance metrics (response time, size) • Security analysis (risk level, flags) 
+            • Geolocation data (country, city, region) • Request parameters (GET/POST data)</small>
+            <br>Use filters below to customize the date range and other criteria. Click "Download CSV" for instant download, or "Get Download Link" if automatic download doesn't work.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label for="start_date" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="download_start_date" name="start_date" 
+                       placeholder="Leave empty for today">
+                <small class="text-muted">Default: Today</small>
+            </div>
+            <div class="col-md-2">
+                <label for="end_date" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="download_end_date" name="end_date"
+                       placeholder="Leave empty for today">
+                <small class="text-muted">Default: Today</small>
+            </div>
+            <div class="col-md-2">
+                <label for="user_filter" class="form-label">User</label>
+                <input type="text" class="form-control" id="download_user_filter" name="user" placeholder="Username">
+            </div>
+            <div class="col-md-2">
+                <label for="action_filter" class="form-label">Action</label>
+                <select class="form-select" id="download_action_filter" name="action">
+                    <option value="">All Actions</option>
+                    <option value="login">Login</option>
+                    <option value="logout">Logout</option>
+                    <option value="view">View</option>
+                    <option value="create">Create</option>
+                    <option value="update">Update</option>
+                    <option value="delete">Delete</option>
+                    <option value="download">Download</option>
+                    <option value="upload">Upload</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="ip_filter" class="form-label">IP Address</label>
+                <input type="text" class="form-control" id="download_ip_filter" name="ip" placeholder="IP Address">
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mt-4">
+                    <input class="form-check-input" type="checkbox" id="download_include_suspicious" name="include_suspicious" value="true">
+                    <label class="form-check-label" for="download_include_suspicious">
+                        Suspicious Only
+                    </label>
+                </div>
+                <div class="btn-group-vertical mt-2" style="width: 100%;">
+                    <button type="button" class="btn btn-success btn-sm" onclick="downloadUserActivityDirect()">
+                        <i class="fas fa-download"></i> Download CSV
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="generateDownloadUrl()">
+                        <i class="fas fa-link"></i> Get Download Link
+                    </button>
+                </div>
+                <div id="downloadUrlContainer" style="display: none;" class="mt-3">
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-download"></i> Your Download URL is Ready!</h6>
+                        <div id="downloadSummary" class="mb-2 p-2 bg-light rounded">
+                            <!-- Summary will be populated by JavaScript -->
+                        </div>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="generatedDownloadUrl" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyGeneratedUrl()">
+                                <i class="fas fa-copy"></i> Copy URL
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            <strong>Alternative Method:</strong> Copy the URL above, open a new browser tab, paste it, and press Enter to download.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        <h5><i class="fas fa-lock"></i> Admin Access Required</h5>
+        <p>User activity logs and download functionality are only available to administrators.</p>
+    </div>
+    {% endif %}
+
+    <!-- Admin Security Management Section - Super User Only -->
+    {% if user.is_superuser %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4><i class="fas fa-shield-alt"></i> Security Management (Super User Only)</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Blocked IPs Management -->
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-ban text-danger"></i> Blocked IP Addresses</h5>
+                            <div id="blocked-ips-section">
+                                <!-- Filters for Blocked IPs -->
+                                <div class="card mb-3">
+                                    <div class="card-body p-2">
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <select class="form-select form-select-sm" id="ip-status-filter" onchange="refreshBlockedIPs()">
+                                                    <option value="active">Active Blocks</option>
+                                                    <option value="inactive">Inactive</option>
+                                                    <option value="all">All</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <input type="text" class="form-control form-control-sm" id="ip-search-filter" 
+                                                       placeholder="Search IP..." onkeyup="filterBlockedIPsList()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-danger" id="blocked-ips-count">Loading...</span>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="refreshBlockedIPs()">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                </div>
+                                <div id="blocked-ips-list" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                                    <!-- Blocked IPs will be loaded here -->
+                                </div>
+                                <div class="mt-3">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="block-ip-input" placeholder="Enter IP address to block">
+                                        <button class="btn btn-danger" onclick="blockIP()">
+                                            <i class="fas fa-ban"></i> Block IP
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Blocked Users Management -->
+                        <div class="col-md-6">
+                            <h5><i class="fas fa-user-slash text-warning"></i> Blocked Users</h5>
+                            <div id="blocked-users-section">
+                                <!-- Filters for Blocked Users -->
+                                <div class="card mb-3">
+                                    <div class="card-body p-2">
+                                        <div class="row g-2">
+                                            <div class="col-md-6">
+                                                <select class="form-select form-select-sm" id="user-status-filter" onchange="refreshBlockedUsers()">
+                                                    <option value="active">Active Blocks</option>
+                                                    <option value="inactive">Inactive</option>
+                                                    <option value="all">All</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <input type="text" class="form-control form-control-sm" id="user-search-filter" 
+                                                       placeholder="Search user..." onkeyup="filterBlockedUsersList()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-warning" id="blocked-users-count">Loading...</span>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="refreshBlockedUsers()">
+                                        <i class="fas fa-sync-alt"></i> Refresh
+                                    </button>
+                                </div>
+                                <div id="blocked-users-list" class="list-group" style="max-height: 300px; overflow-y: auto;">
+                                    <!-- Blocked users will be loaded here -->
+                                </div>
+                                <div class="mt-3">
+                                    <div class="input-group">
+                                        <select class="form-select" id="block-user-select">
+                                            <option value="">Select user to block</option>
+                                            {% for profile in users %}
+                                            <option value="{{ profile.user.username }}">{{ profile.user.username }} ({{ profile.user.email }})</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="btn btn-warning" onclick="blockUser()">
+                                            <i class="fas fa-user-slash"></i> Block User
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="alert alert-info alert-spacing">
+        <strong>Hierarchical Access Control:</strong><br>
+        • <span class="site-access">Site Access:</span> User gets access ONLY to selected specific sites (highest priority)<br>
+        • <span class="portfolio-access">Portfolio Access:</span> User gets access to ALL sites in selected portfolios<br>
+        • <span class="country-access">Country Access:</span> User gets access to ALL sites in selected countries (lowest priority)
+    </div>
+
+    <!-- API Workflow Notice -->
+    <div class="alert alert-success alert-spacing">
+        <h5><i class="fas fa-info-circle"></i> API User Creation Workflow</h5>
+        <p class="mb-2"><strong>Step 1:</strong> Create the user below with proper site access control</p>
+        <p class="mb-0"><strong>Step 2:</strong> After creating the user, click "Back to API Config" to configure API permissions and generate API keys</p>
+    </div>
+    
+    <!-- Toast Container for Auto-Dismissing Messages -->
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+    
+    <form method="post" class="mb-5 card-spacing">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-md-2">
+                <input type="text" name="username" class="form-control" placeholder="Username" required>
+            </div>
+            <div class="col-md-3">
+                <input type="email" name="email" class="form-control" placeholder="Email" required>
+            </div>
+            <div class="col-md-2">
+                <input type="password" name="password" class="form-control" placeholder="Password" required>
+            </div>
+            <div class="col-md-2">
+                <select name="role" class="form-select" required>
+                    <option value="">Select Role</option>
+                    <option value="admin">Admin</option>
+                    <option value="om">O&M</option>
+                    <option value="customer">Customer</option>
+                    <option value="management">Management</option>
+                    <option value="others">Others</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label"><strong>App Access:</strong></label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="access_control" value="web_access" id="create-access-web">
+                    <label class="form-check-label" for="create-access-web">Web Access</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="access_control" value="ticketing_access" id="create-access-ticketing">
+                    <label class="form-check-label" for="create-access-ticketing">Ticketing Access</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="access_control" value="api_access" id="create-access-api">
+                    <label class="form-check-label" for="create-access-api">API Access</label>
+                </div>
+                <small class="text-muted d-block mt-1">Select one or more apps for this user. Leave empty to grant no access.</small>
+            </div>
+            <div class="col-md-2">
+                <select id="country-select" name="countries" class="form-select" multiple>
+                    <option value="">Select Countries</option>
+                    {% for country in countries %}
+                        <option value="{{ country }}">{{ country }}</option>
+                    {% endfor %}
+                </select>
+                <div>
+                    <input type="checkbox" id="select-all-countries"> <label for="select-all-countries">Select All Countries</label>
+                </div>
+                <small class="text-muted">Gives access to ALL sites in selected countries</small>
+            </div>
+        </div>
+        
+        <div class="row mt-2">
+            <div class="col-md-6">
+                <select id="portfolio-select" name="portfolios" class="form-select" multiple>
+                    <option value="">Select Portfolios</option>
+                    {% for portfolio in portfolios %}
+                        <option value="{{ portfolio }}">{{ portfolio }}</option>
+                    {% endfor %}
+                </select>
+                <div>
+                    <input type="checkbox" id="select-all-portfolios"> <label for="select-all-portfolios">Select All Portfolios</label>
+                </div>
+                <small class="text-muted">Gives access to ALL sites in selected portfolios</small>
+            </div>
+            <div class="col-md-6">
+                <select id="site-select" name="sites" class="form-select" multiple>
+                    <option value="">Select Sites</option>
+                    <!-- Sites will be populated by JS -->
+                </select>
+                <div>
+                    <input type="checkbox" id="select-all-sites"> <label for="select-all-sites">Select All Sites</label>
+                </div>
+                <small class="text-muted">Gives access ONLY to selected sites (overrides country/portfolio access)</small>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="alert alert-warning">
+                    <strong>Priority Order:</strong> Site Access > Portfolio Access > Country Access<br>
+                    If you select specific sites, country and portfolio access will be ignored.
+                </div>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary mt-2">Add User</button>
+    </form>
+
+    <!-- User Filtering and Search -->
+    <div class="filter-section section-spacing">
+        <h4><i class="fas fa-filter"></i> Filter & Search Users</h4>
+        
+        <!-- Filter Badges -->
+        <div class="filter-badges mb-4">
+            <span class="badge bg-primary me-2" style="font-size: 14px;">
+                <i class="fas fa-users"></i> Total: <span id="total-users-badge">{{ total_users }}</span>
+            </span>
+            <span class="badge bg-success me-2" style="font-size: 14px;">
+                <i class="fas fa-check-circle"></i> Active: <span id="active-users-badge">{{ active_users }}</span>
+            </span>
+            <span class="badge bg-secondary me-2" style="font-size: 14px;">
+                <i class="fas fa-user-times"></i> Inactive/Deleted: <span id="inactive-users-badge">{{ inactive_users }}</span>
+            </span>
+            <span class="badge bg-warning text-dark me-2" style="font-size: 14px;">
+                <i class="fas fa-user-slash"></i> Blocked: <span id="blocked-users-badge">{{ blocked_users_count }}</span>
+            </span>
+        </div>
+        
+        <div class="row g-3" id="filter-form">
+            <div class="col-md-3">
+                <label for="search" class="form-label">
+                    <i class="fas fa-search"></i> Search Users
+                </label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_query }}" placeholder="Username, email, or name">
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">
+                    <i class="fas fa-filter"></i> User Status
+                </label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All Users</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>
+                        Active Users
+                    </option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>
+                        Inactive/Deleted Users
+                    </option>
+                    <option value="blocked" {% if status_filter == 'blocked' %}selected{% endif %}>
+                        Blocked Users
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="role" class="form-label">
+                    <i class="fas fa-user-tag"></i> Role
+                </label>
+                <select class="form-select" id="role" name="role">
+                    <option value="">All Roles</option>
+                    {% for role_value, role_label in role_choices %}
+                    <option value="{{ role_value }}" {% if role_filter == role_value %}selected{% endif %}>
+                        {{ role_label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-primary" id="apply-filters-btn" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Apply Filters
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'main:security_alerts' %}" class="btn btn-warning" title="Security Alerts">
+                        <i class="fas fa-shield-alt"></i> {{ security_alerts_count }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-spacing">
+        <h4><i class="fas fa-table"></i> Existing Users (<span id="users-count">{{ users|length }}</span> found)</h4>
+        <div id="loading-indicator" class="text-center mb-3" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Filtering users...</p>
+        </div>
+        <div class="user-table-container" id="users-table-container">
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Access Type</th>
+                        <th>Access Details</th>
+                        <th>Created By</th>
+                        <th>Created On</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    {% for profile in users %}
+                    <tr>
+                        <td>
+                            <strong>{{ profile.user.username }}</strong>
+                            {% if profile.user.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ profile.user.email }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ profile.get_role_display }}</span>
+                        </td>
+                        <td>
+                            {% if profile.accessible_sites %}
+                                <span class="site-access">Site Access</span>
+                            {% elif profile.accessible_portfolios %}
+                                <span class="portfolio-access">Portfolio Access</span>
+                            {% elif profile.accessible_countries %}
+                                <span class="country-access">Country Access</span>
+                            {% elif profile.role|role_has_capability:'user_management.manage' %}
+                                <span class="text-success"><strong>Admin (All Access)</strong></span>
+                            {% else %}
+                                <span class="text-muted">No Access</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if profile.accessible_sites %}
+                                <strong>Sites:</strong><br>
+                                {% for site_code in profile.accessible_sites.split|slice:":5" %}
+                                    {{ site_code }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if profile.accessible_sites.split|length > 5 %}
+                                    <br><em>... and {{ profile.accessible_sites.split|length|add:"-5" }} more</em>
+                                {% endif %}
+                            {% elif profile.accessible_portfolios %}
+                                <strong>Portfolios:</strong><br>
+                                {% for portfolio in profile.accessible_portfolios.split %}
+                                    {{ portfolio }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            {% elif profile.accessible_countries %}
+                                <strong>Countries:</strong><br>
+                                {% for country in profile.accessible_countries.split %}
+                                    {{ country }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            {% elif profile.role|role_has_capability:'user_management.manage' %}
+                                All sites, portfolios, and countries
+                            {% else %}
+                                No access assigned
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if profile.created_by %}
+                                {{ profile.created_by.username }}
+                            {% else %}
+                                System
+                            {% endif %}
+                        </td>
+                        <td>{{ profile.created_at|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            {% if profile.user.last_login %}
+                                {{ profile.user.last_login|date:"Y-m-d H:i" }}
+                            {% else %}
+                                <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group-vertical" role="group">
+                                <form method="post" action="{% url 'main:send_password_reset' profile.user.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-key"></i> Send Reset Link
+                                    </button>
+                                </form>
+                                {% if user|has_capability:'user_management.manage' %}
+                                    <a href="{% url 'main:edit_user_access' profile.user.id %}" class="btn btn-sm btn-warning mt-1">
+                                        <i class="fas fa-edit"></i> Edit Access
+                                    </a>
+                                {% endif %}
+                                {% if user|has_capability:'user_management.manage' %}
+                                    {% if profile.user.is_active %}
+                                        <button type="button" class="btn btn-sm btn-warning mt-1" 
+                                                onclick="confirmDeactivateUser('{{ profile.user.id }}', '{{ profile.user.username }}')"
+                                                {% if profile.user.username == user.username %}disabled title="Cannot deactivate yourself"{% endif %}>
+                                            <i class="fas fa-user-times"></i> Deactivate
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                                {# Reactivate button - Superuser only, outside capability check so superusers always see it #}
+                                {% if not profile.user.is_active and user.is_superuser %}
+                                    <button type="button" class="btn btn-sm btn-success mt-1" 
+                                            onclick="confirmReactivateUser('{{ profile.user.id }}', '{{ profile.user.username }}', this)">
+                                        <i class="fas fa-user-check"></i> Reactivate
+                                    </button>
+                                {% endif %}
+                                {% if user.is_superuser %}
+                                    <button type="button" class="btn btn-sm btn-danger mt-1" 
+                                            onclick="confirmDeleteUserFromTable('{{ profile.user.id }}', '{{ profile.user.username }}')"
+                                            {% if profile.user.username == user.username %}disabled title="Cannot delete yourself"{% endif %}>
+                                        <i class="fas fa-trash-alt"></i> Delete User
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-muted">
+                            <i class="fas fa-info-circle"></i> No users found matching the current filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Flag Management Section - Superuser Only -->
+    {% if user.is_superuser %}
+    <div class="section-spacing">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="fas fa-flag"></i> Feature Flag Management (Superuser Only)</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Warning:</strong> Feature flags control which features are enabled for users. Use with caution.
+                </div>
+                
+                <!-- Search and Action Buttons -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="flag-search" placeholder="Search flags..." 
+                               value="{{ flag_search_query }}" onkeyup="filterFlags()">
+                    </div>
+                    <div class="col-md-6">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-success" onclick="showCreateFlagModal()">
+                                <i class="fas fa-plus"></i> Create New Flag
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="showAssignFlagsToUserModal()">
+                                <i class="fas fa-user-check"></i> Assign Flags to User
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="exportFlagsCSV()">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="document.getElementById('import-csv-file').click()">
+                                <i class="fas fa-upload"></i> Import CSV
+                            </button>
+                        </div>
+                        <input type="file" id="import-csv-file" accept=".csv" style="display: none;" onchange="importFlagsCSV(event)">
+                    </div>
+                </div>
+
+                <!-- Flags Table -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Flag Name</th>
+                                <th>Everyone</th>
+                                <th>Percent</th>
+                                <th>Superusers</th>
+                                <th>Staff</th>
+                                <th>Authenticated</th>
+                                <th>Rollout</th>
+                                <th>Users</th>
+                                <th>Note</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="flags-table-body">
+                            {% if flags %}
+                                {% for flag in flags %}
+                                <tr>
+                                    <td><strong>{{ flag.name }}</strong></td>
+                                    <td>
+                                        {% if flag.everyone is True %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% elif flag.everyone is False %}
+                                            <span class="badge bg-danger">No</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if flag.percent is not None %}
+                                            {{ flag.percent }}%
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if flag.superusers %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if flag.staff %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if flag.authenticated %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if flag.rollout %}
+                                            <span class="badge bg-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if flag.users.all %}
+                                            {% for user in flag.users.all|slice:":2" %}
+                                                <span class="badge bg-info me-1">{{ user.username }}</span>
+                                            {% endfor %}
+                                            {% if flag.users.count > 2 %}
+                                                <span class="badge bg-secondary">+{{ flag.users.count|add:"-2" }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small class="text-muted">{{ flag.note|default:"-" }}</small></td>
+                                    <td>
+                                        <div class="btn-group-vertical" role="group">
+                                            <button type="button" class="btn btn-sm btn-primary" 
+                                                    onclick="showEditFlagModal({{ flag.id }}, '{{ flag.name|escapejs }}', {{ flag.everyone|default:"null" }}, {{ flag.percent|default:"null" }}, {{ flag.superusers|yesno:"true,false" }}, {{ flag.staff|yesno:"true,false" }}, {{ flag.authenticated|yesno:"true,false" }}, {{ flag.rollout|yesno:"true,false" }}, '{{ flag.note|escapejs }}')">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger mt-1" 
+                                                    onclick="confirmDeleteFlag({{ flag.id }}, '{{ flag.name|escapejs }}')">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted">
+                                        <i class="fas fa-info-circle"></i> No flags found.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted">
+                                        <i class="fas fa-info-circle"></i> No flags found.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // AJAX Filter Functions - No Page Refresh
+    function applyFilters() {
+        const search = document.getElementById('search').value;
+        const status = document.getElementById('status').value;
+        const role = document.getElementById('role').value;
+        
+        // Show loading indicator
+        document.getElementById('loading-indicator').style.display = 'block';
+        document.getElementById('users-table-container').style.opacity = '0.5';
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
+        if (role) params.append('role', role);
+        
+        // Make AJAX request
+        const url = '{% url "main:user_management" %}' + (params.toString() ? '?' + params.toString() : '');
+        
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Create a temporary container to parse the response
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Extract the table body content
+            const newTableBody = doc.querySelector('#users-table-body');
+            const newUsersCount = doc.querySelector('#users-count');
+            const newTotalUsersBadge = doc.querySelector('#total-users-badge');
+            const newActiveUsersBadge = doc.querySelector('#active-users-badge');
+            const newInactiveUsersBadge = doc.querySelector('#inactive-users-badge');
+            const newBlockedUsersBadge = doc.querySelector('#blocked-users-badge');
+            
+            if (newTableBody) {
+                document.getElementById('users-table-body').innerHTML = newTableBody.innerHTML;
+            }
+            
+            if (newUsersCount) {
+                document.getElementById('users-count').textContent = newUsersCount.textContent;
+            }
+            
+            if (newTotalUsersBadge) {
+                document.getElementById('total-users-badge').textContent = newTotalUsersBadge.textContent;
+            }
+            
+            if (newActiveUsersBadge) {
+                document.getElementById('active-users-badge').textContent = newActiveUsersBadge.textContent;
+            }
+            
+            if (newInactiveUsersBadge) {
+                document.getElementById('inactive-users-badge').textContent = newInactiveUsersBadge.textContent;
+            }
+            
+            if (newBlockedUsersBadge) {
+                document.getElementById('blocked-users-badge').textContent = newBlockedUsersBadge.textContent;
+            }
+            
+            // Hide loading indicator
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('users-table-container').style.opacity = '1';
+            
+            // Reinitialize any event handlers if needed
+            reinitializeEventHandlers();
+        })
+        .catch(error => {
+            console.error('Error filtering users:', error);
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('users-table-container').style.opacity = '1';
+            alert('Error filtering users. Please try again.');
+        });
+    }
+    
+    function clearFilters() {
+        document.getElementById('search').value = '';
+        document.getElementById('status').value = '';
+        document.getElementById('role').value = '';
+        applyFilters(); // Apply empty filters to show all users
+    }
+    
+    function reinitializeEventHandlers() {
+        // Reinitialize any JavaScript functions that need to be bound to new DOM elements
+        // This ensures buttons and forms continue to work after AJAX update
+    }
+    
+    // Allow Enter key to trigger filter
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('search');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyFilters();
+                }
+            });
+        }
+    });
+
+    // Activity Chart with India Standard Time
+    const activityData = {{ activity_data|safe }};
+    
+    // Use India Standard Time
+    const displayTimezone = 'India Standard Time (IST)';
+    
+    // Create the chart
+    const ctx = document.getElementById('activityChart').getContext('2d');
+    const activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: activityData.map(item => item.hour),
+            datasets: [{
+                label: 'User Activities',
+                data: activityData.map(item => item.count),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1,
+                fill: true,
+                pointBackgroundColor: 'rgb(75, 192, 192)',
+                pointBorderColor: 'rgb(75, 192, 192)',
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Hourly User Activity (Last 24 Hours - ${displayTimezone})`
+                },
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        title: function(context) {
+                            const index = context[0].dataIndex;
+                            const item = activityData[index];
+                            return (item.hour_full || item.hour) + ' IST';
+                        },
+                        label: function(context) {
+                            return `Activities: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Activities'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hour (IST)'
+                    }
+                }
+            },
+            interaction: {
+                intersect: false,
+                mode: 'index'
+            }
+        }
+    });
+
+    // Get assets data from Django template
+    const allAssets = [];
+    {% for site in assets %}
+        allAssets.push({
+            code: "{{ site.asset_code|escapejs }}",
+            name: "{{ site.asset_name|escapejs }}",
+            country: "{{ site.country|escapejs }}",
+            portfolio: "{{ site.portfolio|escapejs }}"
+        });
+    {% endfor %}
+
+    // Function to update site list based on selected countries and portfolios
+    function updateSiteList() {
+        const countrySelect = document.getElementById('country-select');
+        const portfolioSelect = document.getElementById('portfolio-select');
+        const siteSelect = document.getElementById('site-select');
+        const selectAllSitesCheckbox = document.getElementById('select-all-sites');
+        
+        if (!countrySelect || !portfolioSelect || !siteSelect || !selectAllSitesCheckbox) {
+            return;
+        }
+        
+        // Get all selected countries and portfolios
+        const selectedCountries = [];
+        const selectedPortfolios = [];
+        
+        for (let i = 0; i < countrySelect.options.length; i++) {
+            if (countrySelect.options[i].selected && countrySelect.options[i].value !== "") {
+                selectedCountries.push(countrySelect.options[i].value);
+            }
+        }
+        
+        for (let i = 0; i < portfolioSelect.options.length; i++) {
+            if (portfolioSelect.options[i].selected && portfolioSelect.options[i].value !== "") {
+                selectedPortfolios.push(portfolioSelect.options[i].value);
+            }
+        }
+        
+        // Clear current site list
+        siteSelect.innerHTML = '';
+        
+        // If no countries or portfolios selected, show message
+        if (selectedCountries.length === 0 && selectedPortfolios.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'Please select at least one country or portfolio';
+            option.disabled = true;
+            siteSelect.appendChild(option);
+            selectAllSitesCheckbox.checked = false;
+            selectAllSitesCheckbox.disabled = true;
+            return;
+        }
+        
+        // Filter assets by selected countries and portfolios
+        const filteredAssets = allAssets.filter(function(site) {
+            const countryMatch = selectedCountries.length === 0 || selectedCountries.includes(site.country);
+            const portfolioMatch = selectedPortfolios.length === 0 || selectedPortfolios.includes(site.portfolio);
+            return countryMatch && portfolioMatch;
+        });
+        
+        // Populate site list with filtered assets
+        filteredAssets.forEach(function(site) {
+            const option = document.createElement('option');
+            option.value = site.code;
+            option.textContent = site.name + ' (' + site.country + ' - ' + site.portfolio + ')';
+            siteSelect.appendChild(option);
+        });
+        
+        // Enable/disable select all sites checkbox
+        selectAllSitesCheckbox.disabled = filteredAssets.length === 0;
+        selectAllSitesCheckbox.checked = false;
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        const countrySelect = document.getElementById('country-select');
+        const portfolioSelect = document.getElementById('portfolio-select');
+        const selectAllSitesCheckbox = document.getElementById('select-all-sites');
+        // Access control multi-select dropdown
+        const accessControlSelect = document.getElementById('access_control');
+        if (accessControlSelect) {
+            // Ensure web_access is selected by default
+            const webAccessOption = Array.from(accessControlSelect.options).find(opt => opt.value === 'web_access');
+            if (webAccessOption && !Array.from(accessControlSelect.selectedOptions).some(opt => opt.value === 'web_access')) {
+                webAccessOption.selected = true;
+            }
+        }
+        
+        const selectAllCountriesCheckbox = document.getElementById('select-all-countries');
+        const selectAllPortfoliosCheckbox = document.getElementById('select-all-portfolios');
+        
+        // Country selection change handler
+        if (countrySelect) {
+            countrySelect.addEventListener('change', updateSiteList);
+        }
+        
+        // Portfolio selection change handler
+        if (portfolioSelect) {
+            portfolioSelect.addEventListener('change', updateSiteList);
+        }
+        
+        // Select All sites functionality
+        if (selectAllSitesCheckbox) {
+            selectAllSitesCheckbox.addEventListener('change', function() {
+                const siteSelect = document.getElementById('site-select');
+                if (siteSelect) {
+                    for (let i = 0; i < siteSelect.options.length; i++) {
+                        if (!siteSelect.options[i].disabled) {
+                            siteSelect.options[i].selected = this.checked;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Select All countries functionality
+        if (selectAllCountriesCheckbox) {
+            selectAllCountriesCheckbox.addEventListener('change', function() {
+                if (countrySelect) {
+                    for (let i = 0; i < countrySelect.options.length; i++) {
+                        if (countrySelect.options[i].value !== "") {
+                            countrySelect.options[i].selected = this.checked;
+                        }
+                    }
+                    updateSiteList();
+                }
+            });
+        }
+        
+        // Select All portfolios functionality
+        if (selectAllPortfoliosCheckbox) {
+            selectAllPortfoliosCheckbox.addEventListener('change', function() {
+                if (portfolioSelect) {
+                    for (let i = 0; i < portfolioSelect.options.length; i++) {
+                        if (portfolioSelect.options[i].value !== "") {
+                            portfolioSelect.options[i].selected = this.checked;
+                        }
+                    }
+                    updateSiteList();
+                }
+            });
+        }
+        
+        // Initialize site list
+        updateSiteList();
+        
+        // Display any error messages as toasts
+        {% if error %}
+            showToast('{{ error|escapejs }}', 'error');
+        {% endif %}
+        
+        // Display Django messages as toasts
+        {% if messages %}
+            {% for message in messages %}
+                showToast('{{ message|escapejs }}', '{{ message.tags }}');
+            {% endfor %}
+        {% endif %}
+    });
+    
+    // Toast notification function for auto-dismissing messages
+    function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastId = 'toast-' + Date.now();
+        const colorClass = type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white bg-${colorClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()" aria-label="Close">&times;</button>
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // Show the toast
+        const toastElement = document.getElementById(toastId);
+        
+        // Check if Bootstrap is available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+            // Use Bootstrap Toast if available
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: type === 'error' ? 5000 : 3000
+            });
+            toast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                if (toastElement.parentNode) {
+                    toastElement.remove();
+                }
+            });
+        } else {
+            // Fallback: Manual show/hide without Bootstrap
+            toastElement.style.display = 'block';
+            toastElement.style.opacity = '0';
+            
+            // Animate in
+            setTimeout(() => {
+                toastElement.style.transition = 'opacity 0.3s ease-in-out';
+                toastElement.style.opacity = '1';
+            }, 10);
+            
+            // Auto-hide after delay
+            setTimeout(() => {
+                toastElement.style.opacity = '0';
+                setTimeout(() => {
+                    if (toastElement.parentNode) {
+                        toastElement.remove();
+                    }
+                }, 300);
+            }, type === 'error' ? 5000 : 3000);
+        }
+    }
+    
+    // Generate and display download URL (works in all environments)
+    // Direct download function (like site onboarding)
+    function downloadUserActivityDirect() {
+        try {
+            const params = buildDownloadParams();
+            const downloadUrl = '{% url "main:download_user_activity" %}?' + params.toString();
+            
+            // Show what's being downloaded
+            const summary = generateDownloadSummary();
+            showToast('Downloading user activity data...', 'info');
+            
+            // Direct navigation (like site onboarding)
+            window.location.href = downloadUrl;
+            
+        } catch (e) {
+            console.error('Failed to download:', e);
+            showToast('Download failed. Try "Get Download Link" option.', 'error');
+        }
+    }
+    
+    function generateDownloadUrl() {
+        try {
+            const params = buildDownloadParams();
+            const fullDownloadUrl = window.location.origin + '{% url "main:download_user_activity" %}?' + params.toString();
+            
+            // Display the URL in the container
+            document.getElementById('generatedDownloadUrl').value = fullDownloadUrl;
+            
+            // Generate summary of what will be downloaded
+            const summary = generateDownloadSummary();
+            document.getElementById('downloadSummary').innerHTML = summary;
+            
+            document.getElementById('downloadUrlContainer').style.display = 'block';
+            
+            // Auto-copy to clipboard
+            copyGeneratedUrl();
+            
+            showToast('Download URL generated and copied to clipboard!', 'success');
+            
+        } catch (e) {
+            console.error('Failed to generate download URL:', e);
+            showToast('Failed to generate download URL.', 'error');
+        }
+    }
+    
+    // Generate summary of download criteria
+    function generateDownloadSummary() {
+        const startDate = document.getElementById('download_start_date').value;
+        const endDate = document.getElementById('download_end_date').value;
+        const userFilter = document.getElementById('download_user_filter').value;
+        const actionFilter = document.getElementById('download_action_filter').value;
+        const ipFilter = document.getElementById('download_ip_filter').value;
+        const includeSuspicious = document.getElementById('download_include_suspicious').checked;
+        
+        let summary = '<strong>Download will include:</strong><br>';
+        
+        // Date range
+        if (startDate && endDate) {
+            summary += `📅 <strong>Date Range:</strong> ${startDate} to ${endDate}<br>`;
+        } else if (startDate) {
+            summary += `📅 <strong>From Date:</strong> ${startDate} onwards<br>`;
+        } else if (endDate) {
+            summary += `📅 <strong>Until Date:</strong> ${endDate}<br>`;
+        } else {
+            const today = new Date().toISOString().split('T')[0];
+            summary += `📅 <strong>Date:</strong> Today (${today}) - All activity for current date in IST<br>`;
+        }
+        
+        // User filter
+        if (userFilter) {
+            summary += `👤 <strong>User:</strong> Contains "${userFilter}"<br>`;
+        } else {
+            summary += `👤 <strong>Users:</strong> ALL users (active and inactive)<br>`;
+        }
+        
+        // Action filter
+        if (actionFilter) {
+            summary += `🔄 <strong>Action:</strong> ${actionFilter} only<br>`;
+        } else {
+            summary += `🔄 <strong>Actions:</strong> ALL actions (login, view, create, update, etc.)<br>`;
+        }
+        
+        // IP filter
+        if (ipFilter) {
+            summary += `🌐 <strong>IP Address:</strong> Contains "${ipFilter}"<br>`;
+        }
+        
+        // Suspicious filter
+        if (includeSuspicious) {
+            summary += `⚠️ <strong>Filter:</strong> Suspicious activities only<br>`;
+        } else {
+            summary += `📊 <strong>Data:</strong> All activities (including normal and suspicious)<br>`;
+        }
+        
+        summary += `<br><strong>📋 Complete Data Includes:</strong><br>`;
+        summary += `• User details (ID, username, email)<br>`;
+        summary += `• Request info (IP, user agent, method, status code)<br>`;
+        summary += `• Performance (response time, response size)<br>`;
+        summary += `• Security analysis (risk level, security flags)<br>`;
+        summary += `• Location data (country, city, region)<br>`;
+        summary += `• Request parameters (GET/POST data, content type)<br>`;
+        summary += `• Timestamps in both IST and UTC formats`;
+        
+        return summary;
+    }
+    
+    // Copy the generated URL to clipboard
+    function copyGeneratedUrl() {
+        const urlInput = document.getElementById('generatedDownloadUrl');
+        urlInput.select();
+        urlInput.setSelectionRange(0, 99999);
+        
+        try {
+            document.execCommand('copy');
+            showToast('Download URL copied to clipboard!', 'success');
+        } catch (err) {
+            // Try modern clipboard API
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(urlInput.value).then(() => {
+                    showToast('Download URL copied to clipboard!', 'success');
+                }).catch(() => {
+                    showToast('Please manually copy the URL above.', 'warning');
+                });
+            } else {
+                showToast('Please manually copy the URL above.', 'warning');
+            }
+        }
+    }
+    
+    // Download using form submission (works in sandboxed environments)
+    function downloadWithForm(params) {
+        try {
+            // Create a form element with target="_blank" to open in new tab
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = '{% url "main:download_user_activity" %}';
+            form.target = '_blank'; // This forces it to open in new tab
+            form.style.display = 'none';
+            
+            // Add parameters as hidden inputs
+            for (const [key, value] of params.entries()) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                form.appendChild(input);
+            }
+            
+            // Add form to page and submit
+            document.body.appendChild(form);
+            form.submit();
+            
+            // Clean up
+            setTimeout(() => {
+                if (document.body.contains(form)) {
+                    document.body.removeChild(form);
+                }
+            }, 1000);
+            
+            showToast('Download initiated! A new tab opened - it should close automatically after download starts.', 'success');
+            
+            // Add a note about manual refresh if needed
+            setTimeout(() => {
+                showToast('If download didn\'t start, try refreshing the new tab or use "Try Alternative Download".', 'info');
+            }, 3000);
+            
+        } catch (e) {
+            console.error('Form submission failed:', e);
+            // Fallback to iframe method
+            tryDownloadWithIframe(params);
+        }
+    }
+    
+    // Try download with iframe (alternative method)
+    function tryDownloadWithIframe(params) {
+        try {
+            const downloadUrl = '{% url "main:download_user_activity" %}?' + params.toString();
+            
+            // Create a hidden iframe for download
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.src = downloadUrl;
+            
+            // Add to document
+            document.body.appendChild(iframe);
+            
+            // Remove iframe after download
+            setTimeout(() => {
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                }
+            }, 10000);
+            
+            showToast('Download initiated via iframe. Check your downloads folder.', 'info');
+            
+        } catch (e) {
+            console.error('Iframe method failed:', e);
+            // Final fallback - show direct link
+            showDownloadLinkModal();
+        }
+    }
+    
+    // Build download parameters from form
+    function buildDownloadParams() {
+        const params = new URLSearchParams();
+        
+        const startDate = document.getElementById('download_start_date').value;
+        const endDate = document.getElementById('download_end_date').value;
+        const userFilter = document.getElementById('download_user_filter').value;
+        const actionFilter = document.getElementById('download_action_filter').value;
+        const ipFilter = document.getElementById('download_ip_filter').value;
+        const includeSuspicious = document.getElementById('download_include_suspicious').checked;
+        
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        if (userFilter) params.append('user', userFilter);
+        if (actionFilter) params.append('action', actionFilter);
+        if (ipFilter) params.append('ip', ipFilter);
+        if (includeSuspicious) params.append('include_suspicious', 'true');
+        
+        return params;
+    }
+    
+    // Alternative iframe download method
+    function tryIframeDownload() {
+        const params = buildDownloadParams();
+        tryDownloadWithIframe(params);
+    }
+    
+    // Try download by posting message to parent window
+    function tryDownloadWithParentMessage(downloadUrl) {
+        try {
+            if (window.parent && window.parent !== window) {
+                // Send message to parent window to handle download
+                window.parent.postMessage({
+                    type: 'DOWNLOAD_REQUEST',
+                    url: downloadUrl
+                }, '*');
+                
+                showToast('Download request sent to parent window.', 'info');
+                
+                // Fallback after timeout
+                setTimeout(() => {
+                    tryDownloadWithDirectNavigation(downloadUrl);
+                }, 2000);
+                
+                return true;
+            }
+        } catch (e) {
+                    // Parent window communication failed
+        }
+        return false;
+    }
+    
+    // Try direct navigation as last resort
+    function tryDownloadWithDirectNavigation(downloadUrl) {
+        try {
+            // This might work in some sandboxed environments
+            window.location.assign(downloadUrl);
+            showToast('Redirecting to download...', 'info');
+        } catch (e) {
+            // Final fallback - show modal with direct link
+            showToast('All download methods blocked. Please use "Get Direct Link" option.', 'warning');
+            showDownloadLinkModal();
+        }
+    }
+    
+    // Copy URL to clipboard
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Download link copied to clipboard!', 'success');
+            }).catch(() => {
+                fallbackCopyToClipboard(text);
+            });
+        } else {
+            fallbackCopyToClipboard(text);
+        }
+    }
+    
+    // Fallback copy method
+    function fallbackCopyToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Download link copied to clipboard!', 'success');
+        } catch (err) {
+            showToast('Failed to copy link to clipboard.', 'error');
+        }
+        document.body.removeChild(textArea);
+    }
+    
+    // Show complete download link with full URL
+    function showCompleteDownloadLink() {
+        const params = buildDownloadParams();
+        const fullDownloadUrl = window.location.origin + '{% url "main:download_user_activity" %}?' + params.toString();
+        
+        // Create enhanced modal with better instructions
+        const modalHtml = `
+            <div class="modal fade" id="downloadLinkModal" tabindex="-1" aria-labelledby="downloadLinkModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="downloadLinkModalLabel">
+                                <i class="fas fa-download"></i> Download User Activity Data
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle"></i> How to Download:</h6>
+                                <ol>
+                                    <li><strong>Copy the complete URL below</strong></li>
+                                    <li><strong>Open a new browser tab</strong></li>
+                                    <li><strong>Paste the URL</strong> in the address bar</li>
+                                    <li><strong>Press Enter</strong> - Download will start automatically</li>
+                                </ol>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label"><strong>Complete Download URL:</strong></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="fullDownloadUrl" value="${fullDownloadUrl}" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyDownloadUrl()">
+                                        <i class="fas fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <a href="${fullDownloadUrl}" target="_blank" class="btn btn-success btn-lg">
+                                    <i class="fas fa-external-link-alt"></i> Open Download in New Tab
+                                </a>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <strong>Note:</strong> This URL includes all your current filter settings and will download 
+                                    the exact data you've configured above.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('downloadLinkModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('downloadLinkModal'));
+        modal.show();
+        
+        // Remove modal from DOM when hidden
+        document.getElementById('downloadLinkModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+    
+    // Copy download URL to clipboard
+    function copyDownloadUrl() {
+        const urlInput = document.getElementById('fullDownloadUrl');
+        urlInput.select();
+        urlInput.setSelectionRange(0, 99999); // For mobile devices
+        
+        try {
+            document.execCommand('copy');
+            showToast('Download URL copied to clipboard!', 'success');
+        } catch (err) {
+            showToast('Failed to copy URL. Please select and copy manually.', 'warning');
+        }
+    }
+    
+    // Show modal with direct download link
+    function showDownloadLinkModal() {
+        showFullDownloadLink();
+    }
+    
+    // Show modal with direct download link
+    function showDownloadLinkModalDialog(downloadUrl) {
+        // Create modal HTML
+        const modalHtml = `
+            <div class="modal fade" id="downloadLinkModal" tabindex="-1" aria-labelledby="downloadLinkModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="downloadLinkModalLabel">Alternative Download</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Since popup windows are blocked in this environment, you can use this direct link to download your data:</p>
+                            <div class="alert alert-info">
+                                <strong>Instructions:</strong>
+                                <ol>
+                                    <li>Right-click the link below</li>
+                                    <li>Select "Save link as..." or "Download link"</li>
+                                    <li>Choose where to save the CSV file</li>
+                                </ol>
+                            </div>
+                            <div class="text-center">
+                                <a href="${downloadUrl}" class="btn btn-success" onclick="this.click(); return true;">
+                                    <i class="fas fa-download"></i> Download User Activity Data
+                                </a>
+                                <button type="button" class="btn btn-outline-primary ms-2" onclick="copyToClipboard('${downloadUrl}')">
+                                    <i class="fas fa-copy"></i> Copy Link
+                                </button>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <strong>Direct URL:</strong><br>
+                                    <code style="word-break: break-all;">${downloadUrl}</code>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('downloadLinkModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to page
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('downloadLinkModal'));
+        modal.show();
+        
+        // Remove modal from DOM when hidden
+        document.getElementById('downloadLinkModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    // Admin Security Management Functions
+    {% if user.is_superuser %}
+    // Load blocked IPs and users on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshBlockedIPs();
+        refreshBlockedUsers();
+    });
+
+    // Block IP functionality
+    function blockIP() {
+        const ipInput = document.getElementById('block-ip-input');
+        const ipAddress = ipInput.value.trim();
+        
+        if (!ipAddress) {
+            showToast('Please enter an IP address', 'error');
+            return;
+        }
+        
+        // Basic IP validation
+        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        if (!ipRegex.test(ipAddress)) {
+            showToast('Please enter a valid IP address', 'error');
+            return;
+        }
+        
+        fetch('/api/blocking/block-ip/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ip_address: ipAddress})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`IP ${ipAddress} blocked successfully`, 'success');
+                ipInput.value = '';
+                refreshBlockedIPs();
+            } else {
+                showToast(data.error || 'Failed to block IP', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error blocking IP: ' + error.message, 'error');
+        });
+    }
+
+    // Unblock IP functionality
+    function unblockIP(ipAddress) {
+        if (!confirm(`Are you sure you want to unblock IP ${ipAddress}?`)) {
+            return;
+        }
+        
+        fetch('/api/blocking/unblock-ip/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ip_address: ipAddress})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show detailed message including auto-unblocked users
+                let message = data.message || `IP ${ipAddress} unblocked successfully`;
+                showToast(message, 'success');
+                
+                // Refresh both lists since users might have been unblocked too
+                refreshBlockedIPs();
+                refreshBlockedUsers();
+            } else {
+                showToast(data.error || 'Failed to unblock IP', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error unblocking IP: ' + error.message, 'error');
+        });
+    }
+
+    // Block User functionality
+    function blockUser() {
+        const userSelect = document.getElementById('block-user-select');
+        const username = userSelect.value;
+        
+        if (!username) {
+            showToast('Please select a user to block', 'error');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to block user ${username}?`)) {
+            return;
+        }
+        
+        fetch('/api/blocking/block-user/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({username: username})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`User ${username} blocked successfully`, 'success');
+                userSelect.value = '';
+                refreshBlockedUsers();
+            } else {
+                showToast(data.error || 'Failed to block user', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error blocking user: ' + error.message, 'error');
+        });
+    }
+
+    // Unblock User functionality
+    function unblockUser(username) {
+        if (!confirm(`Are you sure you want to unblock user ${username}?`)) {
+            return;
+        }
+        
+        fetch('/api/blocking/unblock-user/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({username: username})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`User ${username} unblocked successfully`, 'success');
+                refreshBlockedUsers();
+            } else {
+                showToast(data.error || 'Failed to unblock user', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error unblocking user: ' + error.message, 'error');
+        });
+    }
+
+    // Delete User functionality
+    function confirmDeleteUserFromTable(userId, username) {
+        // Enhanced confirmation with user details
+        if (!confirm(`⚠️ DELETE USER: ${username}\n\nThis will permanently remove:\n- User account\n- All permissions\n- All activity logs\n- All associated data\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`)) {
+            return;
+        }
+        
+        // Second confirmation with typed confirmation
+        const confirmText = prompt(`Type the username "${username}" to confirm deletion:`);
+        if (confirmText !== username) {
+            showToast('Deletion cancelled - username did not match', 'info');
+            return;
+        }
+        
+        // Show loading indicator
+        const deleteBtn = event.target.closest('button');
+        const originalContent = deleteBtn.innerHTML;
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+        
+        fetch('/security/delete-user/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({username: username})
+        })
+        .then(response => {
+            // Check if response is ok
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    throw new Error(`Expected JSON but got: ${contentType}. Response: ${text.substring(0, 200)}...`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showToast(`✅ User ${username} deleted successfully`, 'success');
+                // Remove the row from table with animation
+                const row = deleteBtn.closest('tr');
+                row.style.transition = 'opacity 0.5s';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                    // Update the user count in the header
+                    const countElement = document.querySelector('h4');
+                    if (countElement && countElement.textContent.includes('Existing Users')) {
+                        const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]);
+                        countElement.innerHTML = `<i class="fas fa-table"></i> Existing Users (${currentCount - 1} found)`;
+                    }
+                }, 500);
+            } else {
+                showToast(data.error || 'Failed to delete user', 'error');
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = originalContent;
+            }
+        })
+        .catch(error => {
+            console.error('Delete user error:', error);
+            showToast('Error deleting user: ' + error.message, 'error');
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = originalContent;
+        });
+    }
+
+    // Deactivate User functionality
+    function confirmDeactivateUser(userId, username) {
+        // Enhanced confirmation with user details
+        if (!confirm(`⚠️ DEACTIVATE USER: ${username}\n\nThis will:\n- Prevent user from logging in\n- Preserve all user data\n- User can be reactivated later\n\nAre you sure you want to deactivate this user?`)) {
+            return;
+        }
+        
+        // Show loading indicator
+        const deactivateBtn = event.target.closest('button');
+        const originalContent = deactivateBtn.innerHTML;
+        deactivateBtn.disabled = true;
+        deactivateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deactivating...';
+        
+        fetch('/security/deactivate-user/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({username: username})
+        })
+        .then(response => {
+            // Check if response is ok
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                return response.text().then(text => {
+                    throw new Error(`Expected JSON but got: ${contentType}. Response: ${text.substring(0, 200)}...`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showToast(`✅ User ${username} deactivated successfully`, 'success');
+                // Reload the page to update the UI
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showToast(data.error || 'Failed to deactivate user', 'error');
+                deactivateBtn.disabled = false;
+                deactivateBtn.innerHTML = originalContent;
+            }
+        })
+        .catch(error => {
+            console.error('Deactivate user error:', error);
+            showToast('Error deactivating user: ' + error.message, 'error');
+            deactivateBtn.disabled = false;
+            deactivateBtn.innerHTML = originalContent;
+        });
+    }
+
+    // Reactivate User functionality
+    function confirmReactivateUser(userId, username, buttonElement) {
+        // Enhanced confirmation with user details
+        if (!confirm(`✅ REACTIVATE USER: ${username}\n\nThis will:\n- Allow user to log in again\n- Restore all previous access\n- User will be able to use the system\n\nAre you sure you want to reactivate this user?`)) {
+            return;
+        }
+        
+        // Get the button element (passed as parameter or find it)
+        const reactivateBtn = buttonElement || event?.target?.closest('button') || document.querySelector(`button[onclick*="confirmReactivateUser('${userId}'"]`);
+        if (!reactivateBtn) {
+            console.error('Reactivate button not found');
+            showToast('Error: Could not find reactivate button', 'error');
+            return;
+        }
+        
+        // Show loading indicator
+        const originalContent = reactivateBtn.innerHTML;
+        reactivateBtn.disabled = true;
+        reactivateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reactivating...';
+        
+        fetch('/security/reactivate-user/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({username: username})
+        })
+                .then(response => {
+                    // Check if response is ok
+                    if (!response.ok) {
+                        // Try to get error message from response
+                        return response.json().then(data => {
+                            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                        }).catch(() => {
+                            // If JSON parsing fails, throw generic error
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        });
+                    }
+                    // Check if response is JSON
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        return response.text().then(text => {
+                            throw new Error(`Expected JSON but got: ${contentType}. Response: ${text.substring(0, 200)}...`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast(`✅ User ${username} reactivated successfully`, 'success');
+                        // Immediately refresh the blocked users list if it exists
+                        if (typeof refreshBlockedUsers === 'function') {
+                            refreshBlockedUsers();
+                        }
+                        // Reload the page to update the UI (including main user list)
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast(data.error || 'Failed to reactivate user', 'error');
+                        reactivateBtn.disabled = false;
+                        reactivateBtn.innerHTML = originalContent;
+                    }
+                })
+        .catch(error => {
+            console.error('Reactivate user error:', error);
+            showToast('Error reactivating user: ' + error.message, 'error');
+            reactivateBtn.disabled = false;
+            reactivateBtn.innerHTML = originalContent;
+        });
+    }
+    
+    // Reactivate User from Blocked Users List
+    function confirmReactivateUserFromBlockedList(username) {
+        // Enhanced confirmation with user details
+        if (!confirm(`✅ REACTIVATE USER: ${username}\n\nThis will:\n- Allow user to log in again\n- Restore all previous access\n- User will be able to use the system\n\nAre you sure you want to reactivate this user?`)) {
+            return;
+        }
+        
+        // Show loading indicator
+        const listItem = document.querySelector(`.user-item[data-username="${username}"]`);
+        if (listItem) {
+            const reactivateBtn = listItem.querySelector('button.btn-success');
+            if (reactivateBtn) {
+                const originalContent = reactivateBtn.innerHTML;
+                reactivateBtn.disabled = true;
+                reactivateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Reactivating...';
+                
+                fetch('/security/reactivate-user/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({username: username})
+                })
+                .then(response => {
+                    // Check if response is JSON first (even if status is error)
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => {
+                            if (!response.ok) {
+                                // Throw error with message from server
+                                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                            }
+                            return data;
+                        });
+                    }
+                    // If not JSON, check if response is ok
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text().then(text => {
+                        throw new Error(`Expected JSON but got: ${contentType}. Response: ${text.substring(0, 200)}...`);
+                    });
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast(`✅ User ${username} reactivated successfully`, 'success');
+                        // Immediately refresh the blocked users list to update the UI
+                        if (typeof refreshBlockedUsers === 'function') {
+                            // Call refresh immediately to remove reactivated user from list
+                            refreshBlockedUsers();
+                        }
+                    } else {
+                        showToast(data.error || 'Failed to reactivate user', 'error');
+                        reactivateBtn.disabled = false;
+                        reactivateBtn.innerHTML = originalContent;
+                    }
+                })
+                .catch(error => {
+                    console.error('Reactivate user error:', error);
+                    showToast('Error reactivating user: ' + error.message, 'error');
+                    reactivateBtn.disabled = false;
+                    reactivateBtn.innerHTML = originalContent;
+                });
+            }
+        }
+    }
+
+    // Global variable to store all blocked IPs data
+    let allBlockedIPs = [];
+
+    async function fetchPaginatedBlockingData(endpoint, statusFilter, perPage = 500) {
+        let page = 1;
+        let totalPages = 1;
+        let totalCount = 0;
+        let totalCountAll = 0;
+        const combined = [];
+
+        while (page <= totalPages) {
+            const response = await fetch(`${endpoint}?status=${encodeURIComponent(statusFilter)}&page=${page}&per_page=${perPage}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const payload = await response.json();
+
+            if (!payload.success) {
+                throw new Error(payload.error || 'Failed to load data');
+            }
+
+            const items = Array.isArray(payload.data) ? payload.data : [];
+            for (let i = 0; i < items.length; i++) {
+                combined.push(items[i]);
+            }
+
+            const pagination = payload.pagination || {};
+            if (typeof pagination.total_pages === 'number' && pagination.total_pages > 0) {
+                totalPages = pagination.total_pages;
+            } else if (items.length < perPage) {
+                totalPages = page;
+            }
+
+            if (typeof pagination.total_count === 'number') {
+                totalCount = pagination.total_count;
+            } else {
+                totalCount = combined.length;
+            }
+
+            if (typeof pagination.total_count_all === 'number') {
+                totalCountAll = pagination.total_count_all;
+            } else {
+                totalCountAll = totalCount;
+            }
+
+            if (items.length === 0) {
+                break;
+            }
+
+            page += 1;
+        }
+
+        return { items: combined, totalCount, totalCountAll };
+    }
+    
+    // Refresh blocked IPs
+    async function refreshBlockedIPs() {
+        const statusFilter = document.getElementById('ip-status-filter').value;
+        const countBadge = document.getElementById('blocked-ips-count');
+        const listContainer = document.getElementById('blocked-ips-list');
+
+        try {
+            const { items, totalCount, totalCountAll } = await fetchPaginatedBlockingData('/api/blocking/ips/', statusFilter);
+            allBlockedIPs = items; // Store for client-side filtering
+
+            // Show filtered total plus overall total when available
+            if (totalCountAll && totalCountAll > 0 && totalCountAll !== totalCount) {
+                countBadge.textContent = `${totalCount} of ${totalCountAll} Blocked IPs`;
+            } else {
+                countBadge.textContent = `${totalCount} Blocked IPs`;
+            }
+
+            if (items.length === 0) {
+                listContainer.innerHTML = '<div class="text-muted text-center py-3">No blocked IPs</div>';
+            } else {
+                renderBlockedIPsList(items);
+            }
+        } catch (error) {
+            console.error('Blocked IP load error:', error);
+            allBlockedIPs = [];
+            countBadge.textContent = '0 Blocked IPs';
+            listContainer.innerHTML = '<div class="text-muted text-center py-3">Failed to load blocked IPs</div>';
+            showToast('Failed to load blocked IPs: ' + error.message, 'error');
+        }
+    }
+    
+    // Render blocked IPs list
+    function renderBlockedIPsList(blockedIPs) {
+        const listContainer = document.getElementById('blocked-ips-list');
+        
+        if (blockedIPs.length === 0) {
+            listContainer.innerHTML = '<div class="text-muted text-center py-3">No matching IPs</div>';
+            return;
+        }
+        
+        listContainer.innerHTML = blockedIPs.map(item => {
+            const statusBadge = item.status === 'active' 
+                ? '<span class="badge bg-danger">Active</span>' 
+                : '<span class="badge bg-secondary">Inactive</span>';
+            
+            const unblockBtn = item.status === 'active' 
+                ? `<button class="btn btn-sm btn-outline-success" onclick="unblockIP('${item.ip_address}')">
+                       <i class="fas fa-unlock"></i> Unblock
+                   </button>`
+                : '';
+            
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center ip-item" data-ip="${item.ip_address}">
+                    <div>
+                        <span><i class="fas fa-ban text-danger"></i> ${item.ip_address}</span>
+                        ${statusBadge}
+                        <br>
+                        <small class="text-muted">${item.reason || 'No reason provided'}</small>
+                    </div>
+                    ${unblockBtn}
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Client-side filter for blocked IPs
+    function filterBlockedIPsList() {
+        const searchTerm = document.getElementById('ip-search-filter').value.toLowerCase();
+        
+        const filteredIPs = allBlockedIPs.filter(item => 
+            item.ip_address.toLowerCase().includes(searchTerm) ||
+            (item.reason && item.reason.toLowerCase().includes(searchTerm))
+        );
+        
+        renderBlockedIPsList(filteredIPs);
+        document.getElementById('blocked-ips-count').textContent = `${filteredIPs.length} of ${allBlockedIPs.length} Blocked IPs`;
+    }
+
+    // Global variable to store all blocked users data
+    let allBlockedUsers = [];
+    
+    // Refresh blocked users
+    async function refreshBlockedUsers() {
+        const statusFilter = document.getElementById('user-status-filter').value;
+        const countBadge = document.getElementById('blocked-users-count');
+        const listContainer = document.getElementById('blocked-users-list');
+
+        try {
+            const { items, totalCount } = await fetchPaginatedBlockingData('/api/blocking/users/', statusFilter);
+            allBlockedUsers = items; // Store for client-side filtering
+
+            countBadge.textContent = `${totalCount} Blocked Users`;
+
+            if (items.length === 0) {
+                listContainer.innerHTML = '<div class="text-muted text-center py-3">No blocked users</div>';
+            } else {
+                renderBlockedUsersList(items);
+            }
+        } catch (error) {
+            console.error('Blocked users load error:', error);
+            allBlockedUsers = [];
+            countBadge.textContent = '0 Blocked Users';
+            listContainer.innerHTML = '<div class="text-muted text-center py-3">Failed to load blocked users</div>';
+            showToast('Failed to load blocked users: ' + error.message, 'error');
+        }
+    }
+    
+    // Render blocked users list
+    function renderBlockedUsersList(blockedUsers) {
+        const listContainer = document.getElementById('blocked-users-list');
+        const isSuperuser = {% if user.is_superuser %}true{% else %}false{% endif %};
+        
+        if (blockedUsers.length === 0) {
+            listContainer.innerHTML = '<div class="text-muted text-center py-3">No matching users</div>';
+            return;
+        }
+        
+        listContainer.innerHTML = blockedUsers.map(item => {
+            const statusBadge = item.status === 'active' 
+                ? '<span class="badge bg-warning">Active</span>' 
+                : '<span class="badge bg-secondary">Inactive</span>';
+            
+            // Show Unblock button for active blocks
+            const unblockBtn = item.status === 'active' 
+                ? `<button class="btn btn-sm btn-outline-success" onclick="unblockUser('${item.username}')">
+                       <i class="fas fa-unlock"></i> Unblock
+                   </button>`
+                : '';
+            
+            // Show Reactivate button for inactive users (superuser only)
+            // Only show for users who are actually inactive (user_is_active === false)
+            // These are users who need to be reactivated
+            const isUserInactive = item.user_is_active === false;
+            const reactivateBtn = (isUserInactive && isSuperuser)
+                ? `<button class="btn btn-sm btn-success ms-2" onclick="confirmReactivateUserFromBlockedList('${item.username}')">
+                       <i class="fas fa-user-check"></i> Reactivate
+                   </button>`
+                : '';
+            
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center user-item" data-username="${item.username}">
+                    <div class="flex-grow-1">
+                        <span><i class="fas fa-user-slash text-warning"></i> ${item.username}</span>
+                        ${statusBadge}
+                        <br>
+                        <small class="text-muted">${item.email || 'No email'}</small>
+                        <br>
+                        <small class="text-muted">${item.reason || 'No reason provided'}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        ${unblockBtn}
+                        ${reactivateBtn}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // Client-side filter for blocked users
+    function filterBlockedUsersList() {
+        const searchTerm = document.getElementById('user-search-filter').value.toLowerCase();
+        
+        const filteredUsers = allBlockedUsers.filter(item => 
+            item.username.toLowerCase().includes(searchTerm) ||
+            (item.email && item.email.toLowerCase().includes(searchTerm)) ||
+            (item.reason && item.reason.toLowerCase().includes(searchTerm))
+        );
+        
+        renderBlockedUsersList(filteredUsers);
+        document.getElementById('blocked-users-count').textContent = `${filteredUsers.length} of ${allBlockedUsers.length} Blocked Users`;
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Alternative CSRF token getter from form
+    function getCSRFToken() {
+        // Try to get from cookie first
+        let token = getCookie('csrftoken');
+        
+        // If not found in cookie, try to get from form
+        if (!token) {
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfInput) {
+                token = csrfInput.value;
+            }
+        }
+        
+        // If still not found, try to get from meta tag
+        if (!token) {
+            const metaToken = document.querySelector('meta[name=csrf-token]');
+            if (metaToken) {
+                token = metaToken.getAttribute('content');
+            }
+        }
+        
+        return token;
+    }
+    {% endif %}
+
+    // Dashboard Card Modal Functions
+    function showActiveUsersModal() {
+        const modalHtml = `
+            <div class="modal fade" id="activeUsersModal" tabindex="-1" aria-labelledby="activeUsersModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="activeUsersModalLabel">
+                                <i class="fas fa-users"></i> Active Users (Last 30 Minutes)
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> 
+                                Users who have been active in the last 30 minutes: <strong>{{ active_users_count }}</strong>
+                            </div>
+                            <p>This count includes users who have:</p>
+                            <ul>
+                                <li>Logged in within the last 30 minutes</li>
+                                <li>Performed any action on the system</li>
+                                <li>Have an active session</li>
+                            </ul>
+                            <div class="text-center">
+                                <button type="button" class="btn btn-primary" onclick="downloadUserActivityDirect()">
+                                    <i class="fas fa-download"></i> Download Activity Report
+                                </button>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('activeUsersModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('activeUsersModal'));
+        modal.show();
+        
+        document.getElementById('activeUsersModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    function showTotalUsersModal() {
+        const modalHtml = `
+            <div class="modal fade" id="totalUsersModal" tabindex="-1" aria-labelledby="totalUsersModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title" id="totalUsersModalLabel">
+                                <i class="fas fa-users"></i> Total Users Breakdown
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h3 class="text-success">{{ active_users }}</h3>
+                                            <p class="card-text">Active Users</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h3 class="text-secondary">{{ inactive_users }}</h3>
+                                            <p class="card-text">Inactive/Deleted Users</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h3 class="text-warning">{{ blocked_users_count }}</h3>
+                                            <p class="card-text">Blocked Users</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h3 class="text-primary">{{ users|length }}</h3>
+                                            <p class="card-text">Total Users Found</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('totalUsersModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('totalUsersModal'));
+        modal.show();
+        
+        document.getElementById('totalUsersModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    function showSuspiciousActivitiesModal() {
+        const suspiciousActivities = {{ suspicious_activities|length }};
+        const activitiesHtml = `
+            {% for activity in suspicious_activities %}
+            <div class="alert alert-warning">
+                <strong>{{ activity.get_action_display }}</strong><br>
+                <small>{{ activity.user.username|default:"Anonymous" }} - {{ activity.ip_address }}</small><br>
+                <small>{{ activity.timestamp|date:"M d, H:i" }}</small><br>
+                <small class="text-muted">{{ activity.resource }}</small>
+            </div>
+            {% empty %}
+            <div class="alert alert-info">
+                <i class="fas fa-check-circle"></i> No suspicious activities in the last 24 hours.
+            </div>
+            {% endfor %}
+        `;
+        
+        const modalHtml = `
+            <div class="modal fade" id="suspiciousActivitiesModal" tabindex="-1" aria-labelledby="suspiciousActivitiesModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title" id="suspiciousActivitiesModalLabel">
+                                <i class="fas fa-exclamation-triangle"></i> Suspicious Activities (Last 24 Hours)
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> 
+                                Total suspicious activities detected: <strong>{{ suspicious_activities|length }}</strong>
+                            </div>
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                ${activitiesHtml}
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="{% url 'main:security_alerts' %}" class="btn btn-warning">
+                                    <i class="fas fa-shield-alt"></i> View All Security Alerts
+                                </a>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('suspiciousActivitiesModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('suspiciousActivitiesModal'));
+        modal.show();
+        
+        document.getElementById('suspiciousActivitiesModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    {% if user.is_superuser %}
+    // ============================================================================
+    // FLAG MANAGEMENT FUNCTIONS (Superuser Only)
+    // ============================================================================
+    
+    // User data for flag assignment
+    const usersData = [
+        {% for profile in users %}
+        {
+            id: {{ profile.user.id }},
+            username: '{{ profile.user.username|escapejs }}',
+            email: '{{ profile.user.email|escapejs }}'
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+    
+    // Flags data for assignment
+    const flagsData = [
+        {% if flags %}
+        {% for flag in flags %}
+        {
+            id: {{ flag.id }},
+            name: '{{ flag.name|escapejs }}',
+            users: [{% for user in flag.users.all %}{{ user.id }}{% if not forloop.last %}, {% endif %}{% endfor %}]
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+        {% endif %}
+    ];
+    
+    function filterFlags() {
+        const searchTerm = document.getElementById('flag-search').value.toLowerCase();
+        const rows = document.querySelectorAll('#flags-table-body tr');
+        
+        rows.forEach(row => {
+            const flagName = row.querySelector('td:first-child').textContent.toLowerCase();
+            if (flagName.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function showCreateFlagModal() {
+        const modalHtml = `
+            <div class="modal fade" id="createFlagModal" tabindex="-1" aria-labelledby="createFlagModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title" id="createFlagModalLabel">
+                                <i class="fas fa-plus"></i> Create New Feature Flag
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="createFlagForm">
+                                <div class="mb-3">
+                                    <label for="flag-name" class="form-label">Flag Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="flag-name" required 
+                                           placeholder="e.g., react_sales, react_portfolio_map">
+                                    <small class="text-muted">Use lowercase with underscores (e.g., react_sales)</small>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="flag-everyone" class="form-label">Everyone</label>
+                                        <select class="form-select" id="flag-everyone">
+                                            <option value="">Unknown</option>
+                                            <option value="true">Yes</option>
+                                            <option value="false">No</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="flag-percent" class="form-label">Percent (0-100)</label>
+                                        <input type="number" class="form-control" id="flag-percent" min="0" max="100" 
+                                               placeholder="Leave empty for not set">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="flag-superusers">
+                                            <label class="form-check-label" for="flag-superusers">
+                                                Superusers
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="flag-staff">
+                                            <label class="form-check-label" for="flag-staff">
+                                                Staff
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="flag-authenticated">
+                                            <label class="form-check-label" for="flag-authenticated">
+                                                Authenticated Users
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="flag-rollout">
+                                            <label class="form-check-label" for="flag-rollout">
+                                                Rollout
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label for="flag-users" class="form-label mb-0">Assign to Users</label>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllUsers('flag-users')">
+                                            Select All
+                                        </button>
+                                    </div>
+                                    <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;" id="flag-users-container">
+                                        {% for profile in users %}
+                                        <div class="form-check">
+                                            <input class="form-check-input flag-user-checkbox" type="checkbox" 
+                                                   id="flag-user-{{ profile.user.id }}" value="{{ profile.user.id }}">
+                                            <label class="form-check-label" for="flag-user-{{ profile.user.id }}" style="cursor: pointer;">
+                                                {{ profile.user.username }} ({{ profile.user.email }})
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <small class="text-muted" id="flag-users-count">Selected: 0 user(s)</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="flag-note" class="form-label">Note</label>
+                                    <textarea class="form-control" id="flag-note" rows="2" 
+                                              placeholder="Optional description of this flag"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="createFlag()">
+                                <i class="fas fa-save"></i> Create Flag
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('createFlagModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('createFlagModal'));
+        modal.show();
+        
+        // Setup user selection handlers
+        document.querySelectorAll('.flag-user-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateUserCount('flag-users');
+            });
+        });
+        updateUserCount('flag-users');
+        
+        document.getElementById('createFlagModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+    
+    function selectAllUsers(containerId) {
+        const container = document.getElementById(containerId + '-container') || document.getElementById(containerId);
+        if (!container) return;
+        
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+        
+        updateUserCount(containerId);
+    }
+    
+    function updateUserCount(containerId) {
+        const container = document.getElementById(containerId + '-container') || document.getElementById(containerId);
+        if (!container) return;
+        
+        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const totalCount = checkboxes.length;
+        
+        const countElement = document.getElementById(containerId + '-count');
+        if (countElement) {
+            countElement.textContent = `Selected: ${checkedCount} of ${totalCount} user(s)`;
+        }
+        
+        // Update Select All button text
+        const selectAllBtn = container.parentElement.querySelector('button');
+        if (selectAllBtn) {
+            selectAllBtn.textContent = checkedCount === totalCount ? 'Deselect All' : 'Select All';
+        }
+    }
+
+    function showEditFlagModal(id, name, everyone, percent, superusers, staff, authenticated, rollout, note) {
+        const modalHtml = `
+            <div class="modal fade" id="editFlagModal" tabindex="-1" aria-labelledby="editFlagModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="editFlagModalLabel">
+                                <i class="fas fa-edit"></i> Edit Feature Flag
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editFlagForm">
+                                <input type="hidden" id="edit-flag-id" value="${id}">
+                                <div class="mb-3">
+                                    <label for="edit-flag-name" class="form-label">Flag Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="edit-flag-name" required value="${name}">
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="edit-flag-everyone" class="form-label">Everyone</label>
+                                        <select class="form-select" id="edit-flag-everyone">
+                                            <option value="" ${everyone === null ? 'selected' : ''}>Unknown</option>
+                                            <option value="true" ${everyone === true ? 'selected' : ''}>Yes</option>
+                                            <option value="false" ${everyone === false ? 'selected' : ''}>No</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="edit-flag-percent" class="form-label">Percent (0-100)</label>
+                                        <input type="number" class="form-control" id="edit-flag-percent" min="0" max="100" 
+                                               value="${percent !== null ? percent : ''}" placeholder="Leave empty for not set">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="edit-flag-superusers" ${superusers ? 'checked' : ''}>
+                                            <label class="form-check-label" for="edit-flag-superusers">
+                                                Superusers
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="edit-flag-staff" ${staff ? 'checked' : ''}>
+                                            <label class="form-check-label" for="edit-flag-staff">
+                                                Staff
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="edit-flag-authenticated" ${authenticated ? 'checked' : ''}>
+                                            <label class="form-check-label" for="edit-flag-authenticated">
+                                                Authenticated Users
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="edit-flag-rollout" ${rollout ? 'checked' : ''}>
+                                            <label class="form-check-label" for="edit-flag-rollout">
+                                                Rollout
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label for="edit-flag-users" class="form-label mb-0">Assign to Users</label>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllUsers('edit-flag-users')">
+                                            Select All
+                                        </button>
+                                    </div>
+                                    <div class="border rounded p-2" style="max-height: 200px; overflow-y: auto;" id="edit-flag-users-container">
+                                    </div>
+                                    <small class="text-muted" id="edit-flag-users-count">Selected: 0 user(s)</small>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-flag-note" class="form-label">Note</label>
+                                    <textarea class="form-control" id="edit-flag-note" rows="2">${note || ''}</textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="updateFlag(${id})">
+                                <i class="fas fa-save"></i> Update Flag
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('editFlagModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Wait for DOM to be ready, then populate users in edit modal
+        const populateUsers = () => {
+            const usersContainer = document.getElementById('edit-flag-users-container');
+            if (!usersContainer) {
+                // Retry after a short delay if container not found
+                setTimeout(populateUsers, 50);
+                return;
+            }
+            
+            const flagData = flagsData.find(f => f.id === id);
+            const assignedUserIds = flagData ? (flagData.users || []) : [];
+            
+            // Clear container first
+            usersContainer.innerHTML = '';
+            
+            // Check if usersData is defined and is an array
+            if (!usersData || !Array.isArray(usersData)) {
+                console.error('usersData is not defined or is not an array');
+                return;
+            }
+            
+            usersData.forEach(user => {
+                const isChecked = assignedUserIds.includes(user.id);
+                const userHtml = `
+                    <div class="form-check">
+                        <input class="form-check-input edit-flag-user-checkbox" type="checkbox" 
+                               id="edit-flag-user-${id}-${user.id}" value="${user.id}" ${isChecked ? 'checked' : ''}
+                               onchange="updateUserCount('edit-flag-users')">
+                        <label class="form-check-label" for="edit-flag-user-${id}-${user.id}" style="cursor: pointer;">
+                            ${user.username} (${user.email})
+                        </label>
+                    </div>
+                `;
+                usersContainer.insertAdjacentHTML('beforeend', userHtml);
+            });
+            updateUserCount('edit-flag-users');
+        };
+        
+        // Try to populate immediately, with retry if needed
+        populateUsers();
+        
+        const modal = new bootstrap.Modal(document.getElementById('editFlagModal'));
+        modal.show();
+        
+        document.getElementById('editFlagModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+
+    async function createFlag() {
+        const name = document.getElementById('flag-name').value.trim();
+        if (!name) {
+            alert('Flag name is required');
+            return;
+        }
+
+        const everyone = document.getElementById('flag-everyone').value;
+        const percent = document.getElementById('flag-percent').value;
+        const superusers = document.getElementById('flag-superusers').checked;
+        const staff = document.getElementById('flag-staff').checked;
+        const authenticated = document.getElementById('flag-authenticated').checked;
+        const rollout = document.getElementById('flag-rollout').checked;
+        const note = document.getElementById('flag-note').value.trim();
+        
+        // Get selected user IDs
+        const selectedUserIds = Array.from(document.querySelectorAll('.flag-user-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+
+        const data = {
+            name: name,
+            everyone: everyone === '' ? null : everyone === 'true',
+            percent: percent === '' ? null : parseInt(percent),
+            superusers: superusers,
+            staff: staff,
+            authenticated: authenticated,
+            rollout: rollout,
+            note: note,
+            users: selectedUserIds
+        };
+
+        try {
+            const response = await fetch('{% url "main:create_flag" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(result.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('createFlagModal')).hide();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(result.error || 'Failed to create flag', 'error');
+            }
+        } catch (error) {
+            console.error('Error creating flag:', error);
+            showToast('Error creating flag: ' + error.message, 'error');
+        }
+    }
+
+    async function updateFlag(flagId) {
+        const name = document.getElementById('edit-flag-name').value.trim();
+        if (!name) {
+            alert('Flag name is required');
+            return;
+        }
+
+        const everyone = document.getElementById('edit-flag-everyone').value;
+        const percent = document.getElementById('edit-flag-percent').value;
+        const superusers = document.getElementById('edit-flag-superusers').checked;
+        const staff = document.getElementById('edit-flag-staff').checked;
+        const authenticated = document.getElementById('edit-flag-authenticated').checked;
+        const rollout = document.getElementById('edit-flag-rollout').checked;
+        const note = document.getElementById('edit-flag-note').value.trim();
+        
+        // Get selected user IDs
+        const selectedUserIds = Array.from(document.querySelectorAll('.edit-flag-user-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+
+        const data = {
+            name: name,
+            everyone: everyone === '' ? null : everyone === 'true',
+            percent: percent === '' ? null : parseInt(percent),
+            superusers: superusers,
+            staff: staff,
+            authenticated: authenticated,
+            rollout: rollout,
+            note: note,
+            users: selectedUserIds
+        };
+
+        try {
+            const response = await fetch(`{% url "main:update_flag" 0 %}`.replace('0', flagId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(result.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editFlagModal')).hide();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(result.error || 'Failed to update flag', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating flag:', error);
+            showToast('Error updating flag: ' + error.message, 'error');
+        }
+    }
+
+    function confirmDeleteFlag(flagId, flagName) {
+        if (confirm(`Are you sure you want to delete the flag "${flagName}"? This action cannot be undone.`)) {
+            deleteFlag(flagId);
+        }
+    }
+
+    async function deleteFlag(flagId) {
+        try {
+            const response = await fetch(`{% url "main:delete_flag" 0 %}`.replace('0', flagId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast(result.message, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(result.error || 'Failed to delete flag', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting flag:', error);
+            showToast('Error deleting flag: ' + error.message, 'error');
+        }
+    }
+
+    function showAssignFlagsToUserModal() {
+        const modalHtml = `
+            <div class="modal fade" id="assignFlagsToUserModal" tabindex="-1" aria-labelledby="assignFlagsToUserModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title" id="assignFlagsToUserModalLabel">
+                                <i class="fas fa-user-check"></i> Assign Flags to User
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="assignFlagsToUserForm">
+                                <div class="mb-3">
+                                    <label for="assign-user-select" class="form-label">Select User <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="assign-user-select" required onchange="loadUserFlags()">
+                                        <option value="">-- Select User --</option>
+                                        ${usersData.map(user => `<option value="${user.id}">${user.username} (${user.email})</option>`).join('')}
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3" id="assign-flags-container" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <label class="form-label mb-0">Select Flags to Assign</label>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllFlags()">
+                                            Select All
+                                        </button>
+                                    </div>
+                                    <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;" id="assign-flags-checkboxes">
+                                    </div>
+                                    <small class="text-muted" id="assign-flags-count">Selected: 0 flag(s)</small>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-warning" onclick="assignFlagsToUser()">
+                                <i class="fas fa-save"></i> Assign Flags
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const existingModal = document.getElementById('assignFlagsToUserModal');
+        if (existingModal) existingModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('assignFlagsToUserModal'));
+        modal.show();
+        
+        document.getElementById('assignFlagsToUserModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    }
+    
+    function loadUserFlags() {
+        const userId = parseInt(document.getElementById('assign-user-select').value);
+        if (!userId) {
+            document.getElementById('assign-flags-container').style.display = 'none';
+            return;
+        }
+        
+        const container = document.getElementById('assign-flags-checkboxes');
+        container.innerHTML = '';
+        
+        flagsData.forEach(flag => {
+            const isChecked = flag.users.includes(userId);
+            const flagHtml = `
+                <div class="form-check">
+                    <input class="form-check-input assign-flag-checkbox" type="checkbox" 
+                           id="assign-flag-${flag.id}" value="${flag.id}" ${isChecked ? 'checked' : ''}
+                           onchange="updateFlagCount()">
+                    <label class="form-check-label" for="assign-flag-${flag.id}" style="cursor: pointer;">
+                        ${flag.name}
+                    </label>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', flagHtml);
+        });
+        
+        document.getElementById('assign-flags-container').style.display = 'block';
+        updateFlagCount();
+    }
+    
+    function selectAllFlags() {
+        const checkboxes = document.querySelectorAll('.assign-flag-checkbox');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+        
+        updateFlagCount();
+    }
+    
+    function updateFlagCount() {
+        const checkboxes = document.querySelectorAll('.assign-flag-checkbox');
+        const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const totalCount = checkboxes.length;
+        
+        const countElement = document.getElementById('assign-flags-count');
+        if (countElement) {
+            countElement.textContent = `Selected: ${checkedCount} of ${totalCount} flag(s)`;
+        }
+    }
+    
+    async function assignFlagsToUser() {
+        const userId = parseInt(document.getElementById('assign-user-select').value);
+        if (!userId) {
+            alert('Please select a user');
+            return;
+        }
+        
+        const selectedFlagIds = Array.from(document.querySelectorAll('.assign-flag-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+        
+        const data = {
+            user_id: userId,
+            flag_ids: selectedFlagIds
+        };
+        
+        try {
+            const response = await fetch('{% url "main:assign_flags_to_user" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast(result.message, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('assignFlagsToUserModal')).hide();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(result.error || 'Failed to assign flags', 'error');
+            }
+        } catch (error) {
+            console.error('Error assigning flags:', error);
+            showToast('Error assigning flags: ' + error.message, 'error');
+        }
+    }
+    
+    function exportFlagsCSV() {
+        try {
+            // Create a link to trigger download
+            const url = '{% url "main:export_flags_csv" %}';
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'waffle_flags_export.csv';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Exporting flags to CSV...', 'success');
+        } catch (error) {
+            console.error('Error exporting flags:', error);
+            showToast('Error exporting flags: ' + error.message, 'error');
+        }
+    }
+
+    async function importFlagsCSV(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return;
+        }
+
+        // Validate file type
+        if (!file.name.endsWith('.csv')) {
+            showToast('Please select a CSV file', 'error');
+            event.target.value = ''; // Reset file input
+            return;
+        }
+
+        // Confirm import with option to update existing
+        const updateExisting = confirm(
+            'Do you want to update existing flags if they already exist?\n\n' +
+            'Click OK to update existing flags, or Cancel to skip them.'
+        );
+
+        // Show loading message
+        showToast('Importing flags from CSV...', 'info');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('update_existing', updateExisting ? 'true' : 'false');
+
+            const response = await fetch('{% url "main:import_flags_csv" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                let message = result.message;
+                if (result.errors && result.errors.length > 0) {
+                    message += '\n\nErrors:\n' + result.errors.slice(0, 5).join('\n');
+                    if (result.errors.length > 5) {
+                        message += `\n... and ${result.errors.length - 5} more errors`;
+                    }
+                }
+                showToast(message, 'success');
+                // Reload page after a short delay to show updated flags
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast(result.error || 'Failed to import flags', 'error');
+            }
+        } catch (error) {
+            console.error('Error importing flags:', error);
+            showToast('Error importing flags: ' + error.message, 'error');
+        } finally {
+            // Reset file input
+            event.target.value = '';
+        }
+    }
+    {% endif %}
+</script>
+</body>
+</html>

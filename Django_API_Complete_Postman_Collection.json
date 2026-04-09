@@ -1,0 +1,1405 @@
+{
+	"info": {
+		"_postman_id": "django-api-complete-collection",
+		"name": "Django API Complete Collection",
+		"description": "Comprehensive Postman collection for Django Web App API with all available functionalities including authentication, data access, admin management, and security features.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "django-api-collection"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Request Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"api_key\": \"{{api_key}}\",\n    \"lifetime_minutes\": 60,\n    \"max_uses\": 100\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/token",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "token"]
+						},
+						"description": "Generate an active token from API key with brute force protection. Returns a short-lived token for enhanced security."
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// Extract and save the active token from the response",
+									"if (pm.response.code === 200) {",
+									"    try {",
+									"        const responseBody = pm.response.json();",
+									"        if (responseBody.success && responseBody.token) {",
+									"            // Save the token to environment",
+									"            pm.environment.set('active_token', responseBody.token);",
+									"            ",
+									"            // Also save expiration and other details for reference",
+									"            pm.environment.set('token_expires_at', responseBody.expires_at);",
+									"            pm.environment.set('token_created_at', responseBody.created_at);",
+									"            pm.environment.set('token_lifetime_minutes', responseBody.lifetime_minutes);",
+									"            ",
+									"            // Show success message",
+									"            console.log('✓ Token successfully extracted and saved!');",
+									"            console.log('Token expires at: ' + responseBody.expires_at);",
+									"            console.log('Active token is now available for subsequent requests');",
+									"        } else {",
+									"            console.log('❌ Response does not contain a token');",
+									"        }",
+									"    } catch (error) {",
+									"        console.log('❌ Error parsing response: ' + error);",
+									"    }",
+									"} else {",
+									"    console.log('❌ Request failed with status: ' + pm.response.code);",
+									"    console.log('Response: ' + pm.response.text());",
+									"}"
+								]
+							}
+						}
+					],
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"api_key\": \"your-api-key-here\",\n    \"lifetime_minutes\": 60,\n    \"max_uses\": 100\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/auth/token",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "auth", "token"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...\",\n    \"expires_at\": \"2025-01-01T12:00:00Z\",\n    \"lifetime_minutes\": 60,\n    \"max_uses\": 100,\n    \"created_at\": \"2025-01-01T11:00:00Z\"\n}"
+						},
+						{
+							"name": "Error Response - Invalid API Key",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"api_key\": \"invalid-key\",\n    \"lifetime_minutes\": 60,\n    \"max_uses\": 100\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/auth/token",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "auth", "token"]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Invalid API key\",\n    \"message\": \"The provided API key is invalid or expired.\",\n    \"code\": \"INVALID_API_KEY\",\n    \"warning\": \"Failed attempts: 1. You have 4 attempts remaining before your IP is blocked.\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Authentication endpoints for API access"
+		},
+		{
+			"name": "Schema Discovery",
+			"item": [
+				{
+					"name": "List Tables (Bearer Token)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{api_key}}",
+								"description": "API key (not active token) - this endpoint uses use_active_token=False"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/schema/tables",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "schema", "tables"]
+						},
+						"description": "Get list of available tables using Bearer token authentication. Uses API key directly (not active token)."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer ak_1234567890abcdef..."
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/schema/tables",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "schema", "tables"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"tables\": [\n        {\n            \"name\": \"asset_list\",\n            \"permissions\": {\n                \"can_read\": true,\n                \"can_filter\": true,\n                \"can_aggregate\": true,\n                \"max_records_per_request\": 1000\n            }\n        },\n        {\n            \"name\": \"generation_data\",\n            \"permissions\": {\n                \"can_read\": true,\n                \"can_filter\": true,\n                \"can_aggregate\": false,\n                \"max_records_per_request\": 500\n            }\n        }\n    ],\n    \"total_count\": 2\n}"
+						}
+					]
+				},
+				{
+					"name": "List Tables (X-API-Key Header)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"description": "API key in X-API-Key header"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/schema/tables",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "schema", "tables"]
+						},
+						"description": "Get list of available tables using X-API-Key header authentication."
+					}
+				},
+				{
+					"name": "List Tables (Query Parameter)",
+					"request": {
+						"method": "GET",
+						"url": {
+							"raw": "{{base_url}}/api/v1/schema/tables?api_key={{api_key}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "schema", "tables"],
+							"query": [
+								{
+									"key": "api_key",
+									"value": "{{api_key}}",
+									"description": "API key as query parameter"
+								}
+							]
+						},
+						"description": "Get list of available tables using query parameter authentication."
+					}
+				},
+				{
+					"name": "Get Table Schema",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{active_token}}",
+								"description": "Active token from /api/v1/auth/token"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/schema/tables/asset_list",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "schema", "tables", "asset_list"]
+						},
+						"description": "Get detailed schema information for a specific table including column types, restrictions, and permissions"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/schema/tables/asset_list",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "schema", "tables", "asset_list"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"table_name\": \"asset_list\",\n    \"columns\": [\n        {\n            \"name\": \"asset_code\",\n            \"type\": \"CharField\",\n            \"max_length\": 255,\n            \"nullable\": false,\n            \"primary_key\": true,\n            \"is_restricted\": false\n        },\n        {\n            \"name\": \"asset_name\",\n            \"type\": \"CharField\",\n            \"max_length\": 500,\n            \"nullable\": true,\n            \"primary_key\": false,\n            \"is_restricted\": false\n        },\n        {\n            \"name\": \"sensitive_data\",\n            \"type\": \"TextField\",\n            \"nullable\": true,\n            \"primary_key\": false,\n            \"is_restricted\": true\n        }\n    ],\n    \"total_columns\": 3,\n    \"permissions\": {\n        \"can_read\": true,\n        \"can_filter\": true,\n        \"can_aggregate\": true,\n        \"max_records_per_request\": 1000\n    }\n}"
+						}
+					]
+				}
+			],
+			"description": "Schema discovery endpoints for exploring available data structures"
+		},
+		{
+			"name": "Data Access",
+			"item": [
+				{
+					"name": "Get Table Data",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{api_key}}",
+								"description": "API key (required for all endpoints)"
+							},
+							{
+								"key": "X-API-Token",
+								"value": "{{active_token}}",
+								"description": "Active token from /api/v1/auth/token (required for data endpoints)"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/data/asset_list?page=1&page_size=100&fields=asset_code,asset_name&order_by=asset_code",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "data", "asset_list"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "page_size",
+									"value": "100",
+									"description": "Records per page (default: 100, max: table permission limit)"
+								},
+								{
+									"key": "fields",
+									"value": "asset_code,asset_name",
+									"description": "Comma-separated list of fields to return"
+								},
+								{
+									"key": "order_by",
+									"value": "asset_code",
+									"description": "Field name to order by (prefix with - for descending)"
+								},
+								{
+									"key": "filter",
+									"value": "{\"status\": \"active\"}",
+									"description": "JSON object with filter conditions (optional)"
+								}
+							]
+						},
+						"description": "Get data from a table with filtering, pagination, and field selection. Supports hierarchical access control based on user's accessible sites."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/data/asset_list?page=1&page_size=100&fields=asset_code,asset_name&order_by=asset_code",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "data", "asset_list"],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "page_size",
+											"value": "100"
+										},
+										{
+											"key": "fields",
+											"value": "asset_code,asset_name"
+										},
+										{
+											"key": "order_by",
+											"value": "asset_code"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"asset_code\": \"SITE001\",\n            \"asset_name\": \"Solar Farm Alpha\"\n        },\n        {\n            \"asset_code\": \"SITE002\",\n            \"asset_name\": \"Wind Farm Beta\"\n        }\n    ],\n    \"pagination\": {\n        \"page\": 1,\n        \"page_size\": 100,\n        \"total_records\": 1500,\n        \"total_pages\": 15,\n        \"has_next\": true,\n        \"has_previous\": false\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Table Data with Filter",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{active_token}}",
+								"description": "Active token from /api/v1/auth/token"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/data/asset_list?filter={\"status\":\"active\",\"country\":\"USA\"}&page=1&page_size=50",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "data", "asset_list"],
+							"query": [
+								{
+									"key": "filter",
+									"value": "{\"status\":\"active\",\"country\":\"USA\"}",
+									"description": "JSON filter object"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get filtered data from a table. Filter must be valid JSON and user must have filtering permissions."
+					}
+				},
+				{
+					"name": "Get Table Aggregate",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{api_key}}",
+								"description": "API key (required for all endpoints)"
+							},
+							{
+								"key": "X-API-Token",
+								"value": "{{active_token}}",
+								"description": "Active token from /api/v1/auth/token (required for data endpoints)"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/data/generation_data/aggregate?operation=count&filter={\"date__gte\":\"2024-01-01\"}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "data", "generation_data", "aggregate"],
+							"query": [
+								{
+									"key": "operation",
+									"value": "count",
+									"description": "Aggregation operation: count, sum, avg, min, max"
+								},
+								{
+									"key": "field",
+									"value": "generation_kwh",
+									"description": "Field to aggregate (not needed for count)"
+								},
+								{
+									"key": "filter",
+									"value": "{\"date__gte\":\"2024-01-01\"}",
+									"description": "Optional filter conditions"
+								}
+							]
+						},
+						"description": "Get aggregate data from a table. Supports count, sum, avg, min, max operations with optional filtering."
+					},
+					"response": [
+						{
+							"name": "Count Operation",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/data/generation_data/aggregate?operation=count",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "data", "generation_data", "aggregate"],
+									"query": [
+										{
+											"key": "operation",
+											"value": "count"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"result\": 1500,\n    \"operation\": \"count\",\n    \"field\": null\n}"
+						},
+						{
+							"name": "Sum Operation",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v1/data/generation_data/aggregate?operation=sum&field=generation_kwh",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "data", "generation_data", "aggregate"],
+									"query": [
+										{
+											"key": "operation",
+											"value": "sum"
+										},
+										{
+											"key": "field",
+											"value": "generation_kwh"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"result\": 125000.50,\n    \"operation\": \"sum\",\n    \"field\": \"generation_kwh\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Data access endpoints for retrieving and aggregating data from tables"
+		},
+		{
+			"name": "API Management (User)",
+			"item": [
+				{
+					"name": "API Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/dashboard/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "dashboard", ""]
+						},
+						"description": "API management dashboard for users. Shows API keys and usage statistics. Requires Django authentication."
+					}
+				},
+				{
+					"name": "Generate API Key (Admin Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "name",
+									"value": "My API Key",
+									"description": "Name for the API key"
+								},
+								{
+									"key": "description",
+									"value": "API key for data access",
+									"description": "Description of the API key"
+								},
+								{
+									"key": "expires_at",
+									"value": "2025-12-31",
+									"description": "Expiration date (optional)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/keys/generate/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "keys", "generate", ""]
+						},
+						"description": "Generate a new API key. Only available for admin users. Regular users must use admin interface."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/x-www-form-urlencoded"
+									},
+									{
+										"key": "Cookie",
+										"value": "sessionid=abc123..."
+									},
+									{
+										"key": "X-CSRFToken",
+										"value": "csrf-token-here"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "name",
+											"value": "My API Key"
+										},
+										{
+											"key": "description",
+											"value": "API key for data access"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/keys/generate/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "keys", "generate", ""]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"message\": \"API key generated successfully\",\n    \"key\": \"ak_1234567890abcdef...\",\n    \"key_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"expires_at\": \"2025-12-31T23:59:59Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Revoke API Key",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/keys/{{key_id}}/revoke/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "keys", "{{key_id}}", "revoke", ""]
+						},
+						"description": "Revoke an API key. Users cannot revoke their own keys - only admins can revoke keys."
+					},
+					"response": [
+						{
+							"name": "Access Denied Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Cookie",
+										"value": "sessionid=abc123..."
+									},
+									{
+										"key": "X-CSRFToken",
+										"value": "csrf-token-here"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/keys/550e8400-e29b-41d4-a716-446655440000/revoke/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "keys", "550e8400-e29b-41d4-a716-446655440000", "revoke", ""]
+								}
+							},
+							"status": "Forbidden",
+							"code": 403,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Access denied\",\n    \"message\": \"Users cannot revoke their own API keys. Please contact an administrator.\",\n    \"code\": \"SELF_KEY_REVOCATION_DISABLED\"\n}"
+						}
+					]
+				},
+				{
+					"name": "API Manual",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/manual/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "manual", ""]
+						},
+						"description": "API documentation page for users with API access. Shows comprehensive API documentation and user's accessible sites."
+					}
+				}
+			],
+			"description": "API management endpoints for users to manage their API access"
+		},
+		{
+			"name": "Admin Management",
+			"item": [
+				{
+					"name": "Admin Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/config/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "config", ""]
+						},
+						"description": "Main API configuration dashboard for administrators. Shows statistics and recent activity."
+					}
+				},
+				{
+					"name": "Setup API Permissions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user",
+									"value": "1",
+									"description": "User ID to setup permissions for"
+								},
+								{
+									"key": "name",
+									"value": "API User Name",
+									"description": "Name for the API user"
+								},
+								{
+									"key": "description",
+									"value": "API user description",
+									"description": "Description of the API user"
+								},
+								{
+									"key": "rate_limit_per_minute",
+									"value": "60",
+									"description": "Rate limit per minute"
+								},
+								{
+									"key": "rate_limit_per_hour",
+									"value": "1000",
+									"description": "Rate limit per hour"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/setup-permissions/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "setup-permissions", ""]
+						},
+						"description": "Setup API permissions for a user. Creates or updates APIUser record with rate limits."
+					}
+				},
+				{
+					"name": "Manage API Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/manage-users/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "manage-users", ""]
+						},
+						"description": "Manage API users page. Shows all API users with their status, permissions, and keys."
+					}
+				},
+				{
+					"name": "View API User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "users", "{{user_id}}", ""]
+						},
+						"description": "View detailed information about a specific API user including their permissions and keys."
+					}
+				},
+				{
+					"name": "Generate Key for User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}",
+									"description": "User ID to generate key for"
+								},
+								{
+									"key": "name",
+									"value": "Admin Generated Key",
+									"description": "Name for the API key"
+								},
+								{
+									"key": "description",
+									"value": "API key generated by admin",
+									"description": "Description of the API key"
+								},
+								{
+									"key": "expires_in_days",
+									"value": "365",
+									"description": "Expiration in days (optional)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/generate-key/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "generate-key", ""]
+						},
+						"description": "Generate an API key for a specific user. Admin-only endpoint."
+					}
+				},
+				{
+					"name": "Grant Table Access",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}",
+									"description": "User ID to grant access for"
+								},
+								{
+									"key": "table_name",
+									"value": "asset_list",
+									"description": "Table name to grant access to"
+								},
+								{
+									"key": "can_read",
+									"value": "on",
+									"description": "Grant read access"
+								},
+								{
+									"key": "can_filter",
+									"value": "on",
+									"description": "Grant filter access"
+								},
+								{
+									"key": "can_aggregate",
+									"value": "on",
+									"description": "Grant aggregate access"
+								},
+								{
+									"key": "max_records_per_request",
+									"value": "1000",
+									"description": "Maximum records per request"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/grant-table-access/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "grant-table-access", ""]
+						},
+						"description": "Grant table access permissions to a user. Sets up TablePermission record."
+					}
+				},
+				{
+					"name": "Restrict Columns",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}",
+									"description": "User ID to restrict columns for"
+								},
+								{
+									"key": "table_name",
+									"value": "asset_list",
+									"description": "Table name"
+								},
+								{
+									"key": "column_name",
+									"value": "sensitive_data",
+									"description": "Column name to restrict"
+								},
+								{
+									"key": "restriction_type",
+									"value": "hidden",
+									"description": "Restriction type: hidden, masked"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/restrict-columns/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "restrict-columns", ""]
+						},
+						"description": "Restrict access to specific columns for a user. Creates ColumnRestriction record."
+					}
+				},
+				{
+					"name": "Revoke API Key (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/revoke-key/{{key_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "revoke-key", "{{key_id}}", ""]
+						},
+						"description": "Revoke an API key. Admin-only endpoint."
+					}
+				},
+				{
+					"name": "Toggle User Status",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/toggle-status/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "toggle-status", "{{user_id}}", ""]
+						},
+						"description": "Toggle API user status (active/suspended). Admin-only endpoint."
+					}
+				},
+				{
+					"name": "Update Rate Limits",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-www-form-urlencoded"
+							},
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "rate_limit_per_minute",
+									"value": "120",
+									"description": "New rate limit per minute"
+								},
+								{
+									"key": "rate_limit_per_hour",
+									"value": "2000",
+									"description": "New rate limit per hour"
+								},
+								{
+									"key": "rate_limit_per_day",
+									"value": "10000",
+									"description": "New rate limit per day"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/admin/update-rate-limits/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "update-rate-limits", "{{user_id}}", ""]
+						},
+						"description": "Update rate limits for a specific API user. Admin-only endpoint."
+					}
+				},
+				{
+					"name": "Get Table Columns",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/get-table-columns/?table_name=asset_list",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "get-table-columns", ""],
+							"query": [
+								{
+									"key": "table_name",
+									"value": "asset_list",
+									"description": "Table name to get columns for"
+								}
+							]
+						},
+						"description": "Get available columns for a table. Used for setting up column restrictions."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Cookie",
+										"value": "sessionid=abc123..."
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/admin/get-table-columns/?table_name=asset_list",
+									"host": ["{{base_url}}"],
+									"path": ["api", "admin", "get-table-columns", ""],
+									"query": [
+										{
+											"key": "table_name",
+											"value": "asset_list"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"success\": true,\n    \"columns\": [\n        {\n            \"name\": \"asset_code\",\n            \"type\": \"CharField\",\n            \"max_length\": 255,\n            \"nullable\": false,\n            \"primary_key\": true\n        },\n        {\n            \"name\": \"asset_name\",\n            \"type\": \"CharField\",\n            \"max_length\": 500,\n            \"nullable\": true,\n            \"primary_key\": false\n        },\n        {\n            \"name\": \"sensitive_data\",\n            \"type\": \"TextField\",\n            \"nullable\": true,\n            \"primary_key\": false\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "API Logs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/logs/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "logs", ""]
+						},
+						"description": "View API request logs and usage statistics. Admin-only endpoint."
+					}
+				},
+				{
+					"name": "Remove Column Restriction",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/remove-restriction/{{restriction_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "remove-restriction", "{{restriction_id}}", ""]
+						},
+						"description": "Remove a column restriction for a user. Admin-only endpoint."
+					}
+				},
+				{
+					"name": "Revoke Table Access",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							},
+							{
+								"key": "X-CSRFToken",
+								"value": "{{csrf_token}}",
+								"description": "CSRF token for Django forms"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/revoke-table/{{permission_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "revoke-table", "{{permission_id}}", ""]
+						},
+						"description": "Revoke table access permission for a user. Admin-only endpoint."
+					}
+				},
+				{
+					"name": "Blocked IPs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Cookie",
+								"value": "sessionid={{session_id}}",
+								"description": "Django session cookie for admin authentication"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/blocked-ips/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "blocked-ips", ""]
+						},
+						"description": "View blocked IP addresses due to brute force protection. Admin-only endpoint."
+					}
+				}
+			],
+			"description": "Admin management endpoints for configuring API access and permissions"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// ====================================",
+					"// PRE-REQUEST SCRIPT - Global Setup",
+					"// ====================================",
+					"",
+					"// Check if active token is set and warn if close to expiration",
+					"const activeToken = pm.environment.get('active_token');",
+					"const tokenExpiresAt = pm.environment.get('token_expires_at');",
+					"",
+					"if (activeToken && tokenExpiresAt) {",
+					"    const expirationTime = new Date(tokenExpiresAt);",
+					"    const currentTime = new Date();",
+					"    const minutesUntilExpiry = (expirationTime - currentTime) / (1000 * 60);",
+					"    ",
+					"    if (minutesUntilExpiry < 5) {",
+					"        console.log('⚠️  WARNING: Active token expires in ' + Math.round(minutesUntilExpiry) + ' minutes!');",
+					"        console.log('⚠️  Consider running \"Request Token\" again to get a fresh token');",
+					"    } else if (minutesUntilExpiry > 0) {",
+					"        console.log('✓ Active token is valid (expires in ' + Math.round(minutesUntilExpiry) + ' minutes)');",
+					"    } else {",
+					"        console.log('❌ Active token has EXPIRED! Please run \"Request Token\" again');",
+					"    }",
+					"} else if (pm.request.name !== 'Request Token' && pm.request.name !== 'List Tables (Bearer Token)' && pm.request.name !== 'List Tables (X-API-Key Header)' && pm.request.name !== 'List Tables (Query Parameter)') {",
+					"    console.log('ℹ️  No active token found. Run \"Request Token\" first to get a token');",
+					"}",
+					"",
+					"// Auto-generate CSRF token if not set (for admin endpoints)",
+					"if (!pm.environment.get('csrf_token') || pm.environment.get('csrf_token') === 'your-csrf-token-here') {",
+					"    pm.environment.set('csrf_token', 'csrf-token-' + Math.random().toString(36).substr(2, 9));",
+					"    console.log('ℹ️  Generated placeholder CSRF token');",
+					"}",
+					"",
+					"// Auto-generate session ID if not set (for web interface)",
+					"if (!pm.environment.get('session_id') || pm.environment.get('session_id') === 'your-session-id-here') {",
+					"    pm.environment.set('session_id', 'session-' + Math.random().toString(36).substr(2, 9));",
+					"    console.log('ℹ️  Generated placeholder session ID');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// ====================================",
+					"// TEST SCRIPT - Global Response Handler",
+					"// ====================================",
+					"",
+					"// Auto-extract token from auth response",
+					"if (pm.response.json() && pm.response.json().token) {",
+					"    pm.environment.set('active_token', pm.response.json().token);",
+					"    pm.environment.set('token_expires_at', pm.response.json().expires_at);",
+					"    pm.environment.set('token_created_at', pm.response.json().created_at);",
+					"    pm.environment.set('token_lifetime_minutes', pm.response.json().lifetime_minutes);",
+					"    console.log('✓ Token automatically extracted from response');",
+					"}",
+					"",
+					"// Auto-extract key from key generation response",
+					"if (pm.response.json() && pm.response.json().key) {",
+					"    pm.environment.set('api_key', pm.response.json().key);",
+					"    console.log('✓ API Key automatically extracted from response');",
+					"}",
+					"",
+					"// Auto-extract user_id if present in response",
+					"if (pm.response.json() && pm.response.json().user_id) {",
+					"    pm.environment.set('user_id', pm.response.json().user_id);",
+					"    console.log('✓ User ID automatically extracted from response');",
+					"}",
+					"",
+					"// Log response status for debugging",
+					"if (pm.response.code !== 200 && pm.response.code !== 201) {",
+					"    console.log('⚠️  Response Status: ' + pm.response.code);",
+					"} else {",
+					"    console.log('✓ Response Status: ' + pm.response.code);",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5555",
+			"description": "Base URL for the Django application"
+		},
+		{
+			"key": "api_key",
+			"value": "k3nIXn4B7T9POTGXhKWpUryynoKZSbYHATsRWW_MutQ",
+			"description": "API key for authentication"
+		},
+		{
+			"key": "active_token",
+			"value": "",
+			"description": "Active token obtained from /api/v1/auth/token"
+		},
+		{
+			"key": "session_id",
+			"value": "your-session-id-here",
+			"description": "Django session ID for web interface requests"
+		},
+		{
+			"key": "csrf_token",
+			"value": "your-csrf-token-here",
+			"description": "CSRF token for Django forms"
+		},
+		{
+			"key": "user_id",
+			"value": "1",
+			"description": "User ID for admin operations"
+		},
+		{
+			"key": "key_id",
+			"value": "550e8400-e29b-41d4-a716-446655440000",
+			"description": "API key ID for operations"
+		},
+		{
+			"key": "restriction_id",
+			"value": "1",
+			"description": "Column restriction ID"
+		},
+		{
+			"key": "permission_id",
+			"value": "1",
+			"description": "Table permission ID"
+		}
+	]
+}

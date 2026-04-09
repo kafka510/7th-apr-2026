@@ -1,0 +1,53 @@
+﻿asset_no,country,site_name,portfolio,installation_type,dc_capacity_mwp,pcs_capacity,battery_capacity_mw,plant_type,offtaker,cod,latitude,longitude ,ac_capacity
+KR_BW_02,Korea,Protestant Solar Power,Korea-Blackwood,Ground Mounted ,0.35,-,-,PV ,"Korea Western Power Co., Ltd., ",12/3/2009,34.79136792,126.7246572,0.35
+KR_BW_03,Korea,Wolchulsan 3 Solar Power Plant,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"Korea Southern Power Co., Ltd.,",6/12/2015,34.7600618,126.5131058,0.1
+KR_BW_04,Korea,Flower lantern solar light,Korea-Blackwood,Ground Mounted ,0.95,-,-,PV ,"GS Donghae Electric Power, ",12/14/2021,34.60323975,126.3396705,1
+KR_BW_05,Korea,Marutae Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"GS Donghae Electric Power, ",3/29/2022,34.94428756,126.617657,1.168
+KR_BW_06,Korea,Narae Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"GS Donghae Electric Power, ",3/29/2022,34.9433028,126.6181114,1.168
+KR_BW_07,Korea,Nuri Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"GS Donghae Electric Power, ",3/28/2022,34.94397927,126.6162924,1.1
+KR_BW_08,Korea,Dodam Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"Korea Western Power Co., Ltd., ",3/29/2022,34.94364253,126.6160667,1.1
+KR_BW_09,Korea,Andeok Solar Power,Korea-Blackwood,Ground Mounted ,1.2,-,-,PV ,"Korea Central Power Co., Ltd., ",10/31/2016,33.29040649,126.3330078,1.2
+KR_BW_10,Korea,Flower Garam Solar Power,Korea-Blackwood,Ground Mounted ,0.2,-,-,PV ,"Korea Hydro & Nuclear Power Co., Ltd., ",11/4/2020,34.94595943,126.7800054,0.2
+KR_BW_11,Korea,Narin Solar Power,Korea-Blackwood,Ground Mounted ,0.75,-,-,PV ,"GS Donghae Electric Power Co., Ltd., ",6/25/2018,34.94548745,126.7796251,0.75
+KR_BW_12,Korea,Solgil Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"Korea Southern Power Co., Ltd., ",4/14/2020,34.85310928,126.5886649,1
+KR_BW_13,Korea,Sophisticated Solar Power,Korea-Blackwood,Ground Mounted ,0.99,-,-,PV ,"Korea Southern Power Co., Ltd.,",2/25/2021,34.85975996,126.6706728,1
+KR_BW_14,Korea,Top Infra Electric Security Solar,Korea-Blackwood,Ground Mounted ,0.38,-,-,PV ,FIT(2025.12.),9/29/2009,35.62719337,126.6619623,0.4
+KR_BW_15,Korea,Top Infra Electric Shinheung Solar,Korea-Blackwood,Ground Mounted ,0.38,-,-,PV ,FIT(2025.12.),10/1/2009,35.70311618,126.7290858,0.4
+KR_BW_16,Korea,True Light Solar Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,FIT(2026.12.),2/24/2010,36.41558707,128.2555746,1.02
+KR_BW_18,Korea,Nanum Scholarship Foundation (Yeongnak) Solar Power,Korea-Blackwood,Ground Mounted ,0.48,0.4,1.5,PV+BESS,"Korea Hydro & Nuclear Power Co., Ltd.,",8/28/2014,33.26098192,126.2054814,0.5
+KR_BW_19,Korea,Changgi Solar Power,Korea-Blackwood,Ground Mounted ,2.91,-,-,PV ,"Korea Southern Power Co., Ltd.",1/28/2016,36.59031267,126.3673155,2.97
+KR_BW_20,Korea,Gayoung Solar Power,Korea-Blackwood,Ground Mounted ,0.32,-,-,PV ,"Korea Central Power Co., Ltd. ",7/1/2022,34.93217,126.6581977,0.365
+KR_BW_21,Korea,Bayong Solar Power,Korea-Blackwood,Ground Mounted ,0.99,-,-,PV ,"Korea Southern Power Co., Ltd. ",8/19/2021,36.73083577,128.5192908,1.08
+KR_BW_22,Korea,Self-employed solar power,Korea-Blackwood,Ground Mounted ,0.5,-,-,PV ,"Korea Western Power Co., Ltd. ",12/17/2021,35.04543074,127.3466162,0.5
+KR_BW_23,Korea,Gaile Solar Power,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"Korea Hydro & Nuclear Power Co., Ltd., ",8/19/2021,36.7304648,128.5188088,0.1
+KR_BW_24,Korea,EX Solar Power,Korea-Blackwood,Ground Mounted ,0.7,-,-,PV ,"Korea Hydro & Nuclear Power Co., Ltd., ",5/4/2013,34.70899602,126.6353712,0.75
+KR_BW_25,Korea,Gusu Solar Power,Korea-Blackwood,Ground Mounted ,0.06,-,-,PV ,"Korea Central Power Co., Ltd., ",5/9/2015,34.47404618,126.8050818,0.0666
+KR_BW_26,Korea,Namjeongsu Solar Power Plant,Korea-Blackwood,Ground Mounted ,25.04,-,-,PV ,"Korea Central Power Co., Ltd. ",1/10/2020,34.76761324,127.2422115,25
+KR_BW_27,Korea,TIS Solar Power,Korea-Blackwood,Ground Mounted ,0.39,-,-,PV ,Repowering planned,7/23/2008,34.79482669,126.6768783,0.4
+KR_BW_28,Korea,Gangjin Port Village Solar Power,Korea-Blackwood,Ground Mounted ,9.96,6,29.3,PV+BESS,"Korea East-West Power Co., Ltd., ",3/11/2017,34.53209388,126.7104214,0.9
+KR_BW_29,Korea,Ten-stage solar power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"GS Donghae Electric Power, ",3/28/2022,34.94494206,126.6175068,1.1
+KR_BW_30,Korea,Jeongnamjin Solar Power,Korea-Blackwood,Ground Mounted ,0.5,-,-,PV ,"GS Donghae Electric Power Co., Ltd., ",12/16/2020,34.82443205,126.8654796,0.5
+KR_BW_31,Korea,Eco Village Solar Power,Korea-Blackwood,Ground Mounted ,2.99,-,-,PV ,"Korea Southern Power Co., Ltd. ",11/26/2015,36.58896029,126.3678004,3
+KR_BW_32,Korea,November Sunlight,Korea-Blackwood,Ground Mounted ,0.06,-,-,PV ,"Korea Southern Power Co., Ltd., ",6/27/2022,34.9122136,126.6908234,0.05
+KR_BW_33,Korea,Age Sunlight,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"Korea Central Power Co., Ltd. ",8/19/2021,36.73053436,128.5184993,0.2
+KR_BW_34,Korea,Dure Solar Power,Korea-Blackwood,Ground Mounted ,0.99,-,-,PV ,"Korea Hydro & Nuclear Power Co., Ltd., ",2/24/2022,34.94241041,126.5885318,1.1
+KR_BW_35,Korea,Saban Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"GS Donghae Electric Power, ",3/28/2022,34.94617097,126.6175706,1.168
+KR_BW_36,Korea,Sangmo 1st Solar Power,Korea-Blackwood,Ground Mounted ,0.25,0.25,0.83,PV+BESS,"Korea Central Power Co., Ltd. ",8/14/2014,33.21482386,126.2860715,0.25
+KR_BW_37,Korea,Sangmo 2 Solar Power,Korea-Blackwood,Ground Mounted ,0.45,0.4,1.5,PV+BESS,"Korea Central Power Co., Ltd. ",5/16/2014,33.21616144,126.2854064,0.6
+KR_BW_38,Korea,Jangseong Solar Power,Korea-Blackwood,Ground Mounted ,0.28,0.25,0.67,PV+BESS,"Korea Hydro & Nuclear Power Co., Ltd., ",4/3/2020,35.20704679,126.6594209,0.25
+KR_BW_39,Korea,DH Solar Power,Korea-Blackwood,Ground Mounted ,1,-,-,PV ,"GS Donghae Electric Power, ",4/3/2020,34.87618971,126.6802665,1
+KR_BW_40,Korea,Geumgok Solar Power,Korea-Blackwood,Ground Mounted ,0.06,-,-,PV ,"Korea Southern Power Co., Ltd. ",3/29/2022,34.94293287,126.6152996,0.06
+KR_BW_41,Korea,Youngjin Solar Energy,Korea-Blackwood,Ground Mounted ,0.98,-,-,PV ,"Korea Western Power Co., Ltd., ",5/27/2021,34.61205029,126.6953568,1
+KR_BW_42,Korea,Sunlight Solar,Korea-Blackwood,Ground Mounted ,0.98,-,-,PV ,"Korea Southern Power Co., Ltd.,",5/27/2021,34.61216727,126.6964711,1
+KR_BW_43,Korea,Same Sangtapchon Solar Power,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"Korea Southern Power Co., Ltd.,",10/12/2022,34.75733317,126.5047946,0.12
+KR_BW_44,Korea,Dongil Sangtapchon Iltae Solar Power,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"Korea Southern Power Co., Ltd., ",10/12/2022,34.75769572,126.5045091,0.12
+KR_BW_45,Korea,ChaoTaiYangGwang,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"Korea Central Power Co., Ltd., ",3/15/2023,34.40846632,126.1691827,0.12
+KR_BW_46,Korea,July Solar Power,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"District Heating Corporation, ",3/15/2023,34.40846632,126.1691827,0.12
+KR_BW_47,Korea,May Solar Power,Korea-Blackwood,Ground Mounted ,0.1,-,-,PV ,"Korea Hydro & Nuclear Power Co., Ltd., ",3/15/2023,34.40846632,126.1691827,0.12
+KR_BW_48,Korea,Wolchulsan Bannam Solar Power,Korea-Blackwood,Ground Mounted ,0.06,-,-,PV ,"Korea Southern Power Co., Ltd. ",8/23/2022,34.92320403,126.6522834,0.06
+KR_IB_49,Korea,Imja Solar Power Plant ,Korea-Iceberg ,Ground Mounted ,99.99,-,-,PV ,SK E&S,9/26/2022,35.100328,126.11161,99.75
+JP-MINA,Japan,Minamata ,JP Minamata ,Ground Mounted ,28.25,-,-,PV ,Kyushu Electrical Power Co Ltd ,8/2/2021,32.20117,130.43378,20.4
+SG_DG_ONS_00055,Singapore,Matco Asia ,SG Matco Asia ,Roof Top ,0.85,-,-,PV ,Matco Asia / Amarenco,1/1/2023,1.33024,103.67584,0.7
+KR_DG_OFS_00033,Korea,Samyang Food Miryang Plant Solar Power Plant,Korea-Sroof,Roof Top ,0.75,-,-,PV ,Samyang Foods Factory ,5/17/2025,35.49342237,128.7308213,0.8
+KR_DG_ONS_00028,Korea,Sungjin ,Korea-Sroof,Roof Top ,0.34,-,-,PV ,"Korea Central Power Co., Ltd., ",5/14/2025,37.21415168,126.8487724,0.375
+TW1,Taiwan ,Yuchang Energy- Extra - High pressure lifting station ,TW-Yunlin,Ground Mounted ,34.818,-,-,PV ,Yuchang Energy- Extra - High pressure lifting station ,12/27/2024,23.68146759,120.1836868,27.2

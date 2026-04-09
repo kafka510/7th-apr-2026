@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Setup API Permissions{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-shield-alt text-success"></i> Setup API Permissions</h2>
+                    <p class="text-muted">Configure table access and security settings for API users</p>
+                </div>
+                <a href="{% url 'api:api_config_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cog"></i> Permission Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- User Selection -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-user"></i> Select User</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="{{ form.user.id_for_label }}" class="form-label">User *</label>
+                                    {{ form.user }}
+                                    {% if form.user.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.user.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">API User Name</label>
+                                    {{ form.name }}
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                                {{ form.description }}
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Rate Limiting -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-tachometer-alt"></i> Rate Limiting</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="{{ form.rate_limit_per_minute.id_for_label }}" class="form-label">Per Minute</label>
+                                    {{ form.rate_limit_per_minute }}
+                                    <div class="form-text">Max requests per minute</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.rate_limit_per_hour.id_for_label }}" class="form-label">Per Hour</label>
+                                    {{ form.rate_limit_per_hour }}
+                                    <div class="form-text">Max requests per hour</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.rate_limit_per_day.id_for_label }}" class="form-label">Per Day</label>
+                                    {{ form.rate_limit_per_day }}
+                                    <div class="form-text">Max requests per day</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- IP Restrictions -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-globe"></i> IP Restrictions (Optional)</h6>
+                            <label for="{{ form.allowed_ips.id_for_label }}" class="form-label">Allowed IP Addresses</label>
+                            {{ form.allowed_ips }}
+                            <div class="form-text">Comma-separated IP addresses. Leave empty to allow all IPs.</div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Table Selection -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-table"></i> Table Access</h6>
+                            
+                            <!-- Grant All Tables Option -->
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.grant_all_tables }}
+                                    <label class="form-check-label" for="{{ form.grant_all_tables.id_for_label }}">
+                                        <strong>Grant access to all tables</strong>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Individual Table Selection -->
+                            <div id="table-selection" class="row">
+                                <div class="col-12">
+                                    <label class="form-label">Select specific tables:</label>
+                                    <div class="row">
+                                        {% for choice in form.tables %}
+                                        <div class="col-md-6 col-lg-4 mb-2">
+                                            <div class="form-check">
+                                                {{ choice.tag }}
+                                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                                    {{ choice.choice_label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <!-- Table Permissions -->
+                        <div class="mb-4">
+                            <h6><i class="fas fa-key"></i> Table Permissions</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        {{ form.can_filter }}
+                                        <label class="form-check-label" for="{{ form.can_filter.id_for_label }}">
+                                            Allow Filtering
+                                        </label>
+                                        <div class="form-text">Users can filter records</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check">
+                                        {{ form.can_aggregate }}
+                                        <label class="form-check-label" for="{{ form.can_aggregate.id_for_label }}">
+                                            Allow Aggregations
+                                        </label>
+                                        <div class="form-text">Users can perform count, sum, avg, etc.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="{{ form.max_records_per_request.id_for_label }}" class="form-label">Max Records/Request</label>
+                                    {{ form.max_records_per_request }}
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'api:api_config_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Setup Permissions
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Permission Guide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Rate Limiting</h6>
+                            <ul>
+                                <li><strong>Per Minute:</strong> Prevents rapid-fire requests</li>
+                                <li><strong>Per Hour:</strong> Controls hourly usage</li>
+                                <li><strong>Per Day:</strong> Daily usage limits</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Table Permissions</h6>
+                            <ul>
+                                <li><strong>Filtering:</strong> Allows WHERE clauses in queries</li>
+                                <li><strong>Aggregations:</strong> Allows COUNT, SUM, AVG operations</li>
+                                <li><strong>Max Records:</strong> Limits response size</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const grantAllCheckbox = document.getElementById('{{ form.grant_all_tables.id_for_label }}');
+    const tableSelection = document.getElementById('table-selection');
+    
+    function toggleTableSelection() {
+        if (grantAllCheckbox.checked) {
+            tableSelection.style.display = 'none';
+            // Uncheck all individual table checkboxes
+            const checkboxes = tableSelection.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+        } else {
+            tableSelection.style.display = 'block';
+        }
+    }
+    
+    grantAllCheckbox.addEventListener('change', toggleTableSelection);
+    toggleTableSelection(); // Initial state
+});
+</script>
+
+<style>
+.form-control, .form-select {
+    border-radius: 0.375rem;
+}
+
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+hr {
+    margin: 2rem 0;
+}
+</style>
+{% endblock %}

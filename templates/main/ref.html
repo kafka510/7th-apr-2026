@@ -1,0 +1,650 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Peak Energy Unified Operations Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    html, body {
+      width: 100%;
+      max-width: 100vw;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      background: #ffffff;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      overflow: hidden;
+    }
+    .container, .container-fluid, .main-container, .dashboard-content, .main-content, .card-content {
+      width: 100%;
+      max-width: 100vw;
+      height: auto;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+    table, img, iframe {
+      max-width: 100%;
+      height: auto;
+    }
+    body {
+      height: 100vh;
+      min-height: 100vh;
+      width: 100vw;
+      min-width: 100vw;
+      overflow: hidden;
+    }
+    .dashboard-root {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .sidebar {
+      flex: 0 0 220px;
+      width: 220px;
+      min-width: 140px;
+      max-width: 90vw;
+      height: 100vh;
+      background: linear-gradient(to bottom, #02162b, #7ab1e7);
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      box-shadow: 2px 0 22px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      position: relative;
+      z-index: 200;
+      transition: all 0.4s cubic-bezier(.68,-0.01,.29,1.06);
+      overflow: hidden;
+      padding: 0;
+      margin: 0;
+    }
+    .sidebar.hide {
+      margin-left: -220px !important;
+      box-shadow: none;
+    }
+    .sidebar-logo {
+      padding: 20px 10px 10px 10px;
+      text-align: center;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      width: 100%;
+      margin-bottom: 0;
+    }
+    .logo-container {
+      width: 100%;
+      overflow: hidden;
+      text-align: center;
+    }
+    .sidebar-logo img {
+      width: 100%;
+      height: auto;
+      max-height: 60px;
+      object-fit: contain;
+      border-radius: 0;
+      background: transparent;
+      margin: 0 auto;
+      display: block;
+      box-shadow: none;
+      transition: transform 0.3s ease;
+    }
+    .sidebar-logo img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 20px rgba(35,150,243,0.15);
+    }
+    .sidebar-toggle-btn {
+      position: fixed;
+      left: 160px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1000;
+      background: #001F3F;
+      border: 2px solid rgba(255,255,255,0.3);
+      color: #ffffff;
+      width: 40px;
+      height: 80px;
+      min-width: 40px;
+      border-radius: 0 20px 20px 0;
+      box-shadow: 4px 2px 10px rgba(0,0,0,0.2);
+      cursor: pointer;
+      font-size: 1.6rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+      padding-right: 3px;
+    }
+    .sidebar.hide + .sidebar-toggle-btn {
+      left: 0;
+    }
+    .sidebar.hide + .sidebar-toggle-btn #toggleIcon {
+      transform: rotate(180deg);
+    }
+    #toggleIcon {
+      transition: transform 0.3s ease;
+      display: inline-block;
+      font-family: monospace;
+      font-weight: bold;
+      font-size: 2rem;
+    }
+    .main-area {
+      flex: 1 1 0%;
+      min-width: 0;
+      min-height: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 4px;
+      background: #7cbde9;
+      transition: margin-left 0.4s cubic-bezier(.68,-0.01,.29,1.06);
+      overflow: hidden;
+      box-sizing: border-box;
+      border: 1.5px solid #b3d1ea;
+    }
+    .tab-content, .tab-pane {
+      width: 100%;
+      height: 100%;
+      max-width: 100vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      box-sizing: border-box;
+      padding: 0;
+    }
+    .tab-pane {
+      min-height: 0;
+      flex: 1 1 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+      overflow: hidden;
+      box-sizing: border-box;
+      padding: 0;
+    }
+    iframe {
+      width: 100%;
+      height: 99%;
+      min-width: 0;
+      min-height: 0;
+      max-width: 100vw;
+      max-height: 100vh;
+      border-radius: 0;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      border: none;
+      margin: 0;
+      transition: box-shadow 0.17s, border-radius 0.15s;
+      display: block;
+      overflow: auto;
+    }
+    .sidebar-title {
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: #ffffff;
+      letter-spacing: 1px;
+      text-align: center;
+      line-height: 1.0;
+      text-transform: uppercase;
+      padding: 10px 10px 20px 10px;
+      background: rgba(255,255,255,0.03);
+      margin: 0;
+      width: 100%;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar-link, .sidebar-label {
+      display: block;
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      padding: 10px;
+      border-radius: 0;
+      margin: 2px 0;
+      background: transparent;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      font-weight: 500;
+      position: relative;
+      outline: none;
+      border: none;
+      line-height: 1.4;
+      text-align: left;
+      border-left: 3px solid transparent;
+      width: 100%;
+      letter-spacing: 0.5px;
+    }
+    .sidebar-link.active, .sidebar-link:hover {
+      background: rgba(255,255,255,0.12);
+      color: #ffffff;
+      font-weight: 600;
+      border-left: 3px solid #00A3FF;
+      box-shadow: none;
+      padding-left: 15px;
+      text-align: left;
+    }
+    .sidebar-label {
+      padding: 12px 10px;
+      background: rgba(0,0,0,0.2);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 4px 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+      border-radius: 0;
+      position: relative;
+      box-shadow: none;
+      line-height: 1.4;
+      text-align: left;
+      text-transform: uppercase;
+      width: 100%;
+      letter-spacing: 1px;
+    }
+    .sidebar-label:hover {
+      background: rgba(0,0,0,0.25);
+    }
+    .sidebar-label .arrow {
+      margin-left: auto;
+      border: solid #ffffff;
+      border-width: 0 6px 6px 0;
+      padding: 7px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      opacity: 0.8;
+      transition: all 0.3s ease;
+    }
+    .sidebar-group.open .sidebar-label .arrow {
+      transform: rotate(135deg) translateX(-2px);
+    }
+    .sidebar-links {
+      background: rgba(0,0,0,0.1);
+      margin: 0;
+      padding: 4px 0;
+      width: 100%;
+      text-align: left;
+      padding-left: 0;
+    }
+    .sidebar-group {
+      width: 100%;
+    }
+    @media (max-width: 1400px) {
+      .sidebar {
+        flex: 0 0 180px;
+        width: 180px;
+      }
+      .sidebar.hide {
+        margin-left: -180px !important;
+      }
+      .sidebar-toggle-btn {
+        left: 160px;
+      }
+    }
+    @media (max-width: 1200px) {
+      .sidebar {
+        flex: 0 0 140px;
+        width: 140px;
+      }
+      .sidebar.hide {
+        margin-left: -140px !important;
+      }
+      .sidebar-toggle-btn {
+        left: 120px;
+      }
+    }
+    @media (max-width: 900px) {
+      .sidebar {
+        flex: 0 0 100px;
+        width: 100px;
+      }
+      .sidebar.hide {
+        margin-left: -100px !important;
+      }
+      .sidebar-toggle-btn {
+        left: 80px;
+      }
+    }
+    @media (max-width: 600px) {
+      .sidebar {
+        min-width: 60vw;
+        padding: 0 1vw 0 1vw;
+        border-radius: 0 0 8px 8px;
+      }
+      .main-area {
+        padding: 4px;
+      }
+      iframe {
+        min-height: 36vh;
+        max-height: 99vh;
+      }
+      .sidebar-logo img { width: 18px; height: 18px;}
+    }
+    .sidebar-icon {
+      display: inline-block;
+      margin-right: 6px;
+      font-size: 1.2rem;
+      vertical-align: left;
+      opacity: 0.85;
+      transition: transform 0.3s;
+    }
+    .sidebar-link.sidebar-single .sidebar-icon {
+      color: #00A3FF;
+      transform: scale(1.1);
+    }
+    .sidebar-group .sidebar-label .sidebar-icon {
+      color: #FFD700;
+      transform: scale(1.1);
+    }
+    .sidebar-links {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.45s cubic-bezier(.68,-0.01,.29,1.06), opacity 0.35s;
+      will-change: max-height, opacity;
+    }
+    .sidebar-group.open .sidebar-links {
+      max-height: 500px;
+      opacity: 1;
+      transition: max-height 0.55s cubic-bezier(.68,-0.01,.29,1.06), opacity 0.45s;
+    }
+    .sidebar-links .sidebar-link {
+      padding-left: 8px !important;
+      text-align: left !important;
+      font-size: 1.1rem;
+      background: none;
+      margin: 0 !important;
+    }
+    .sidebar-links .sidebar-link.active {
+      padding-left: 12px !important;
+    }
+    .sidebar-link {
+      transition: background 0.3s, color 0.3s, padding-left 0.3s;
+    }
+    .sidebar-link.active {
+      background: rgba(0,163,255,0.18);
+      color: #00A3FF;
+      font-weight: 700;
+      border-left: 3px solid #FFD700;
+      padding-left: 16px;
+      box-shadow: 0 2px 8px rgba(0,163,255,0.08);
+      transition: background 0.3s, color 0.3s, padding-left 0.3s;
+    }
+  </style>
+  <link rel="icon" href="{% static 'PEAK_LOGO.jpg' %}">
+</head>
+<body>
+  <div class="dashboard-root">
+    <div class="sidebar flex-column align-items-center justify-content-start" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-container">
+          <img src="{% static 'PEAK_LOGO.jpg' %}" alt="Peak Energy Logo"/>
+        </div>
+      </div>
+      <div class="sidebar-title">Operations Dashboard</div>
+      {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-Portfolio_Map',this);return false;">
+          <span class="sidebar-icon">📄</span> Portfolio Map
+        </a>
+      {% endif %}
+      <div class="sidebar-group">
+        <div class="sidebar-label" onclick="toggleSidebarGroup(this)"><span class="sidebar-icon">📂</span> PV Performance <span class="arrow"></span></div>
+        <div class="sidebar-links">
+          {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-Yield_Report',this);return false;">Yield Report</a>
+          {% endif %}
+          {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-PR_Gap',this);return false;">PR Gap (%)</a>
+          {% endif %}
+          {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-Revenue_Loss',this);return false;">Revenue Loss</a>
+          {% endif %}
+          {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-Areas_of_Concern',this);return false;">Areas of Concern</a>
+          {% endif %}
+        </div>
+      </div>
+      {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-BESS_Performance',this);return false;">
+          <span class="sidebar-icon">📄</span> BESS Performance
+        </a>
+      {% endif %}
+      {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-Time_Series_Dashboard',this);return false;">
+          <span class="sidebar-icon">📈</span> Time Series Data
+        </a>
+      {% endif %}
+      <div class="sidebar-group">
+        <div class="sidebar-label" onclick="toggleSidebarGroup(this)"><span class="sidebar-icon">📂</span> Generic <span class="arrow"></span></div>
+        <div class="sidebar-links">
+          {% if request.user.role == 'om' %} // or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-Minamata_Typhoon_Damage',this);return false;">Minamata Typhoon Damage</a>
+          {% endif %}
+          {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-IC_Vs_Expected',this);return false;">IC Vs Expected</a>
+          {% endif %}
+        </div>
+      </div>
+      {% if request.user.role == 'admin' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('user-management',this);return false;">
+          <span class="sidebar-icon">📈</span> User Management
+        </a>
+      {% endif %}
+      <div style="flex:1 1 auto;">
+        <form method="post" action="{% url 'accounts:logout' %}" style="margin: 0;">
+          {% csrf_token %}
+          <button type="submit" class="sidebar-link sidebar-single" style="width: 100%; border: none; background: none;">
+            <span class="sidebar-icon">🚪</span> Logout
+          </button>
+        </form>
+      </div>
+    </div>
+    <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Hide/Show Menu" onclick="toggleSidebar()">
+      <span id="toggleIcon">&laquo;</span>
+    </button>
+    <div class="main-area flex-fill">
+      <div class="tab-content" id="sideTabContent">
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade show active" id="dash-Portfolio_Map" role="tabpanel">
+            <iframe src="{% url 'main:portfolio_map' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade" id="dash-Yield_Report" role="tabpanel">
+            <iframe src="{% url 'main:yield_report' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade" id="dash-PR_Gap" role="tabpanel">
+            <iframe src="{% url 'main:pr_gap' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade" id="dash-Revenue_Loss" role="tabpanel">
+            <iframe src="{% url 'main:revenue_loss' %}" loading="lazy"></iframe>
+          </div>        
+        {% endif %}
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade" id="dash-Areas_of_Concern" role="tabpanel">
+            <iframe src="{% url 'main:areas_of_concern' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade" id="dash-BESS_Performance" role="tabpanel">
+            <iframe src="{% url 'main:bess_performance' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade" id="dash-Time_Series_Dashboard" role="tabpanel">
+            <iframe src="{% url 'main:time_series_dashboard' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'om' %} 
+          <div class="tab-pane fade" id="dash-Minamata_Typhoon_Damage" role="tabpanel">
+            <iframe src="{% url 'main:minamata_typhoon_damage' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'admin' or request.user.role == 'om' or request.user.role == 'customer' or request.user.role == 'management' %}
+          <div class="tab-pane fade" id="dash-IC_Vs_Expected" role="tabpanel">
+            <iframe src="{% url 'main:ic_budget_vs_expected' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user.role == 'admin' %} 
+          <div class="tab-pane fade" id="user-management" role="tabpanel">
+            <iframe src="{% url 'main:user_management' %}" loading="lazy"></iframe>
+          </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+  <script>
+
+
+     // Session timeout handling
+    let sessionTimeout;
+    const SESSION_TIMEOUT_MINUTES = 30; // 30 minutes
+    const WARNING_MINUTES = 5; // Show warning 5 minutes before timeout
+    
+    function resetSessionTimeout() {
+      clearTimeout(sessionTimeout);
+      sessionTimeout = setTimeout(() => {
+        showSessionWarning();
+      }, (SESSION_TIMEOUT_MINUTES - WARNING_MINUTES) * 60 * 1000);
+    }
+    
+    function showSessionWarning() {
+      const warning = document.createElement('div');
+      warning.id = 'sessionWarning';
+      warning.innerHTML = `
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                    background: #fff; border: 2px solid #dc3545; border-radius: 10px; 
+                    padding: 20px; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+          <h4 style="color: #dc3545; margin-bottom: 15px;">Session Timeout Warning</h4>
+          <p>Your session will expire in ${WARNING_MINUTES} minutes due to inactivity.</p>
+          <p>Click "Continue Session" to stay logged in.</p>
+          <div style="text-align: center; margin-top: 20px;">
+            <button onclick="extendSession()" style="background: #28a745; color: white; 
+                    border: none; padding: 10px 20px; border-radius: 5px; margin-right: 10px; cursor: pointer;">
+              Continue Session
+            </button>
+            <button onclick="logoutNow()" style="background: #dc3545; color: white; 
+                    border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+              Logout Now
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(warning);
+      
+      // Auto logout after warning period
+      setTimeout(() => {
+        if (document.getElementById('sessionWarning')) {
+          logoutNow();
+        }
+      }, WARNING_MINUTES * 60 * 1000);
+    }
+    
+    function extendSession() {
+      // Make a request to extend the session
+      fetch('/accounts/extend-session/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => {
+        if (response.ok) {
+          document.getElementById('sessionWarning').remove();
+          resetSessionTimeout();
+        } else {
+          logoutNow();
+        }
+      })
+      .catch(() => {
+        logoutNow();
+      });
+    }
+    
+    function logoutNow() {
+      window.location.href = '/accounts/logout/';
+    }
+    
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+    
+    // Reset timeout on user activity
+    document.addEventListener('click', resetSessionTimeout);
+    document.addEventListener('keypress', resetSessionTimeout);
+    document.addEventListener('mousemove', resetSessionTimeout);
+    document.addEventListener('scroll', resetSessionTimeout);
+
+
+
+
+    // Sidebar collapsible groups
+    function toggleSidebarGroup(el) {
+      const group = el.parentElement;
+      const wasOpen = group.classList.contains('open');
+      document.querySelectorAll('.sidebar-group').forEach(g => {
+        if (g !== group) g.classList.remove('open');
+      });
+      if (!wasOpen) group.classList.add('open');
+      else group.classList.remove('open');
+    }
+    // Sidebar hide/show
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const icon = document.getElementById('toggleIcon');
+      sidebar.classList.toggle('hide');
+      if (sidebar.classList.contains('hide')) {
+        icon.innerHTML = '&#10095;'; // Right arrow
+      } else {
+        icon.innerHTML = '&#10094;'; // Left arrow
+      }
+    }
+    // Tab switching (works with or without Bootstrap JS tabs)
+    function showTab(tabId, linkEl) {
+      document.querySelectorAll('.tab-pane').forEach(tab => tab.classList.remove('show', 'active'));
+      document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+      document.getElementById(tabId).classList.add('show', 'active');
+      if (linkEl) linkEl.classList.add('active');
+    }
+    // Open the first group by default and set initial toggle icon
+    window.onload = () => {
+      document.getElementById('toggleIcon').innerHTML = '&#10094;'; // Left arrow
+    }
+  </script>
+</body>
+</html>

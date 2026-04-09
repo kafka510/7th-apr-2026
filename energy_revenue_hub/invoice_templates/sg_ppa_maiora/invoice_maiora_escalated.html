@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Tax Invoice — {{ snapshot.session_label|default:"Maiora" }}</title>
+  <style>
+    @page { size: A4; margin: 15mm 15mm 12mm 15mm; }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 10px;
+      color: #000000;
+      line-height: 1.4;
+      background: #fff;
+    }
+
+    .muted { color: #595959; }
+    .num { text-align: right; }
+    .mt-2 { margin-top: 6px; }
+    .mt-3 { margin-top: 10px; }
+
+    /* ── HEADER ── */
+    .header-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 10px;
+      border-bottom: 1.5px solid #888;
+      margin-bottom: 10px;
+    }
+
+    .logo-block img { max-height: 48px; width: auto; display: block; margin-bottom: 3px; }
+    .brand-sub { font-size: 8px; font-weight: 700; letter-spacing: 2.5px; color: #1a3a6b; text-transform: uppercase; }
+    .logo-block .attn { margin-top: 9px; font-size: 10px; font-weight: 700; }
+    .logo-block .cname { font-size: 10px; font-weight: 700; }
+    .logo-block .caddr { font-size: 10px; }
+
+    .inv-right { text-align: right; min-width: 255px; }
+    .inv-title { font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #1a3a6b; margin-bottom: 4px; }
+
+    /* meta table (Invoice No, Date, Period, Payable, Due) — right side */
+    .inv-meta { width: 100%; border-collapse: collapse; }
+    .inv-meta td { font-size: 10px; padding: 2px 3px; border: none; }
+    .inv-meta td:first-child { text-align: left; }
+    .inv-meta td:last-child { text-align: right; }
+    .inv-meta .bold td { font-weight: 700; color: #000; background: #efefef; }
+    .inv-meta .bold td:first-child { border-top: 1px solid #bbb; }
+    .inv-meta .bold td:last-child  { border-top: 1px solid #bbb; }
+    .inv-meta .first-bold td { font-weight: 700; color: #000; background: #efefef; }
+
+    /* box around payable/due rows */
+    .payable-box { border: 1px solid #b0b0b0; margin-top: 5px; }
+    .payable-box table { width: 100%; border-collapse: collapse; }
+    .payable-box td { font-size: 10px; padding: 4px 6px; border: none; font-weight: 700; }
+    .payable-box tr:first-child td { background: #efefef; }
+    .payable-box tr:last-child td { background: #efefef; border-top: 1px solid #bbb; }
+    .payable-box td:first-child { text-align: left; }
+    .payable-box td:last-child { text-align: right; }
+
+    /* ── OUR REFERENCE ── */
+    .our-ref { margin-bottom: 10px; }
+    .our-ref .label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #1a3a6b; margin-bottom: 1px; }
+    .our-ref .value { font-size: 10px; color: #595959; }
+
+    /* ── SECTION BOX ── */
+    .sbox { border: 1px solid #b0b0b0; margin-bottom: 8px; }
+    .stitle {
+      background: #e0e0e0;
+      border-bottom: 1px solid #b0b0b0;
+      font-weight: 700;
+      font-size: 10px;
+      text-transform: uppercase;
+      padding: 4px 7px;
+      color: #000;
+    }
+
+    /* ── CURRENT CHARGES TABLE ── */
+    .ct { width: 100%; border-collapse: collapse; }
+    .ct th {
+      background: #f0f0f0;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 7px;
+      border-bottom: 1px solid #b0b0b0;
+      text-align: left;
+    }
+    .ct th.num { text-align: right; }
+    .ct td { font-size: 10px; padding: 4px 7px; vertical-align: middle; color: #000; border: none; }
+    .ct td.num { text-align: right; }
+    .ct .yr-label td { font-style: italic; font-size: 10px; color: #333; padding-bottom: 1px; border-bottom: none; }
+    .ct .data-row td { font-weight: 700; }
+    .ct .data-row td:first-child { padding-left: 14px; font-weight: 700; }
+    .ct .spacer td { height: 6px; padding: 0; }
+
+    /* totals sub-block */
+    .tot-wrap { padding: 5px 7px; }
+    .tot { width: 46%; margin-left: auto; border-collapse: collapse; }
+    .tot td { font-size: 10px; padding: 2px 3px; border: none; }
+    .tot td:first-child { color: #595959; text-align: left; }
+    .tot td.sym { text-align: right; color: #595959; width: 22px; }
+    .tot td.num { text-align: right; }
+    .tot .trow td { border-top: 1.5px solid #595959; font-weight: 700; color: #000; padding-top: 3px; }
+    .tot .trow td:first-child { color: #000; }
+
+    /* ── LOWER LEFT (58%) ── */
+    .lower { width: 58%; margin-top: 0; }
+
+    /* generic detail table */
+    .dt { width: 100%; border-collapse: collapse; }
+    .dt td { font-size: 10px; padding: 3px 7px; border: none; color: #000; }
+    .dt td:first-child { color: #595959; }
+    .dt td.sym {
+      text-align: right;
+      color: #595959;
+      min-width: 52px;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .dt td.num { text-align: right; }
+    .dt .brow td { font-weight: 700; color: #000; }
+
+    /* bank table */
+    .bt { width: 100%; border-collapse: collapse; }
+    .bt td { font-size: 10px; padding: 3px 7px; border: none; }
+    .bt td:first-child { color: #595959; width: 38%; }
+
+    /* ── DRAFT ── */
+    .draft { display: inline-block; border: 1px solid #3b82f6; color: #2563eb; font-size: 9px; font-weight: 700; letter-spacing: 1px; padding: 2px 6px; }
+
+    /* ── FOOTER ── */
+    .footer { margin-top: 14px; border-top: 1.5px solid #888; padding-top: 5px; text-align: center; font-size: 9px; color: #595959; }
+    .footer strong { font-weight: 700; color: #475569; }
+
+    .cycle-warn { color: #b45309; font-size: 9px; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- ══ HEADER ══ -->
+  <div class="header-wrap">
+    <div class="logo-block">
+      <img src="energy_revenue_hub/invoice_templates/logos/maiora_logo.png" alt="Maiora Renewable Energy" />
+      <div class="brand-sub">Renewable Energy</div>
+      <div class="attn">Attention: {{ snapshot.contract_party.attention|default:"Finance Department" }}</div>
+      <div class="cname">{{ snapshot.contract_party.customer_asset_name|default:"—" }}</div>
+      <div class="caddr">{{ snapshot.contract_party.asset_address|default:"—" }}</div>
+    </div>
+
+    <div class="inv-right">
+      <div class="inv-title">TAX INVOICE</div>
+      <table class="inv-meta">
+        <tr><td class="muted" style="font-weight:700;">Invoice No:</td><td style="font-weight:700;">{{ snapshot.header.invoice_no|default:"—" }}</td></tr>
+        <tr><td class="muted" style="font-weight:700;">Invoice Date:</td><td>{{ snapshot.header.invoice_date_display|default:snapshot.header.invoice_date|default:"—" }}</td></tr>
+        <tr><td class="muted" style="font-weight:700;">Billing Period:</td><td>{{ snapshot.header.billing_period_display|default:"—" }}</td></tr>
+      </table>
+      <div class="payable-box">
+        <table>
+          <tr><td>TOTAL AMOUNT PAYABLE:</td><td>S$ {{ snapshot.header.total_amount_payable|default:snapshot.totals.current_charges_incl_gst|default:"0.00" }}</td></tr>
+          <tr><td>PAYMENT DUE DATE:</td><td>{{ snapshot.header.payment_due_date_display|default:"—" }}</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ OUR REFERENCE ══ -->
+  <div class="our-ref">
+    <div class="label">Our Reference</div>
+    <div class="value">{{ snapshot.our_reference.contract_reference|default:"—" }}</div>
+  </div>
+
+  <!-- ══ CURRENT CHARGES ══ -->
+  <div class="sbox">
+    <div class="stitle">Current Charges</div>
+    <table class="ct">
+      <thead>
+        <tr>
+          <th style="width:36%;">SERVICE/COMPONENT</th>
+          <th class="num" style="width:22%;">QTY</th>
+          <th class="num" style="width:24%;">RATE</th>
+          <th class="num" style="width:18%;">AMOUNT</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in snapshot.lines %}
+          {% if row.line_kind == "consumption" %}
+            {% if forloop.counter > 1 %}<tr class="spacer"><td colspan="4"></td></tr>{% endif %}
+            {% if row.year_label %}
+              <tr class="yr-label"><td colspan="4">{{ row.year_label }}</td></tr>
+            {% endif %}
+            <tr class="data-row">
+              <td>Electricity<br/>Consumption</td>
+              <td class="num">kWh&nbsp;&nbsp;{{ row.invoice_kwh_display|default:row.invoice_kwh }}</td>
+              <td class="num">S$/kWh&nbsp;&nbsp;{{ row.ppa_rate_display|default:row.ppa_rate }}</td>
+              <td class="num">S$&nbsp;&nbsp;{{ row.revenue_display|default:row.revenue }}</td>
+            </tr>
+            {% if row.billing_cycle_warning %}<tr><td colspan="4" class="cycle-warn" style="padding:1px 7px;">{{ row.billing_cycle_warning }}</td></tr>{% endif %}
+          {% elif row.line_kind == "export_excess" %}
+            <tr class="data-row">
+              <td>Excess Export</td>
+              <td class="num">kWh&nbsp;&nbsp;{{ row.invoice_kwh_display|default:row.invoice_kwh }}</td>
+              <td class="num">S$/kWh&nbsp;&nbsp;{{ row.ppa_rate_display|default:row.ppa_rate }}</td>
+              <td class="num">S$&nbsp;&nbsp;{{ row.revenue_display|default:row.revenue }}</td>
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="tot-wrap">
+      <table class="tot">
+        <tr><td>SUBTOTAL</td><td class="sym">S$</td><td class="num">{{ snapshot.totals.subtotal_excl_gst|default:"0.00" }}</td></tr>
+        <tr><td>GST @ {{ snapshot.totals.gst_percent_display|default:snapshot.totals.gst_rate }}%</td><td class="sym">S$</td><td class="num">{{ snapshot.totals.gst_amount|default:"0.00" }}</td></tr>
+        <tr class="trow"><td>CURRENT CHARGES</td><td class="sym">S$</td><td class="num">{{ snapshot.totals.current_charges_incl_gst|default:snapshot.totals.total_incl_gst|default:"0.00" }}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ LOWER SECTION (58% wide) ══ -->
+  <div class="lower">
+
+    <!-- Summary of Charges -->
+    <div class="sbox">
+      <div class="stitle">Summary of Charges</div>
+      <table class="dt">
+        <tr><td>Current Charges due on {{ snapshot.summary_of_charges.current_charges_due_on|default:"—" }}</td><td class="sym">S$</td><td class="num">{{ snapshot.summary_of_charges.current_charges_amount|default:"0.00" }}</td></tr>
+        <tr class="brow"><td>Total Amount Payable</td><td class="sym">S$</td><td class="num">{{ snapshot.summary_of_charges.total_amount_payable|default:"0.00" }}</td></tr>
+      </table>
+    </div>
+
+    <!-- MRE Solar Leasing Details -->
+    <div class="sbox">
+      <div class="stitle">Current Billing Cycle Summary — MRE Solar Leasing Details</div>
+      <table class="dt">
+        <tr><td>Solar Leasing Year:</td><td class="sym"></td><td class="num">{{ snapshot.mre_summary.solar_leasing_year|default:"—" }}</td></tr>
+        <tr><td>MRE Rate:</td><td class="sym">S$/kWh</td><td class="num">{{ snapshot.mre_summary.mre_rate|default:"—" }}</td></tr>
+        <tr><td>Solar Generation:</td><td class="sym">kWh</td><td class="num">{{ snapshot.mre_summary.solar_generation_kwh|default:"0.00" }}</td></tr>
+        <tr><td>Meter Reading Source:</td><td class="sym"></td><td class="num">{{ snapshot.mre_summary.meter_reading_source|default:"—" }}</td></tr>
+        <tr><td>Excess Electricity Export:</td><td class="sym">kWh</td><td class="num">{{ snapshot.mre_summary.excess_electricity_export_kwh|default:"0.00" }}</td></tr>
+        <tr><td>Resulting Electricity Consumption:</td><td class="sym">kWh</td><td class="num">{{ snapshot.mre_summary.resulting_electricity_consumption_kwh|default:"0.00" }}</td></tr>
+      </table>
+    </div>
+
+    <!-- SP Excess Electricity Export Details -->
+    <div class="sbox">
+      <div class="stitle">Current Billing Cycle Summary — SP Excess Electricity Export Details</div>
+      <table class="dt">
+        <tr><td>SP Invoice No:</td><td class="sym"></td><td class="num">{{ snapshot.sp_summary.sp_invoice_no|default:"—" }}</td></tr>
+        <tr><td>Electricity Account No:</td><td class="sym"></td><td class="num">{{ snapshot.sp_summary.electricity_account_no|default:"—" }}</td></tr>
+        <tr><td>Exported Amount:</td><td class="sym">kWh</td><td class="num">{{ snapshot.sp_summary.exported_amount_kwh|default:"0.00" }}</td></tr>
+        <tr><td>Export of Electricity, excl. GST:</td><td class="sym">S$</td><td class="num">{{ snapshot.sp_summary.export_of_electricity_excl_gst|default:"0.00" }}</td></tr>
+        <tr><td>Recurring Charges, excl. GST:</td><td class="sym">S$</td><td class="num">{{ snapshot.sp_summary.recurring_charges_excl_gst|default:"0.00" }}</td></tr>
+        <tr><td>Export Payment:</td><td class="sym">S$</td><td class="num">{{ snapshot.sp_summary.export_payment|default:"0.00" }}</td></tr>
+        <tr><td>Resulting Export Rate:</td><td class="sym">S$/kWh</td><td class="num">{{ snapshot.sp_summary.resulting_export_rate|default:"0.000000" }}</td></tr>
+      </table>
+    </div>
+
+    <!-- Maiora Bank Details -->
+    <div class="sbox">
+      <div class="stitle">Maiora Bank Details</div>
+      <table class="bt">
+        <tr><td>Account Name:</td><td>{{ snapshot.bank_details.account_name|default:"—" }}</td></tr>
+        <tr><td>Account Number:</td><td>{{ snapshot.bank_details.account_number|default:"—" }}</td></tr>
+        <tr><td>Name of Bank:</td><td>{{ snapshot.bank_details.bank_name|default:"—" }}</td></tr>
+        <tr><td>Branch Code:</td><td>{{ snapshot.bank_details.branch_code|default:"—" }}</td></tr>
+      </table>
+    </div>
+
+  </div>
+
+  {% if snapshot.display.show_draft_badge %}
+  <div style="text-align:right; margin-top:4px;">
+    <span class="draft">{{ snapshot.display.status_badge_text|default:"DRAFT" }}</span>
+  </div>
+  {% endif %}
+
+  <!-- ══ FOOTER ══ -->
+  <div class="footer">
+    <div><strong>Maiora Renewable Holdings Pte. Ltd. (GST Reg. No.: 202111251K)&nbsp;&nbsp;Page 1 of 1</strong></div>
+    <div>6 Eu Tong Sen Street, Soho1@Central #12-20, Singapore 059817 | www.maiorarenewables.com</div>
+  </div>
+
+</body>
+</html>

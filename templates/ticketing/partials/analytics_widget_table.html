@@ -1,0 +1,54 @@
+{# ticketing/partials/analytics_widget_table.html #}
+<table class="table table-sm widget-table mb-0">
+  <thead>
+    <tr>
+      <th style="width:38%">Name</th>
+      <th class="text-end" style="width:16%">Value</th>
+      <th class="text-end small text-muted" style="width:16%">Secondary</th>
+      <th style="width:30%">Trend</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      <tr data-entity-type="{{ row.entity_type }}" data-entity-key="{{ row.entity_key }}">
+        <td>
+          <div class="fw-bold">{{ row.label }}</div>
+          {% if row.sub %}<small class="text-muted">{{ row.sub }}</small>{% endif %}
+        </td>
+        <td class="text-end">
+          <strong>
+            {% if view_by in "device_loss,category_loss" %}
+              {{ row.val1|floatformat:2 }}
+            {% else %}
+              {{ row.val1 }}
+            {% endif %}
+          </strong>
+        </td>
+        <td class="text-end">
+          <small class="text-muted">
+            {% if view_by in "device_loss,category_loss" %}
+              {{ row.val2 }} tickets
+            {% else %}
+              {{ row.val2|floatformat:2 }}
+            {% endif %}
+          </small>
+        </td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:120px; height:36px;">
+              <canvas class="sparkline" height="36"></canvas>
+              <span class="trend-data d-none">{{ row.trend|join:"," }}</span>
+            </div>
+            <div class="ms-2 small text-muted">
+              <div class="fw-bold">{{ row.trend|last }}</div>
+              <div class="text-muted">last</div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4" class="text-muted p-3">No data</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+

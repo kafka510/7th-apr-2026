@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage API Users{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Hidden CSRF token for JavaScript -->
+    {% csrf_token %}
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-users text-info"></i> Manage API Users</h2>
+                    <p class="text-muted">View and manage all API users and their permissions</p>
+                </div>
+                <div>
+                    <a href="{% url 'api:api_config_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to API Config
+                    </a>
+                    <a href="{% url 'main:user_management' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Create User
+                    </a>
+                    <a href="{% url 'api:setup_api_permissions' %}" class="btn btn-success">
+                        <i class="fas fa-shield-alt"></i> Setup Permissions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Users Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list"></i> All API Users</h5>
+        </div>
+        <div class="card-body">
+            {% if api_users %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>API User Name</th>
+                                <th>Access Level</th>
+                                <th>Status</th>
+                                <th>Rate Limits</th>
+                                <th>Tables</th>
+                                <th>API Keys</th>
+                                <th>Total Requests</th>
+                                <th>Last Request</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for api_user in api_users %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <strong>{{ api_user.user.username }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ api_user.user.email }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        {{ api_user.name }}
+                                        {% if api_user.description %}
+                                            <br>
+                                            <small class="text-muted">{{ api_user.description|truncatechars:50 }}</small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if api_user.access_level == 'api_only' %}
+                                        <span class="badge bg-info">API Only</span>
+                                    {% elif api_user.access_level == 'both' %}
+                                        <span class="badge bg-primary">Web & API</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ api_user.get_access_level_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if api_user.status == 'active' %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% elif api_user.status == 'suspended' %}
+                                        <span class="badge bg-warning">Suspended</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ api_user.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small>
+                                        <strong>Min:</strong> {{ api_user.rate_limit_per_minute }}<br>
+                                        <strong>Hour:</strong> {{ api_user.rate_limit_per_hour }}<br>
+                                        <strong>Day:</strong> {{ api_user.rate_limit_per_day }}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% with table_count=api_user.table_permissions.count %}
+                                        {% if table_count > 0 %}
+                                            <span class="badge bg-info">{{ table_count }} table{{ table_count|pluralize }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No access</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with key_count=api_user.api_keys.count %}
+                                        {% if key_count > 0 %}
+                                            <span class="badge bg-primary">{{ key_count }} key{{ key_count|pluralize }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">No keys</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ api_user.total_requests|default:"0" }}</span>
+                                </td>
+                                <td>
+                                    {% if api_user.last_request_at %}
+                                        <small>{{ api_user.last_request_at|date:"M j, H:i" }}</small>
+                                    {% else %}
+                                        <small class="text-muted">Never</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'api:view_api_user' api_user.id %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                onclick="toggleUserStatus({{ api_user.id }}, '{{ api_user.status }}')" title="Toggle Status">
+                                            {% if api_user.status == 'active' %}
+                                                <i class="fas fa-pause"></i>
+                                            {% else %}
+                                                <i class="fas fa-play"></i>
+                                            {% endif %}
+                                        </button>
+                                        <a href="{% url 'api:generate_key_for_user' %}?user={{ api_user.user.id }}" 
+                                           class="btn btn-sm btn-outline-success" title="Generate Key">
+                                            <i class="fas fa-key"></i>
+                                        </a>
+                                        {% if user.is_superuser %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                onclick="deleteAPIUser({{ api_user.id }}, '{{ api_user.user.username }}')" title="Delete User (Superuser Only)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No API Users Found</h5>
+                    <p class="text-muted">Create your first API user to get started.</p>
+                    <a href="{% url 'main:user_management' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Create User
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-plus fa-2x text-primary mb-3"></i>
+                    <h5>Create User</h5>
+                    <p class="text-muted">Create a new user account for API access</p>
+                    <a href="{% url 'main:user_management' %}" class="btn btn-primary">Create User</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt fa-2x text-success mb-3"></i>
+                    <h5>Setup Permissions</h5>
+                    <p class="text-muted">Configure table access and security settings</p>
+                    <a href="{% url 'api:setup_api_permissions' %}" class="btn btn-success">Setup Permissions</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-key fa-2x text-info mb-3"></i>
+                    <h5>Generate Key</h5>
+                    <p class="text-muted">Generate API key for existing user</p>
+                    <a href="{% url 'api:generate_key_for_user' %}" class="btn btn-info">Generate Key</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toggle Status Modal -->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Toggle User Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="toggleStatusMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmToggle">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle"></i> Delete API User</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                <p id="deleteUserMessage"></p>
+                <ul class="list-unstyled mt-3">
+                    <li><i class="fas fa-check-circle text-danger"></i> All API keys for this user will be deleted</li>
+                    <li><i class="fas fa-check-circle text-danger"></i> The APIUser record will be removed</li>
+                    <li><i class="fas fa-check-circle text-danger"></i> User will lose all API access immediately</li>
+                    <li><i class="fas fa-info-circle text-info"></i> The Django user account will remain active</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Delete User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleUserStatus(userId, currentStatus) {
+    const modal = new bootstrap.Modal(document.getElementById('toggleStatusModal'));
+    const message = document.getElementById('toggleStatusMessage');
+    const confirmBtn = document.getElementById('confirmToggle');
+    
+    if (currentStatus === 'active') {
+        message.textContent = `Are you sure you want to suspend API access for this user?`;
+        confirmBtn.textContent = 'Suspend';
+        confirmBtn.className = 'btn btn-warning';
+    } else {
+        message.textContent = `Are you sure you want to activate API access for this user?`;
+        confirmBtn.textContent = 'Activate';
+        confirmBtn.className = 'btn btn-success';
+    }
+    
+    confirmBtn.onclick = function() {
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/api/admin/toggle-status/${userId}/`;
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    };
+    
+    modal.show();
+}
+
+function deleteAPIUser(apiUserId, username) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+    const message = document.getElementById('deleteUserMessage');
+    const confirmBtn = document.getElementById('confirmDelete');
+    
+    message.textContent = `Are you sure you want to permanently remove API access for user "${username}"?`;
+    
+    confirmBtn.onclick = function() {
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/api/admin/delete-user/${apiUserId}/`;
+        
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    };
+    
+    modal.show();
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    border-top: none;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.btn-group .btn {
+    margin-right: 2px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block body_class %}light-page{% endblock %}
+{% block content_area_class %}light-theme{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex flex-wrap justify-content-between align-items-start gap-3">
+  <div>
+  <h1 class="h3 mb-1">{{ page_title }}</h1>
+  <p class="text-muted mb-0">Describe the capability and how it is used within the platform.</p>
+</div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'accounts:capability_list' %}">Back to Capability List</a>
+    <a class="btn btn-outline-secondary" href="{% url 'main:user_management' %}">User Management</a>
+    <a class="btn btn-outline-secondary" href="{% url 'main:unified_operations_dashboard' %}">Dashboard</a>
+  </div>
+</div>
+
+<form method="post" class="needs-validation" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label" for="{{ form.key.id_for_label }}">Key</label>
+      {{ form.key }}
+      {% for error in form.key.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="{{ form.name.id_for_label }}">Name</label>
+      {{ form.name }}
+      {% for error in form.name.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <div class="col-md-12">
+      <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {% for error in form.description.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <div class="col-md-6">
+      <label class="form-label" for="{{ form.category.id_for_label }}">Category</label>
+      {{ form.category }}
+      {% for error in form.category.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    </div>
+    <div class="col-md-6 d-flex align-items-center">
+      <div class="form-check">
+        {{ form.is_active }}
+        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Active</label>
+      </div>
+      {% for error in form.is_active.errors %}
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="mt-4 d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+

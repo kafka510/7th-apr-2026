@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Restrict Columns{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-eye-slash text-warning"></i> Restrict Columns</h2>
+                    <p class="text-muted">Hide or mask sensitive columns from API responses</p>
+                </div>
+                <a href="{% url 'api:api_config_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Column Restrictions</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="restrictForm">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.api_user.id_for_label }}" class="form-label">
+                                        <i class="fas fa-user"></i> Select API User *
+                                    </label>
+                                    {{ form.api_user }}
+                                    {% if form.api_user.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.api_user.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.table.id_for_label }}" class="form-label">
+                                        <i class="fas fa-table"></i> Select Table *
+                                    </label>
+                                    {{ form.table }}
+                                    {% if form.table.errors %}
+                                        <div class="text-danger">
+                                            {% for error in form.table.errors %}
+                                                <small>{{ error }}</small>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-eye-slash"></i> Restriction Type *
+                            </label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="restriction_type" 
+                                               id="restriction_hidden" value="hidden" checked>
+                                        <label class="form-check-label" for="restriction_hidden">
+                                            <strong>Hidden</strong> - Completely exclude from API responses
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="restriction_type" 
+                                               id="restriction_masked" value="masked">
+                                        <label class="form-check-label" for="restriction_masked">
+                                            <strong>Masked</strong> - Return as NULL in API responses
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-list"></i> Select Columns to Restrict
+                            </label>
+                            <div id="columns-container">
+                                <p class="text-muted">Select a table to see available columns</p>
+                            </div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'api:api_config_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save"></i> Apply Restrictions
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Column Restriction Guide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Hidden Columns</h6>
+                            <ul>
+                                <li>Completely removed from API responses</li>
+                                <li>Column won't appear in schema discovery</li>
+                                <li>Use for highly sensitive data</li>
+                                <li>Example: API keys, passwords, internal IDs</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Masked Columns</h6>
+                            <ul>
+                                <li>Column appears in schema but returns NULL</li>
+                                <li>Maintains API structure</li>
+                                <li>Use for less sensitive data</li>
+                                <li>Example: Contact info, addresses</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableSelect = document.getElementById('{{ form.table.id_for_label }}');
+    const apiUserSelect = document.getElementById('{{ form.api_user.id_for_label }}');
+    const columnsContainer = document.getElementById('columns-container');
+    
+    function loadColumns() {
+        const tableName = tableSelect.value;
+        const apiUserId = apiUserSelect.value;
+        
+        if (!tableName || !apiUserId) {
+            columnsContainer.innerHTML = '<p class="text-muted">Select both user and table to see columns</p>';
+            return;
+        }
+        
+        // Show loading
+        columnsContainer.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Loading columns...</p>';
+        
+        // Fetch columns via AJAX
+        fetch(`/api/admin/get-table-columns/?table=${tableName}&api_user=${apiUserId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    columnsContainer.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                let html = '<div class="row">';
+                data.columns.forEach(column => {
+                    const isRestricted = data.restricted.includes(column.name);
+                    const checked = isRestricted ? 'checked' : '';
+                    const disabled = isRestricted ? 'disabled' : '';
+                    
+                    html += `
+                        <div class="col-md-6 col-lg-4 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" 
+                                       name="columns" value="${column.name}" 
+                                       id="column_${column.name}" ${checked} ${disabled}>
+                                <label class="form-check-label" for="column_${column.name}">
+                                    ${column.name}
+                                    ${isRestricted ? '<span class="badge bg-warning ms-1">Restricted</span>' : ''}
+                                    <br>
+                                    <small class="text-muted">${column.type}</small>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                if (data.columns.length === 0) {
+                    html = '<p class="text-muted">No columns found for this table</p>';
+                }
+                
+                columnsContainer.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                columnsContainer.innerHTML = '<p class="text-danger">Error loading columns</p>';
+            });
+    }
+    
+    tableSelect.addEventListener('change', loadColumns);
+    apiUserSelect.addEventListener('change', loadColumns);
+});
+</script>
+
+<style>
+.form-control, .form-select {
+    border-radius: 0.375rem;
+}
+
+.form-check-input:checked {
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.badge {
+    font-size: 0.7em;
+}
+</style>
+{% endblock %}

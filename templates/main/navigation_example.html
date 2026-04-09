@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% load permission_tags %}
+
+{% block content %}
+<!-- Example navigation using the new centralized permissions system -->
+
+<div class="sidebar">
+    <h3>Navigation Menu</h3>
+    
+    <!-- Portfolio Section -->
+    <div class="menu-section">
+        <h4>Portfolio</h4>
+        
+        {% if request.user|has_permission_for:'home' %}
+            <a href="{% url 'main:home' %}">Home</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'dashboard' %}
+            <a href="{% url 'main:dashboard' %}">Dashboard</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'unified_operations_dashboard' %}
+            <a href="{% url 'main:unified_operations_dashboard' %}">Unified Operations Dashboard</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'portfolio_map' %}
+            <a href="{% url 'main:portfolio_map' %}">Portfolio Map</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'kpi_dashboard' %}
+            <a href="{% url 'main:kpi_dashboard' %}">KPI Dashboard</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'sales' %}
+            <a href="{% url 'main:sales' %}">Sales</a>
+        {% endif %}
+    </div>
+    
+    <!-- Performance Section -->
+    <div class="menu-section">
+        <h4>Performance</h4>
+        
+        <!-- PV Performance -->
+        <div class="submenu">
+            <h5>PV Performance</h5>
+            
+            {% if request.user|has_permission_for:'yield_report' %}
+                <a href="{% url 'main:yield_report' %}">Yield Report</a>
+            {% endif %}
+            
+            {% if request.user|has_permission_for:'yield_report_edited' %}
+                <a href="{% url 'main:yield_report_edited' %}">Yield Report (Edited)</a>
+            {% endif %}
+            
+            {% if request.user|has_permission_for:'pr_gap' %}
+                <a href="{% url 'main:pr_gap' %}">PR Gap</a>
+            {% endif %}
+            
+            {% if request.user|has_permission_for:'revenue_loss' %}
+                <a href="{% url 'main:revenue_loss' %}">Revenue Loss</a>
+            {% endif %}
+            
+            {% if request.user|has_permission_for:'areas_of_concern' %}
+                <a href="{% url 'main:areas_of_concern' %}">Areas of Concern (AOC)</a>
+            {% endif %}
+        </div>
+        
+        {% if request.user|has_permission_for:'bess_performance' %}
+            <a href="{% url 'main:bess_performance' %}">BESS Performance</a>
+        {% endif %}
+        
+        <!-- Generic -->
+        <div class="submenu">
+            <h5>Generic</h5>
+            
+            {% if request.user|has_permission_for:'minamata_typhoon_damage' %}
+                <a href="{% url 'main:minamata_typhoon_damage' %}">Minamata Typhoon Damage</a>
+            {% endif %}
+            
+            {% if request.user|has_permission_for:'ic_budget_vs_expected' %}
+                <a href="{% url 'main:ic_budget_vs_expected' %}">IC Budget vs Expected</a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Additional Features -->
+    <div class="menu-section">
+        <h4>Additional Features</h4>
+        
+        {% if request.user|has_permission_for:'main_dashboard' %}
+            <a href="{% url 'main:main_dashboard' %}">Main Dashboard</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'generation_report' %}
+            <a href="{% url 'main:generation_report' %}">Generation Report</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'time_series_dashboard' %}
+            <a href="{% url 'main:time_series_dashboard' %}">Time Series Data</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'user_management' %}
+            <a href="{% url 'main:user_management' %}">User Management</a>
+        {% endif %}
+        
+        {% if request.user|has_permission_for:'data_upload' %}
+            <a href="{% url 'main:data_upload' %}">Data Upload</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- User Information -->
+<div class="user-info">
+    <p><strong>Current User:</strong> {{ request.user.username }}</p>
+    <p><strong>Role:</strong> {{ user_role|default:"No role assigned" }}</p>
+    
+    <h4>Your Permissions:</h4>
+    <ul>
+    {% for feature, display_name in user_permissions.items %}
+        <li>{{ display_name }}</li>
+    {% empty %}
+        <li>No permissions assigned</li>
+    {% endfor %}
+    </ul>
+</div>
+
+    <!-- Dynamic Menu Generation Example -->
+    <div class="dynamic-menu">
+        <h4>Dynamic Menu (All Available Features)</h4>
+        {% for feature, display_name in all_features.items %}
+            {% if request.user|has_permission_for:feature %}
+                <div class="menu-item available">
+                    ✅ {{ display_name }}
+                </div>
+            {% else %}
+                <div class="menu-item unavailable">
+                    ❌ {{ display_name }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+<style>
+.sidebar {
+    background: #f5f5f5;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.menu-section {
+    margin-bottom: 20px;
+}
+
+.menu-section h4 {
+    color: #333;
+    border-bottom: 2px solid #0072CE;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.submenu {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.submenu h5 {
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.menu-section a {
+    display: block;
+    padding: 8px 12px;
+    margin: 2px 0;
+    text-decoration: none;
+    color: #0072CE;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.menu-section a:hover {
+    background-color: #e6f1fc;
+}
+
+.user-info {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.dynamic-menu {
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.menu-item {
+    padding: 5px 10px;
+    margin: 2px 0;
+    border-radius: 4px;
+}
+
+.menu-item.available {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.menu-item.unavailable {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+</style>
+
+{% endblock %} 

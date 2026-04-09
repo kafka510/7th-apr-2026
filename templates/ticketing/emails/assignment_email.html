@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .ticket-info {
+            background-color: white;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+            border-radius: 4px;
+        }
+        .ticket-info h3 {
+            margin-top: 0;
+            color: #28a745;
+        }
+        .info-row {
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 120px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            color: #6c757d;
+            font-size: 12px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .badge-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .badge-warning {
+            background-color: #ffc107;
+            color: #333;
+        }
+        .badge-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .alert {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>📋 New Ticket Assigned to You</h2>
+    </div>
+    
+    <div class="content">
+        <p>Hello {{ user.username }},</p>
+        
+        <div class="alert">
+            <strong>A new ticket has been assigned to you!</strong>
+        </div>
+        
+        <div class="ticket-info">
+            <h3>{{ ticket.ticket_number }}</h3>
+            <h4>{{ ticket.title }}</h4>
+            
+            <div class="info-row">
+                <span class="info-label">Priority:</span>
+                <span class="badge badge-{% if ticket.priority == 'critical' %}danger{% elif ticket.priority == 'high' %}warning{% else %}primary{% endif %}">
+                    {{ ticket.get_priority_display }}
+                </span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Status:</span>
+                <span>{{ ticket.get_status_display }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Category:</span>
+                <span>{{ ticket.category.name }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Site:</span>
+                <span>{{ ticket.asset_code.asset_name }}</span>
+            </div>
+            
+            {% if ticket.device_id %}
+            <div class="info-row">
+                <span class="info-label">Device:</span>
+                <span>{{ ticket.device_id.device_name }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="info-row">
+                <span class="info-label">Created By:</span>
+                <span>{{ ticket.created_by.username }}</span>
+            </div>
+            
+            <div class="info-row">
+                <span class="info-label">Description:</span>
+            </div>
+            <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
+                {{ ticket.description|linebreaks }}
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="{{ site_url }}/tickets/{{ ticket.id }}/" class="button">View & Respond to Ticket</a>
+        </div>
+        
+        <p style="margin-top: 20px;">
+            <strong>Next Steps:</strong><br>
+            Please review the ticket and update its status or add comments as needed.
+        </p>
+        
+        <div class="footer">
+            <p>This is an automated notification from the Ticketing System.</p>
+            <p>Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>
+

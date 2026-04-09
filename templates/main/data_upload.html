@@ -1,0 +1,1011 @@
+{% extends 'base.html' %}
+{% load permission_tags %}
+
+{% block title %}Data Upload & Management{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+    }
+    .container-fluid,
+    .card,
+    .card-header,
+    .card-body {
+        background-color: #ffffff !important;
+        color: #212529 !important;
+    }
+    .card {
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    .alert,
+    .table,
+    .table thead,
+    .table tbody {
+        background-color: #ffffff !important;
+        color: #212529 !important;
+    }
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.documentElement.removeAttribute('data-theme');
+    document.body.removeAttribute('data-theme');
+    document.body.classList.remove('theme-dark', 'dark-theme');
+});
+</script>
+<div class="container-fluid mt-4">
+    <!-- Only show header when NOT in iframe (standalone page) -->
+    <div class="d-flex justify-content-between align-items-center mb-3" id="page-header" style="display: none;">
+        <div class="d-flex align-items-center">
+            <h2>Data Upload & Management</h2>
+            <a href="{% url 'main:unified_operations_dashboard' %}" class="btn btn-outline-primary btn-sm ms-3" title="Back to Main Dashboard">
+                🏠 Dashboard
+            </a>
+        </div>
+        <div>
+            {% if user.is_authenticated and user|has_capability:'data_upload.manage' %}
+            <a href="{% url 'main:data_upload_help' %}" class="btn btn-outline-info btn-sm">
+                📋 Help & Templates
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <script>
+    // Show header only when page is NOT in iframe
+    if (window.self === window.top) {
+        document.getElementById('page-header').style.display = 'flex';
+    }
+    </script>
+    
+
+    <div class="row">
+        <!-- File Upload Section -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📁 Upload Data Files</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="uploadForm">
+                        {% csrf_token %}
+                        
+                        <!-- Data Type Selection -->
+                        <div class="mb-3">
+                            <label for="data_type" class="form-label">Data Type</label>
+                            <select class="form-select" id="data_type" name="data_type" required>
+                                <option value="">Select Data Type</option>
+                                <option value="yield">Yield Data</option>
+                                <option value="bess">BESS Data</option>
+                                <option value="bess_v1">BESS V1 Data</option>
+                                <option value="aoc">Areas of Concern (AOC)</option>
+                                <option value="ice">ICE Data</option>
+                                <option value="icvsexvscur">IC Budget vs Expected Data</option>
+                                <option value="map">Map Data</option>
+                                <option value="minamata">Minamata String Loss</option>
+                                <option value="loss_calculation">Loss Calculation</option>
+                                <option value="actual_generation_daily">Actual Generation Daily</option>
+                                <option value="expected_budget_daily">Expected Budget Daily</option>
+                                <option value="budget_gii_daily">Budget GII Daily</option>
+                                <option value="actual_gii_daily">Actual GII Daily</option>
+                                <option value="ic_approved_budget_daily">IC Approved Budget Daily</option>
+                            </select>
+                        </div>
+
+                        <!-- Upload Mode -->
+                        <div class="mb-3">
+                            <label class="form-label">Upload Mode</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="upload_mode" id="append_mode" value="append" checked>
+                                <label class="form-check-label" for="append_mode">
+                                    📈 Append New Data
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="upload_mode" id="replace_mode" value="replace">
+                                <label class="form-check-label" for="replace_mode">
+                                    🔄 Replace/Update Existing Data
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Date Range for Replace Mode -->
+                        <div class="mb-3" id="dateRangeSection" style="display: none;">
+                            <label class="form-label">Date Range for Update</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="start_date" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date">
+                                </div>
+                            </div>
+                            <small class="text-muted">Select date range to update existing data</small>
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label">CSV File</label>
+                            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                            <div class="form-text">Upload CSV file with appropriate headers</div>
+                        </div>
+
+                        <!-- Advanced Options -->
+                        <div class="mb-3">
+                            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedOptions">
+                                ⚙️ Advanced Options
+                            </button>
+                            <div class="collapse mt-2" id="advancedOptions">
+                                <div class="card card-body">
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="skip_duplicates" name="skip_duplicates" checked>
+                                            <label class="form-check-label" for="skip_duplicates">
+                                                Skip duplicate records
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="validate_data" name="validate_data" checked>
+                                            <label class="form-check-label" for="validate_data">
+                                                Validate data before import
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label for="batch_size" class="form-label">Batch Size</label>
+                                        <input type="number" class="form-control form-control-sm" id="batch_size" name="batch_size" value="1000" min="100" max="10000">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="uploadBtn">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" id="uploadSpinner"></span>
+                            📤 Upload Data
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Management Section -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>🗂️ Data Overview & Actions</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Data Overview -->
+                    <div class="mb-3">
+                        <h6>Data Overview</h6>
+                        <div class="row g-2">
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Yield Data</h6>
+                                        <p class="card-text" id="yieldCount">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">BESS Data</h6>
+                                        <p class="card-text" id="bessCount">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">BESS V1 Data</h6>
+                                        <p class="card-text" id="bessV1Count">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">AOC Data</h6>
+                                        <p class="card-text" id="aocCount">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-sm-6 col-lg-4">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="card-title">Map Data</h6>
+                                        <p class="card-text" id="mapCount">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Actions -->
+                    <div class="mb-3">
+                        <h6>Data Actions</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-info btn-sm" onclick="refreshDataCounts()">
+                                🔄 Refresh Counts
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="showDataPreview()">
+                                👁️ Preview Data
+                            </button>
+                            {% if user.is_authenticated and user|has_capability:'data_upload.manage' %}
+                            <button class="btn btn-outline-success btn-sm" onclick="showDownloadModal()">
+                                📥 Download Data
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-outline-danger btn-sm" onclick="showDeleteModal()">
+                                🗑️ Delete Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Upload History -->
+                    <div class="mb-3">
+                        <h6>Upload History</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="uploadHistoryTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>File</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Records</th>
+                                        <th>User</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="uploadHistoryBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="refreshUploadHistory()">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Preview Modal -->
+    <div class="modal fade" id="dataPreviewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Data Preview</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="previewDataType" class="form-label">Data Type</label>
+                        <select class="form-select" id="previewDataType">
+                            <option value="yield">Yield Data</option>
+                            <option value="bess">BESS Data</option>
+                            <option value="bess_v1">BESS V1 Data</option>
+                            <option value="aoc">AOC Data</option>
+                            <option value="ice">ICE Data</option>
+                            <option value="icvsexvscur">IC Budget vs Expected Data</option>
+                            <option value="map">Map Data</option>
+                            <option value="minamata">Minamata String Loss</option>
+                            <option value="loss_calculation">Loss Calculation</option>
+                            <option value="actual_generation_daily">Actual Generation Daily</option>
+                            <option value="expected_budget_daily">Expected Budget Daily</option>
+                            <option value="budget_gii_daily">Budget GII Daily</option>
+                            <option value="actual_gii_daily">Actual GII Daily</option>
+                            <option value="ic_approved_budget_daily">IC Approved Budget Daily</option>
+                        </select>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="previewTable">
+                            <thead>
+                                <tr>
+                                    <th>Loading...</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Loading data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Data Modal -->
+    <div class="modal fade" id="deleteDataModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <strong>⚠️ Warning:</strong> This action cannot be undone!
+                    </div>
+                    <div class="mb-3">
+                        <label for="deleteDataType" class="form-label">Data Type</label>
+                        <select class="form-select" id="deleteDataType">
+                            <option value="">Select Data Type</option>
+                            <option value="yield">Yield Data</option>
+                            <option value="bess">BESS Data</option>
+                            <option value="bess_v1">BESS V1 Data</option>
+                            <option value="aoc">AOC Data</option>
+                            <option value="ice">ICE Data</option>
+                            <option value="icvsexvscur">IC Budget vs Expected Data</option>
+                            <option value="map">Map Data</option>
+                            <option value="minamata">Minamata String Loss</option>
+                            <option value="loss_calculation">Loss Calculation</option>
+                            <option value="actual_generation_daily">Actual Generation Daily</option>
+                            <option value="expected_budget_daily">Expected Budget Daily</option>
+                            <option value="budget_gii_daily">Budget GII Daily</option>
+                            <option value="actual_gii_daily">Actual GII Daily</option>
+                            <option value="ic_approved_budget_daily">IC Approved Budget Daily</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Delete Options</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="deleteOption" id="deleteAll" value="all">
+                            <label class="form-check-label" for="deleteAll">
+                                Delete all data
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="deleteOption" id="deleteDateRange" value="date_range">
+                            <label class="form-check-label" for="deleteDateRange">
+                                Delete by date range
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3" id="deleteDateRangeSection" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="deleteStartDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="deleteStartDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="deleteEndDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="deleteEndDate">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteData()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Dynamic content will be inserted here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">Confirm Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Data Modal - Admin Only -->
+    {% if user.is_authenticated and user|has_capability:'data_upload.manage' %}
+    <div class="modal fade" id="downloadDataModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">📥 Download Data</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="downloadDataType" class="form-label">Data Type</label>
+                        <select class="form-select" id="downloadDataType">
+                            <option value="">Select Data Type</option>
+                            <option value="yield">Yield Data</option>
+                            <option value="bess">BESS Performance Data</option>
+                            <option value="bess_v1">BESS V1 Performance Data</option>
+                            <option value="aoc">Areas of Concern (AOC)</option>
+                            <option value="ice">ICE Data</option>
+                            <option value="icvsexvscur">IC Budget vs Expected Data</option>
+                            <option value="map">Map Data</option>
+                            <option value="minamata">Minamata String Loss</option>
+                            <option value="loss_calculation">Loss Calculation</option>
+                            <option value="actual_generation_daily">Actual Generation Daily</option>
+                            <option value="expected_budget_daily">Expected Budget Daily</option>
+                            <option value="budget_gii_daily">Budget GII Daily</option>
+                            <option value="actual_gii_daily">Actual GII Daily</option>
+                            <option value="ic_approved_budget_daily">IC Approved Budget Daily</option>
+                            <option value="data_import_log">Data Import Log</option>
+                            <option value="realtime_kpi">Real-time KPI Data</option>
+                            <option value="feedback">Feedback Data</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Download Format</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="downloadFormat" id="csvFormat" value="csv" checked>
+                            <label class="form-check-label" for="csvFormat">
+                                📄 CSV Format
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="downloadFormat" id="excelFormat" value="excel">
+                            <label class="form-check-label" for="excelFormat">
+                                📊 Excel Format (XLSX)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>ℹ️ Note:</strong> Downloads will include only data you have access to based on your user permissions.
+                            Large datasets may take a moment to process.
+                        </small>
+                    </div>
+                    <div class="alert alert-warning" id="iframeWarning" style="display: none;">
+                        <small>
+                            <strong>⚠️ Download Alternative:</strong> Due to browser security restrictions in embedded content, please use this direct download link:
+                            <br><div id="directDownloadUrl" class="mt-2"></div>
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="downloadData()">
+                        <span class="download-spinner spinner-border spinner-border-sm d-none" role="status"></span>
+                        📥 Download
+                    </button>
+                </div>
+                
+                <!-- Hidden form for iframe-safe downloads -->
+                <form id="downloadForm" method="GET" style="display: none;" target="_parent">
+                    <input type="hidden" name="format" id="hiddenFormat">
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Upload mode toggle
+document.querySelectorAll('input[name="upload_mode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const dateRangeSection = document.getElementById('dateRangeSection');
+        if (this.value === 'replace') {
+            dateRangeSection.style.display = 'block';
+        } else {
+            dateRangeSection.style.display = 'none';
+        }
+    });
+});
+
+// Form submission
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const uploadBtn = document.getElementById('uploadBtn');
+    const spinner = document.getElementById('uploadSpinner');
+    
+    uploadBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    
+    // Show progress indicator
+    uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Uploading...';
+});
+
+// Load data counts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    refreshDataCounts();
+    refreshUploadHistory();
+});
+
+// Helper function to get CSRF token
+function getCSRFToken() {
+    const token = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (token) {
+        return token.value;
+    }
+    // Fallback: try to get from cookie
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    return null;
+}
+
+function refreshDataCounts() {
+    const csrfToken = getCSRFToken();
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    fetch('/api/data-counts/', {
+        headers: headers
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('yieldCount').textContent = data.yield_count || 0;
+            document.getElementById('bessCount').textContent = data.bess_count || 0;
+            document.getElementById('bessV1Count').textContent = data.bess_v1_count || 0;
+            document.getElementById('aocCount').textContent = data.aoc_count || 0;
+            document.getElementById('mapCount').textContent = data.map_count || 0;
+        })
+        .catch(error => {
+            console.error('Error loading data counts:', error);
+            // Show error in the UI
+            document.getElementById('yieldCount').textContent = 'Error';
+            document.getElementById('bessCount').textContent = 'Error';
+            document.getElementById('bessV1Count').textContent = 'Error';
+            document.getElementById('aocCount').textContent = 'Error';
+            document.getElementById('mapCount').textContent = 'Error';
+        });
+}
+
+function refreshUploadHistory() {
+    const csrfToken = getCSRFToken();
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    fetch('/api/upload-history/', {
+        headers: headers
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const tbody = document.getElementById('uploadHistoryBody');
+            if (data.uploads && data.uploads.length > 0) {
+                let html = '';
+                data.uploads.forEach(upload => {
+                    const statusClass = upload.status === 'success' ? 'text-success' : 
+                                      upload.status === 'failed' ? 'text-danger' : 'text-warning';
+                    const statusIcon = upload.status === 'success' ? '✅' : 
+                                     upload.status === 'failed' ? '❌' : '⚠️';
+                    
+                    html += `
+                        <tr>
+                            <td><small>${upload.import_date}</small></td>
+                            <td><small>${upload.file_name}</small></td>
+                            <td><span class="badge bg-secondary">${upload.data_type}</span></td>
+                            <td><span class="${statusClass}">${statusIcon} ${upload.status}</span></td>
+                            <td><small>${upload.records_imported} imported, ${upload.records_skipped} skipped</small></td>
+                            <td><small>${upload.imported_by}</small></td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } else {
+                // Show appropriate message based on response
+                const message = data.message || 'No upload history found';
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted">${message}</td></tr>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading upload history:', error);
+            document.getElementById('uploadHistoryBody').innerHTML = 
+                '<tr><td colspan="6" class="text-center text-muted">No upload history available yet. Upload some data to see history here.</td></tr>';
+        });
+}
+
+function showDataPreview() {
+    const modal = new bootstrap.Modal(document.getElementById('dataPreviewModal'));
+    modal.show();
+    loadDataPreview();
+}
+
+function loadDataPreview() {
+    const dataType = document.getElementById('previewDataType').value;
+    if (!dataType) return;
+    
+    const csrfToken = getCSRFToken();
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    fetch(`/api/data-preview/${dataType}/`, {
+        headers: headers
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const table = document.getElementById('previewTable');
+            if (data.data && data.data.length > 0) {
+                // Create headers
+                const headers = Object.keys(data.data[0]);
+                let headerHtml = '<tr>';
+                headers.forEach(header => {
+                    headerHtml += `<th>${header}</th>`;
+                });
+                headerHtml += '</tr>';
+                table.querySelector('thead').innerHTML = headerHtml;
+                
+                // Create rows
+                let bodyHtml = '';
+                data.data.forEach(row => {
+                    bodyHtml += '<tr>';
+                    headers.forEach(header => {
+                        bodyHtml += `<td>${row[header] || ''}</td>`;
+                    });
+                    bodyHtml += '</tr>';
+                });
+                table.querySelector('tbody').innerHTML = bodyHtml;
+            } else {
+                table.querySelector('tbody').innerHTML = '<tr><td colspan="100%" class="text-center">No data available</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading data preview:', error);
+            const table = document.getElementById('previewTable');
+            table.querySelector('tbody').innerHTML = '<tr><td colspan="100%" class="text-center text-danger">Error loading data</td></tr>';
+        });
+}
+
+function showDeleteModal() {
+    const modal = new bootstrap.Modal(document.getElementById('deleteDataModal'));
+    modal.show();
+}
+
+function showDownloadModal() {
+    // Check if user is admin (additional client-side security)
+    {% if not user.is_authenticated or not user|has_capability:'data_upload.manage' %}
+    showToast('Access denied. Admin privileges required.', 'error');
+    return;
+    {% endif %}
+    
+    // Hide any previous iframe warning
+    const iframeWarning = document.getElementById('iframeWarning');
+    if (iframeWarning) {
+        iframeWarning.style.display = 'none';
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('downloadDataModal'));
+    modal.show();
+}
+
+function downloadData() {
+    // Check if user is admin (additional client-side security)
+    {% if not user.is_authenticated or not user|has_capability:'data_upload.manage' %}
+    showToast('Access denied. Admin privileges required.', 'error');
+    return;
+    {% endif %}
+    
+    const dataType = document.getElementById('downloadDataType').value;
+    const format = document.querySelector('input[name="downloadFormat"]:checked').value;
+    
+    if (!dataType) {
+        showToast('Please select a data type', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const downloadBtn = document.querySelector('#downloadDataModal .btn-success');
+    const spinner = document.querySelector('.download-spinner');
+    const originalText = downloadBtn.innerHTML;
+    
+    downloadBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    downloadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Downloading...';
+    
+    // Create download URL
+    const url = `{% url 'main:download_data' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', dataType) + `?format=${format}`;
+    
+    console.log('Download URL:', url);
+    console.log('Window context - top:', window.top, 'self:', window.self);
+    
+    // Always show fallback link first (since we're in a sandboxed iframe)
+    showIframeDownloadFallback(url, dataType, format);
+    
+    // Try automated download within iframe constraints
+    try {
+        // Method 1: Try hidden link click (works in most iframe contexts)
+        const hiddenLink = document.createElement('a');
+        hiddenLink.href = url;
+        hiddenLink.download = ''; // Suggest download
+        hiddenLink.style.display = 'none';
+        document.body.appendChild(hiddenLink);
+        hiddenLink.click();
+        document.body.removeChild(hiddenLink);
+        
+        console.log('Attempted automatic download via hidden link');
+        showToast('Download started! If it doesn\'t work, use the buttons below.', 'info');
+        
+    } catch (autoError) {
+        console.error('Automatic download failed:', autoError);
+        showToast('Please use the download buttons below.', 'info');
+    }
+    
+    // Restore button state and keep modal open so user can see the link
+    setTimeout(() => {
+        downloadBtn.disabled = false;
+        spinner.classList.add('d-none');
+        downloadBtn.innerHTML = originalText;
+        // Don't hide modal immediately - let user see the download link
+    }, 1000);
+}
+
+function showIframeDownloadFallback(url, dataType, format) {
+    const directUrlElement = document.getElementById('directDownloadUrl');
+    const warningElement = document.getElementById('iframeWarning');
+    
+    // Create multiple download options
+    directUrlElement.innerHTML = `
+        <div class="d-grid gap-2">
+            <a href="${url}" target="_blank" class="btn btn-primary btn-sm" onclick="handleDirectDownload('${url}')">
+                📥 Download ${dataType.toUpperCase()} Data (${format.toUpperCase()})
+            </a>
+            <a href="${url}" target="_self" class="btn btn-outline-secondary btn-sm">
+                🔗 Direct Download Link
+            </a>
+            <small class="text-muted">
+                <strong>Instructions:</strong><br>
+                1. Click "Download" button above<br>
+                2. If blocked, try "Direct Download Link"<br>
+                3. Or right-click and "Save link as..." or "Open in new tab"
+            </small>
+        </div>
+    `;
+    warningElement.style.display = 'block';
+    
+    console.log('Showing download fallback for:', url);
+}
+
+function handleDirectDownload(url) {
+    // Try multiple methods for iframe download
+    try {
+        // Check if we're in an iframe
+        const isInIframe = window.top !== window.self;
+        
+        if (isInIframe) {
+            // Method 1: Use postMessage to ask parent to handle download
+            try {
+                const dataType = document.getElementById('downloadDataType')?.value || 'data';
+                const format = document.querySelector('input[name="downloadFormat"]:checked')?.value || 'csv';
+                
+                window.parent.postMessage({
+                    type: 'download_request',
+                    url: url,
+                    filename: `${dataType}_data_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.${format === 'excel' ? 'xlsx' : 'csv'}`
+                }, '*');
+                
+                console.log('Download request sent to parent window via postMessage');
+                showToast('Download request sent to parent window', 'info');
+                return false;
+                
+            } catch (postMessageError) {
+                console.error('PostMessage failed:', postMessageError);
+            }
+        }
+        
+        // Method 2: Try to trigger browser download dialog directly
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = ''; // Suggest download
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log('Triggered download via hidden link');
+        showToast('Download triggered! Check your browser downloads.', 'success');
+        
+    } catch (error) {
+        console.error('Direct download failed:', error);
+        showToast('Please try the "Direct Download Link" or right-click to save.', 'warning');
+    }
+    
+    return false; // Prevent default link behavior
+}
+
+// Delete option toggle
+document.querySelectorAll('input[name="deleteOption"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const dateRangeSection = document.getElementById('deleteDateRangeSection');
+        if (this.value === 'date_range') {
+            dateRangeSection.style.display = 'block';
+        } else {
+            dateRangeSection.style.display = 'none';
+        }
+    });
+});
+
+function deleteData() {
+    const dataType = document.getElementById('deleteDataType').value;
+    const deleteOption = document.querySelector('input[name="deleteOption"]:checked').value;
+    const startDate = document.getElementById('deleteStartDate').value;
+    const endDate = document.getElementById('deleteEndDate').value;
+    
+    if (!dataType) {
+        showToast('Please select a data type', 'error');
+        return;
+    }
+    
+    if (deleteOption === 'date_range' && (!startDate || !endDate)) {
+        showToast('Please select start and end dates', 'error');
+        return;
+    }
+    
+    // Show confirmation modal instead of using confirm()
+    showDeleteConfirmationModal(dataType, deleteOption, startDate, endDate);
+}
+
+function showDeleteConfirmationModal(dataType, deleteOption, startDate, endDate) {
+    const confirmationModal = document.getElementById('deleteConfirmationModal');
+    const modalBody = confirmationModal.querySelector('.modal-body');
+    
+    let message = `Are you sure you want to delete ${dataType} data?`;
+    if (deleteOption === 'date_range') {
+        message += `\n\nDate Range: ${startDate} to ${endDate}`;
+    } else {
+        message += '\n\nThis will delete ALL data of this type.';
+    }
+    message += '\n\nThis action cannot be undone!';
+    
+    modalBody.innerHTML = `<div class="alert alert-danger">
+        <strong>⚠️ Warning:</strong><br>
+        ${message.replace(/\n/g, '<br>')}
+    </div>`;
+    
+    // Store the data for the actual delete operation
+    confirmationModal.dataset.deleteData = JSON.stringify({
+        data_type: dataType,
+        delete_option: deleteOption,
+        start_date: startDate,
+        end_date: endDate
+    });
+    
+    // Show the confirmation modal
+    const modal = new bootstrap.Modal(confirmationModal);
+    modal.show();
+}
+
+function confirmDelete() {
+    const confirmationModal = document.getElementById('deleteConfirmationModal');
+    const deleteData = JSON.parse(confirmationModal.dataset.deleteData);
+    
+    const csrfToken = getCSRFToken();
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+    }
+    
+    // Show loading state
+    const confirmBtn = document.querySelector('#deleteConfirmationModal .btn-danger');
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Deleting...';
+    
+    fetch('/api/delete-data/', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(deleteData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showToast('Data deleted successfully', 'success');
+            refreshDataCounts();
+            bootstrap.Modal.getInstance(document.getElementById('deleteDataModal')).hide();
+            bootstrap.Modal.getInstance(document.getElementById('deleteConfirmationModal')).hide();
+        } else {
+            showToast('Error deleting data: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting data:', error);
+        showToast('Error deleting data', 'error');
+    })
+    .finally(() => {
+        // Restore button state
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+    });
+}
+
+// Data preview type change
+document.getElementById('previewDataType').addEventListener('change', loadDataPreview);
+
+// Toast notification function
+function showToast(message, type = 'info') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    // Show the toast
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: type === 'error' ? 5000 : 3000
+    });
+    toast.show();
+    
+    // Remove toast element after it's hidden
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
+    });
+}
+</script>
+{% endblock %} 

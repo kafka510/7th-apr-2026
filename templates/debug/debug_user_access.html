@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Debug User Access{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Debug User Access Information</h2>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>User Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Role:</strong> {{ user_role }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Site Access Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Total Sites Available:</strong> {{ all_sites_count }}</p>
+                    <p><strong>Japan Sites Available:</strong> {{ japan_sites_count }}</p>
+                    <p><strong>Korea Sites Available:</strong> {{ korea_sites_count }}</p>
+                    <p><strong>Sites You Can Access:</strong> {{ accessible_sites_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Your Access Permissions</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Assigned Countries:</h6>
+                    {% if assigned_countries %}
+                        <ul>
+                        {% for country in assigned_countries %}
+                            <li>{{ country.country }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No countries assigned</p>
+                    {% endif %}
+
+                    <h6>Assigned Portfolios:</h6>
+                    {% if assigned_portfolios %}
+                        <ul>
+                        {% for portfolio in assigned_portfolios %}
+                            <li>{{ portfolio.portfolio }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No portfolios assigned</p>
+                    {% endif %}
+
+                    <h6>Assigned Sites:</h6>
+                    {% if assigned_sites %}
+                        <ul>
+                        {% for site in assigned_sites %}
+                            <li>{{ site.asset_name }} ({{ site.country }})</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No specific sites assigned</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Japan Sites (Available in System)</h5>
+                </div>
+                <div class="card-body">
+                    {% if japan_sites %}
+                        <ul>
+                        {% for site in japan_sites %}
+                            <li>{{ site.asset_name }} ({{ site.asset_code }}) - {{ site.country }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No Japan sites found in system</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Your Accessible Sites</h5>
+                </div>
+                <div class="card-body">
+                    {% if accessible_sites %}
+                        <ul>
+                        {% for site in accessible_sites %}
+                            <li>{{ site.asset_name }} ({{ site.asset_code }}) - {{ site.country }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">No sites accessible</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Data Availability</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <h6>Yield Data</h6>
+                            <p>Total: {{ yield_data_count }}</p>
+                            <p>Accessible: {{ accessible_yield_data }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>BESS Data</h6>
+                            <p>Total: {{ bess_data_count }}</p>
+                            <p>Accessible: {{ accessible_bess_data }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>AOC Data</h6>
+                            <p>Total: {{ aoc_data_count }}</p>
+                            <p>Accessible: {{ accessible_aoc_data }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h6>Map Data</h6>
+                            <p>Total: {{ map_data_count }}</p>
+                            <p>Accessible: {{ accessible_map_data }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <h6>Troubleshooting Tips:</h6>
+                <ul>
+                    <li>If Japan sites are not visible, check if you have been assigned access to Japan or the specific Japan portfolio</li>
+                    <li>Admin users should see all sites</li>
+                    <li>Check your assigned countries, portfolios, and sites above</li>
+                    <li>If you need access to Japan sites, contact an administrator</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

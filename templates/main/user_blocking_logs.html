@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}User Blocking Logs - Peak Energy{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-shield-alt"></i> User Blocking Logs
+                    </h4>
+                    <div>
+                        <a href="{% url 'main:user_management' %}" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-arrow-left"></i> Back to User Management
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filters -->
+                    <form method="get" action="{% url 'main:user_blocking_logs' %}" class="mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="search" class="form-label">Search</label>
+                                <input type="text" class="form-control" id="search" name="search" 
+                                       value="{{ search_query }}" placeholder="Username, IP, reason...">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="block_type" class="form-label">Block Type</label>
+                                <select class="form-select" id="block_type" name="block_type">
+                                    <option value="">All Types</option>
+                                    {% for value, label in block_types %}
+                                    <option value="{{ value }}" {% if block_type_filter == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="block_reason" class="form-label">Block Reason</label>
+                                <select class="form-select" id="block_reason" name="block_reason">
+                                    <option value="">All Reasons</option>
+                                    {% for value, label in block_reasons %}
+                                    <option value="{{ value }}" {% if block_reason_filter == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="status" class="form-label">Status</label>
+                                <select class="form-select" id="status" name="status">
+                                    <option value="">All Statuses</option>
+                                    {% for value, label in statuses %}
+                                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label for="date_from" class="form-label">Date From</label>
+                                <input type="date" class="form-control" id="date_from" name="date_from" 
+                                       value="{{ date_from }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="date_to" class="form-label">Date To</label>
+                                <input type="date" class="form-control" id="date_to" name="date_to" 
+                                       value="{{ date_to }}">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter"></i> Apply Filters
+                                </button>
+                                <a href="{% url 'main:user_blocking_logs' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Clear Filters
+                                </a>
+                                <a href="{% url 'main:user_blocking_logs' %}?{{ request.GET.urlencode }}&export=csv" 
+                                   class="btn btn-success">
+                                    <i class="fas fa-download"></i> Export CSV
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Statistics -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="alert alert-info">
+                                <strong>Total Logs:</strong> {{ total_count }}
+                                {% if block_type_counts %}
+                                | <strong>By Type:</strong>
+                                {% for item in block_type_counts %}
+                                {{ item.block_type }}: {{ item.count }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logs Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Block Type</th>
+                                    <th>Block Reason</th>
+                                    <th>Status</th>
+                                    <th>Blocked At</th>
+                                    <th>IP Address</th>
+                                    <th>Failed Attempts</th>
+                                    <th>Unblocked At</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>{{ log.id }}</td>
+                                    <td>
+                                        <strong>{{ log.user.username }}</strong>
+                                        {% if log.user.email %}
+                                        <br><small class="text-muted">{{ log.user.email }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if log.block_type == 'automatic' %}warning{% elif log.block_type == 'manual' %}info{% else %}secondary{% endif %}">
+                                            {{ log.get_block_type_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger">{{ log.get_block_reason_display }}</span>
+                                        {% if log.reason_details %}
+                                        <br><small class="text-muted" title="{{ log.reason_details }}">
+                                            {{ log.reason_details|truncatewords:10 }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if log.status == 'active' %}danger{% elif log.status == 'unblocked' %}success{% else %}secondary{% endif %}">
+                                            {{ log.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ log.blocked_at|date:"Y-m-d H:i:s" }}</td>
+                                    <td>
+                                        <code>{{ log.ip_address }}</code>
+                                        {% if log.country %}
+                                        <br><small class="text-muted">{{ log.country }}{% if log.city %}, {{ log.city }}{% endif %}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.failed_attempts > 0 %}
+                                        <span class="badge bg-warning">{{ log.failed_attempts }}</span>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.unblocked_at %}
+                                        {{ log.unblocked_at|date:"Y-m-d H:i:s" }}
+                                        {% if log.unblocked_by %}
+                                        <br><small class="text-muted">by {{ log.unblocked_by.username }}</small>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-info" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#logDetailModal{{ log.id }}">
+                                            <i class="fas fa-eye"></i> Details
+                                        </button>
+                                    </td>
+                                </tr>
+
+                                <!-- Detail Modal -->
+                                <div class="modal fade" id="logDetailModal{{ log.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Blocking Log Details - {{ log.user.username }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <dl class="row">
+                                                    <dt class="col-sm-4">User:</dt>
+                                                    <dd class="col-sm-8">{{ log.user.username }} ({{ log.user.email }})</dd>
+                                                    
+                                                    <dt class="col-sm-4">Block Type:</dt>
+                                                    <dd class="col-sm-8">{{ log.get_block_type_display }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Block Reason:</dt>
+                                                    <dd class="col-sm-8">{{ log.get_block_reason_display }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Reason Details:</dt>
+                                                    <dd class="col-sm-8">{{ log.reason_details|default:"-" }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Status:</dt>
+                                                    <dd class="col-sm-8">
+                                                        <span class="badge bg-{% if log.status == 'active' %}danger{% elif log.status == 'unblocked' %}success{% else %}secondary{% endif %}">
+                                                            {{ log.get_status_display }}
+                                                        </span>
+                                                    </dd>
+                                                    
+                                                    <dt class="col-sm-4">Blocked At:</dt>
+                                                    <dd class="col-sm-8">{{ log.blocked_at|date:"Y-m-d H:i:s" }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Blocked By:</dt>
+                                                    <dd class="col-sm-8">{{ log.blocked_by.username|default:"System" }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">IP Address:</dt>
+                                                    <dd class="col-sm-8"><code>{{ log.ip_address }}</code></dd>
+                                                    
+                                                    <dt class="col-sm-4">Location:</dt>
+                                                    <dd class="col-sm-8">
+                                                        {% if log.country %}
+                                                        {{ log.country }}{% if log.city %}, {{ log.city }}{% endif %}
+                                                        {% else %}
+                                                        -
+                                                        {% endif %}
+                                                    </dd>
+                                                    
+                                                    <dt class="col-sm-4">User Agent:</dt>
+                                                    <dd class="col-sm-8"><small>{{ log.user_agent|default:"-" }}</small></dd>
+                                                    
+                                                    <dt class="col-sm-4">Failed Attempts:</dt>
+                                                    <dd class="col-sm-8">{{ log.failed_attempts }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Suspicious Activities:</dt>
+                                                    <dd class="col-sm-8">{{ log.suspicious_activities }}</dd>
+                                                    
+                                                    {% if log.unblocked_at %}
+                                                    <dt class="col-sm-4">Unblocked At:</dt>
+                                                    <dd class="col-sm-8">{{ log.unblocked_at|date:"Y-m-d H:i:s" }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Unblocked By:</dt>
+                                                    <dd class="col-sm-8">{{ log.unblocked_by.username|default:"System" }}</dd>
+                                                    
+                                                    <dt class="col-sm-4">Unblock Reason:</dt>
+                                                    <dd class="col-sm-8">{{ log.unblock_reason|default:"-" }}</dd>
+                                                    {% endif %}
+                                                    
+                                                    {% if log.expires_at %}
+                                                    <dt class="col-sm-4">Expires At:</dt>
+                                                    <dd class="col-sm-8">{{ log.expires_at|date:"Y-m-d H:i:s" }}</dd>
+                                                    {% endif %}
+                                                    
+                                                    {% if log.metadata %}
+                                                    <dt class="col-sm-4">Metadata:</dt>
+                                                    <dd class="col-sm-8"><pre class="small">{{ log.metadata }}</pre></dd>
+                                                    {% endif %}
+                                                </dl>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        <i class="fas fa-inbox"></i> No blocking logs found
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if logs.has_other_pages %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% if logs.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ logs.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode|urlencode }}{% endif %}">Previous</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for num in logs.paginator.page_range %}
+                            {% if logs.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                            {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode|urlencode }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endif %}
+                            {% endfor %}
+                            
+                            {% if logs.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ logs.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode|urlencode }}{% endif %}">Next</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

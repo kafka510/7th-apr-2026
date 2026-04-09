@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Submit Feedback{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-comment-alt me-2"></i>
+                        Submit Feedback
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">
+                        We value your feedback! Please share your thoughts, suggestions, or report any issues you've encountered.
+                    </p>
+                    
+                    <form method="post" enctype="multipart/form-data" id="feedback-form">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.subject.id_for_label }}" class="form-label">
+                                {{ form.subject.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.subject }}
+                            {% if form.subject.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.subject.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.message.id_for_label }}" class="form-label">
+                                {{ form.message.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.message }}
+                            {% if form.message.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.message.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.images.id_for_label }}" class="form-label">
+                                {{ form.images.label }}
+                            </label>
+                            <input type="file" 
+                                   name="images" 
+                                   id="{{ form.images.id_for_label }}" 
+                                   class="form-control" 
+                                   accept="image/*" 
+                                   multiple>
+                            <div class="form-text">
+                                <small>
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    You can attach multiple screenshots or images to help us understand your feedback better. 
+                                    Supported formats: JPG, PNG, GIF (Max size: 5MB each)
+                                </small>
+                            </div>
+                            {% if form.images.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.images.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Image Preview Container -->
+                            <div id="image-preview-container" class="mt-3" style="display: none;">
+                                <h6 class="text-muted mb-2">Selected Images:</h6>
+                                <div id="image-preview-grid" class="row g-2"></div>
+                            </div>
+                            
+                            <!-- Paste Area -->
+                            <div id="paste-area" class="mt-3 border border-dashed border-secondary rounded p-3 text-center" style="cursor: pointer; background-color: #f8f9fa;">
+                                <i class="fas fa-paste fa-2x text-muted mb-2"></i>
+                                <p class="text-muted mb-0">Click here or press Ctrl+V to paste images from clipboard</p>
+                                <small class="text-muted">You can paste multiple images at once</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-user me-2"></i>
+                                <strong>Your Information:</strong><br>
+                                Username: {{ user.username }}<br>
+                                Email: {{ user.email }}
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'main:unified_operations_dashboard' %}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submit-btn">
+                                <i class="fas fa-paper-plane me-1"></i>
+                                Submit Feedback
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Global variables for image handling
+let selectedFiles = [];
+let fileInput = null;
+
+// Preview multiple images
+function handleMultipleImages(input) {
+    fileInput = input;
+    selectedFiles = Array.from(input.files);
+    updateImagePreviews();
+}
+
+// Update image previews
+function updateImagePreviews() {
+    const container = document.getElementById('image-preview-container');
+    const grid = document.getElementById('image-preview-grid');
+    
+    if (selectedFiles.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    grid.innerHTML = '';
+    
+    selectedFiles.forEach((file, index) => {
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const col = document.createElement('div');
+                col.className = 'col-md-3 col-sm-4 col-6';
+                col.innerHTML = `
+                    <div class="card">
+                        <img src="${e.target.result}" class="card-img-top" style="height: 120px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <small class="text-muted d-block">${file.name}</small>
+                            <small class="text-muted">${(file.size / 1024).toFixed(1)} KB</small>
+                            <button type="button" class="btn btn-sm btn-outline-danger mt-1" onclick="removeImage(${index})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(col);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+// Remove image from selection
+function removeImage(index) {
+    selectedFiles.splice(index, 1);
+    
+    // Update the file input
+    const dt = new DataTransfer();
+    selectedFiles.forEach(file => dt.items.add(file));
+    fileInput.files = dt.files;
+    
+    updateImagePreviews();
+}
+
+// Handle paste functionality
+function handlePaste(e) {
+    e.preventDefault();
+    const items = e.clipboardData.items;
+    
+    for (let item of items) {
+        if (item.type.startsWith('image/')) {
+            const file = item.getAsFile();
+            if (file) {
+                selectedFiles.push(file);
+                
+                // Update the file input
+                const dt = new DataTransfer();
+                selectedFiles.forEach(f => dt.items.add(f));
+                fileInput.files = dt.files;
+                
+                updateImagePreviews();
+            }
+        }
+    }
+}
+
+// Add files from paste area
+function addFilesFromPaste(files) {
+    Array.from(files).forEach(file => {
+        if (file.type.startsWith('image/')) {
+            selectedFiles.push(file);
+        }
+    });
+    
+    // Update the file input
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    fileInput.files = dt.files;
+    
+    updateImagePreviews();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    fileInput = document.getElementById('{{ form.images.id_for_label }}');
+    const pasteArea = document.getElementById('paste-area');
+    
+    // Handle file input change
+    if (fileInput) {
+        fileInput.addEventListener('change', function(event) {
+            handleMultipleImages(event.target);
+        });
+    }
+    
+    // Handle paste events
+    document.addEventListener('paste', handlePaste);
+    
+    // Handle paste area click
+    if (pasteArea) {
+        pasteArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+        
+        // Handle drag and drop
+        pasteArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            pasteArea.style.backgroundColor = '#e9ecef';
+        });
+        
+        pasteArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            pasteArea.style.backgroundColor = '#f8f9fa';
+        });
+        
+        pasteArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            pasteArea.style.backgroundColor = '#f8f9fa';
+            addFilesFromPaste(e.dataTransfer.files);
+        });
+    }
+    
+    // Form submission handling
+    const form = document.getElementById('feedback-form');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Disable submit button to prevent double submission
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting...';
+            
+            // Create FormData for AJAX submission
+            const formData = new FormData(form);
+            
+            // Note: Images are already included in the form data from the file input
+            // No need to manually append them again
+            
+            // Submit via AJAX
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show success message
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                    alertDiv.innerHTML = `
+                        <i class="fas fa-check-circle me-2"></i>
+                        ${data.message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                    
+                    // Insert alert at the top of the form
+                    form.parentNode.insertBefore(alertDiv, form);
+                    
+                    // Reset form
+                    form.reset();
+                    selectedFiles = [];
+                    updateImagePreviews();
+                    
+                    // Close modal if in iframe
+                    if (window.parent !== window) {
+                        setTimeout(() => {
+                            window.parent.postMessage({type: 'close_feedback_modal'}, '*');
+                        }, 2000);
+                    }
+                } else {
+                    throw new Error(data.message || 'An error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Error: ${error.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                // Insert alert at the top of the form
+                form.parentNode.insertBefore(alertDiv, form);
+            })
+            .finally(() => {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Submit Feedback';
+            });
+        });
+    }
+    
+    // Handle modal close after successful submission
+    window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'feedback_submitted') {
+            // Close the modal if we're in an iframe
+            if (window.parent !== window) {
+                window.parent.postMessage({type: 'close_feedback_modal'}, '*');
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,92 @@
+/* ============================================================
+   PRIORITY-BASED ROW HIGHLIGHTING
+   ============================================================ */
+
+/* Priority row colors */
+.priority-high-row, .priority-critical-row {
+    background-color: #ffebee !important;
+}
+
+.priority-medium-row {
+    background-color: #fff8e1 !important;
+}
+
+.priority-low-row {
+    background-color: #e8f5e9 !important;
+}
+
+/* Hover override - subtle blue */
+.table-hover tbody tr:hover {
+    background-color: #e3e7f1 !important;
+}
+
+/* Quick view cursor */
+tbody tr[onclick] {
+    cursor: pointer !important;
+}
+
+/* ============================================================
+   QUICK VIEW DRAWER
+   ============================================================ */
+
+/* Drawer overlay */
+#quickview-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1040;
+    display: none;
+}
+
+/* Drawer panel */
+#quickview-drawer {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100%;
+    background: white;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 1050;
+    transition: right 0.3s ease;
+    overflow-y: auto;
+}
+
+/* Drawer header */
+.drawer-header {
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Drawer content */
+#drawer-content {
+    padding: 20px;
+}
+
+/* Active state */
+body.drawer-open #quickview-overlay {
+    display: block;
+}
+
+body.drawer-open #quickview-drawer {
+    right: 0;
+}
+
+/* Prevent body scroll when drawer open */
+body.drawer-open {
+    overflow: hidden;
+}
+

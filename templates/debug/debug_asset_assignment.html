@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Debug Asset Assignment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Debug Asset Assignment</h2>
+    
+    {% if error %}
+    <div class="alert alert-danger">
+        <strong>Error:</strong> {{ error }}
+    </div>
+    {% else %}
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>User Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                    <p><strong>Role:</strong> {{ user_role }}</p>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Test Results</h5>
+                </div>
+                <div class="card-body">
+                    {% for test in test_results %}
+                    <div class="mb-2">
+                        <strong>{{ test.test }}:</strong> 
+                        <span class="badge {% if test.status == 'PASS' %}bg-success{% elif test.status == 'FAIL' %}bg-danger{% else %}bg-info{% endif %}">
+                            {{ test.result }}
+                        </span>
+                        <span class="badge {% if test.status == 'PASS' %}bg-success{% elif test.status == 'FAIL' %}bg-danger{% else %}bg-info{% endif %}">
+                            {{ test.status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Asset List Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Total Assets:</strong> {{ all_assets.count }}</p>
+                    <p><strong>Japan Assets:</strong> {{ japan_assets.count }}</p>
+                    <p><strong>Korea Assets:</strong> {{ korea_assets.count }}</p>
+                    
+                    {% if japan_assets %}
+                    <h6>Japan Assets:</h6>
+                    <ul>
+                    {% for asset in japan_assets %}
+                        <li>{{ asset.asset_name }} ({{ asset.asset_code }}) - {{ asset.asset_number }}</li>
+                    {% endfor %}
+                    </ul>
+                    {% endif %}
+                    
+                    {% if korea_assets %}
+                    <h6>Korea Assets:</h6>
+                    <ul>
+                    {% for asset in korea_assets %}
+                        <li>{{ asset.asset_name }} ({{ asset.asset_code }}) - {{ asset.asset_number }}</li>
+                    {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>User Access Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Accessible Sites:</strong> {{ accessible_sites.count }}</p>
+                    
+                    {% if accessible_sites %}
+                    <h6>Accessible Sites:</h6>
+                    <ul>
+                    {% for site in accessible_sites %}
+                        <li>{{ site.asset_name }} ({{ site.asset_code }}) - {{ site.asset_number }}</li>
+                    {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Diagnosis</h5>
+                </div>
+                <div class="card-body">
+                    {% if japan_assets.count == 0 %}
+                    <div class="alert alert-warning">
+                        <strong>Issue Found:</strong> No Japan assets found in AssetList table. 
+                        This means the AssetList table is empty or not populated correctly.
+                        <br><br>
+                        <strong>Solution:</strong> Run the sync command to populate AssetList from MapData:
+                        <code>python manage.py sync_asset_list</code>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <strong>AssetList is populated correctly.</strong> Japan assets are available in the system.
+                    </div>
+                    {% endif %}
+                    
+                    {% if accessible_sites.count == 0 and user_role != 'admin' %}
+                    <div class="alert alert-warning">
+                        <strong>Issue Found:</strong> User has no accessible sites assigned.
+                        <br><br>
+                        <strong>Solution:</strong> Assign access to sites through the user management interface.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% endif %}
+</div>
+{% endblock %} 

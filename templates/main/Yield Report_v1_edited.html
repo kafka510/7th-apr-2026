@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- Make pages responsive -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { width:100%; height:100%; margin:0; padding:0; }
+  .container-fluid, .main-container, .dashboard-content, .main-content, .card-content {
+    display: flex; flex-direction: column; width: 100%; height: 100%;
+  }
+  /* Fluid charts and map containers */
+  [id$="Chart"], [id$="Line"], #mapid, .plotly-graph-div {
+    width: 100% !important; height: 100% !important; flex: 1;
+  }
+  /* Media-query tweaks */
+  @media (max-width: 1200px) {
+    /* adjust font-sizes or layout as needed */
+  }
+</style>
+
+  <meta charset="UTF-8">
+  <title>Waterfall Chart with Filters</title>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: #e6f1fc;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .dashboard-header {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
+    .dashboard-title {
+      font-size: 2vw;
+      font-weight: 700;
+      color: #0072CE;
+      text-align: center;
+      margin: 0;
+      padding: 16px 0;
+      background: #fff;
+      border-radius: 8px;
+      border: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      width: 100%;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .filter-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+      border: 1.5px solid #87ceeb;
+      padding: 24px 24px 16px;
+      margin: 24px 32px 24px;
+      min-height: 0;
+      justify-content: flex-start;
+      align-items: stretch;
+      overflow: visible;
+    }
+    .filter-row {
+      display: flex;
+      flex-direction: row;
+      gap: 12px;
+      width: 100%;
+    }
+    .filter-pill {
+      flex: 1 1 0;
+      min-width: 0;
+      font-size: 2.5rem;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      max-width: none;
+    }
+    .filter-pill label {
+      font-weight: 500;
+      color: #0072CE;
+      margin-right: 16px;
+      white-space: nowrap;
+      font-size: 2.5rem;
+    }
+    .filter-pill select,
+    .filter-pill input[type="text"] {
+      min-width: 0;
+      max-width: none;
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 2.5rem;
+      font-weight: 1000;
+      color: #333;
+      outline: none;
+      cursor: pointer;
+      padding: 0 8px;
+      box-sizing: border-box;
+      height: 100%;
+    }
+    .choices__inner {
+      min-height: 40px !important;
+      font-size: 2.5rem !important;
+      display: flex;
+      align-items: center;
+    }
+    #resetFiltersBtn {
+      border-radius: 8px;
+      background: #ff3c3c;
+      color: #fff;
+      font-weight: 400;
+      font-size: 1.2rem;
+      border: none;
+      cursor: pointer;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      margin-top: 0;
+      margin-bottom: 0;
+      margin-left: 0;
+      min-width: 120px;
+      flex: 1 1 120px;
+      max-width: 200px;
+    }
+    .dashboard-row {
+      display: flex;
+      gap: 24px;
+      height: calc(100vh - 280px);
+      width: 100vw;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      height: 100%;
+      border: 1.5px solid #87ceeb;
+    }
+    .card-header {
+      font-weight: bold;
+      color: #f3ebeb;
+      font-size: 4.5rem;
+      margin: 0;
+      padding: 16px 0 10px;
+      text-align: center;
+      background: #eaf6fb;
+      letter-spacing: 0.5px;
+    }
+    .card-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .plotly-graph-div {
+      height: 90% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #fff;
+    }
+    @media (max-width: 1200px) {
+      .dashboard-row {
+        flex-direction: column;
+        gap: 18px;
+        height: auto;
+      }
+      .card { height: 50vh; }
+      .filter-bar {
+        flex-direction: column;
+        gap: 10px;
+        overflow-x: visible;
+      }
+      .filter-pill, #resetFiltersBtn {
+        min-width: 0;
+        width: 100%;
+        max-width: none;
+      }
+      .dashboard-title { font-size: 1.5rem; }
+      .dashboard-filters label, .dashboard-filters select { font-size: 1rem; }
+    }
+    @media (max-width: 700px) {
+      .filter-bar {
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+        margin: 10px 8px;
+      }
+      .dashboard-row {
+        margin: 0 8px 10px;
+        height: calc(100vh - 180px); /* give more vertical space */
+      }
+      .dashboard-title { font-size: 1.3rem; }
+    }
+    @media (min-width: 1600px) {
+      .dashboard-title { font-size: 5rem; }
+      .dashboard-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3rem;
+        min-height: 10rem;
+        padding: 2.5rem 3rem 2rem 3rem;
+      }
+      .dashboard-filters .filter-card {
+        flex: 1 1 0;
+        min-width: 400px;
+        min-height: 7rem;
+        padding: 1.5rem 2rem 1.2rem 2rem;
+      }
+      .dashboard-filters label {
+        font-size: 5rem;
+        min-height: 5rem;
+      }
+      .dashboard-filters select {
+        width: 100%;
+        min-width: 300px;
+        height: 5rem;
+        font-size: 5rem;
+        padding: 0.7em 1.2em;
+      }
+    }
+
+    /* Choices.js dropdown sizing */
+    .choices__list--dropdown {
+      max-height: 400px !important;
+      overflow-y: auto !important;
+      min-width: 320px !important;
+      width: auto !important;
+    }
+    .choices__list--dropdown .choices__item--selectable {
+      padding: 8px 12px !important;
+      font-size: 1.6rem !important;
+      font-weight: 400 !important;
+    }
+    /* make the filter containers themselves wider */
+.filter-pill {
+  /* instead of flex:1 with no basis, give them a basis or min-width */
+  flex: 0 0 auto;
+  min-width: 800px;    /* ← was 0, now at least 400px */
+}
+
+/* ensure the native <select> (and flatpickr input) inside get that width */
+.filter-pill select,
+.filter-pill input[type="text"] {
+  min-width: 800px;    /* ↑ bump this up as needed */
+  max-width: 1600px;    /* optional cap */
+  width: 100%;
+}
+
+/* Choices.js "box" around your select */
+.choices__inner {
+  min-width: 400px !important;   /* match the pill width */
+}
+
+#countrySelect,
+#portfolioSelect,
+#assetSelect,
+#monthPicker {
+  font-size: 40px; /* Change 18px to your preferred size */
+}
+
+select {
+  font-size: 35px;
+}
+
+div[role="option"], .dropdown-chip, .dropdown-tag {
+  font-size: 40px !important;
+  padding: 6px 12px !important;
+}
+
+/* Increase font size for Flatpickr month and day cells */
+.flatpickr-calendar, 
+.flatpickr-months, 
+.flatpickr-days, 
+.flatpickr-day, 
+.flatpickr-month, 
+.flatpickr-weekdays {
+  font-size: 40px !important; /* Change 18px to your preferred size */
+}
+
+.monthly-picker {
+  width: 1000px;   /* Increase width */
+  height: 1000px;   /* Increase height */
+  font-size: 40px; /* Optional: increase text size */
+}
+
+  </style>
+</head>
+<body>
+  <div class="dashboard-header">
+    <div class="dashboard-title">Yield Report Dashboard</div>
+  </div>
+  <div class="dashboard-row">
+    <div class="card" style="flex: 1 1 0; display: flex; flex-direction: column;">
+      <div class="filter-bar">
+        <div class="filter-row">
+          <div class="filter-pill">
+            <label for="yearSelect">Year</label>
+            <select id="yearSelect">
+              <option value="__all__">All Years</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+              <option value="2027">2027</option>
+              <option value="2028">2028</option>
+              <option value="2029">2029</option>
+              <option value="2030">2030</option>
+            </select>
+          </div>
+          <div class="filter-pill">
+            <label for="monthSelect">Month</label>
+            <select id="monthSelect">
+              <option value="__all__">All Months</option>
+              <option value="01">Jan</option>
+              <option value="02">Feb</option>
+              <option value="03">Mar</option>
+              <option value="04">Apr</option>
+              <option value="05">May</option>
+              <option value="06">Jun</option>
+              <option value="07">Jul</option>
+              <option value="08">Aug</option>
+              <option value="09">Sep</option>
+              <option value="10">Oct</option>
+              <option value="11">Nov</option>
+              <option value="12">Dec</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-pill">
+            <label for="countrySelect">Country</label>
+            <select id="countrySelect" multiple></select>
+          </div>
+          <div class="filter-pill">
+            <label for="portfolioSelect">Portfolio</label>
+            <select id="portfolioSelect" multiple></select>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-pill">
+            <label for="assetSelect">Asset No</label>
+            <select id="assetSelect" multiple></select>
+          </div>
+          <button id="resetFiltersBtn" type="button">Reset Filters</button>
+        </div>
+      </div>
+      <div class="card-content">
+        <div id="waterfall" class="plotly-graph-div"></div>
+      </div>
+    </div>
+    <div class="card" style="flex: 1 1 0;">
+      <div class="card-content">
+        <div id="breakdown" class="plotly-graph-div"></div>
+      </div>
+    </div>
+  </div>
+<script>
+    /*let allData = [];*/
+    const allData = JSON.parse('{{ all_data|safe|escapejs }}');
+
+    const yearSelect = document.getElementById('yearSelect');
+    const monthSelect = document.getElementById('monthSelect');
+    const countrySelect = document.getElementById('countrySelect');
+    const portfolioSelect = document.getElementById('portfolioSelect');
+    const assetSelect = document.getElementById('assetSelect');
+
+    function populateDropdown(select, values, prevSelected=[]) {
+      // Destroy Choices instance before updating options
+      if (select.choicesInstance) {
+        select.choicesInstance.destroy();
+        select.choicesInstance = null;
+      }
+      select.innerHTML = '';
+      const allOpt = document.createElement('option');
+      allOpt.value = '__all__';
+      allOpt.textContent = 'Select All';
+      select.appendChild(allOpt);
+      values.forEach(val => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = val;
+        select.appendChild(opt);
+      });
+      if (prevSelected && prevSelected.length) {
+        Array.from(select.options).forEach(opt => {
+          if (prevSelected.includes(opt.value)) opt.selected = true;
+        });
+      }
+      // Re-initialize Choices and store the instance
+      const instance = new Choices(select, { removeItemButton: true, searchEnabled: true, shouldSort: false, placeholder: true });
+      select.choicesInstance = instance;
+
+      // If only one real option (besides 'Select All'), select it and show as pill
+      const realOptions = Array.from(select.options).filter(opt => opt.value !== '__all__');
+      if (realOptions.length === 1) {
+        instance.setChoiceByValue(realOptions[0].value);
+        select.value = realOptions[0].value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      // If all options are selected, show 'Select All' as the pill
+      const allSelected = realOptions.every(opt => opt.selected);
+      if (allSelected && realOptions.length > 1) {
+        instance.removeActiveItems();
+        instance.setChoiceByValue('__all__');
+        select.value = '__all__';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    function clearDropdowns(dropdowns) {
+      dropdowns.forEach(select => {
+        select.innerHTML = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = '__all__';
+        allOpt.textContent = 'Select All';
+        select.appendChild(allOpt);
+      });
+    }
+
+    function getSelectedValues(select) {
+      if (select === yearSelect) return [yearSelect.value];
+      if (select === monthSelect) return [monthSelect.value];
+      const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__') || selected.length === Array.from(select.options).length - 1) {
+        return [];
+      }
+      return selected.filter(v => v !== '__all__');
+    }
+
+    function getUnique(data, key) {
+      return [...new Set(data.map(row => {
+        let val = row[key];
+        if (typeof val === 'string') return val.trim();
+        if (val !== undefined && val !== null) return String(val).trim();
+        return '';
+      }).filter(Boolean))].sort((a, b) => a.toString().localeCompare(b.toString()));
+    }
+
+    function formatLabel(value, expected) {
+      const percent = expected && expected !== 0 ? Math.round((value / expected) * 100) : 0;
+      return `${formatNumber(value)} (${percent}%)`;
+    }
+
+    function formatNumber(val) {
+      return typeof val === "number" ? val.toLocaleString('en-US', { maximumFractionDigits: 0 }) : val;
+    }
+
+    function formatMonthLabel(ym) {
+      const [y, m] = ym.split('-');
+      const date = new Date(Number(y), Number(m) - 1, 1);
+      return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    }
+
+    // --- Robust Cascading Filter Logic (like Portfolio Map) ---
+    const filterFieldMap = [
+      { id: 'countrySelect', col: 'country' },
+      { id: 'portfolioSelect', col: 'portfolio' },
+      { id: 'assetSelect', col: 'assetno' }
+    ];
+    const filterSelectors = {
+      countrySelect: countrySelect,
+      portfolioSelect: portfolioSelect,
+      assetSelect: assetSelect
+    };
+    function getActiveFilters(excludeId = null) {
+      const filters = {};
+      filterFieldMap.forEach(({id, col}) => {
+        if (id !== excludeId) {
+          const vals = getSelectedValues(filterSelectors[id]);
+          if (vals.length > 0) filters[col] = vals;
+        }
+      });
+      return filters;
+    }
+    function updateAllFiltersAndDropdowns(changedId = null) {
+      filterFieldMap.forEach(({id, col}) => {
+        const sel = filterSelectors[id];
+        // Store previous selection
+        const prev = getSelectedValues(sel);
+
+        // Get valid options for THIS dropdown based on all the other filters
+        const filters = getActiveFilters(id);
+        const options = [...new Set(
+          allData
+            .filter(row => Object.entries(filters).every(([c, vals]) =>
+              vals.map(v => String(v).trim().toLowerCase()).includes(row[c + '_norm'])
+            ))
+            .map(row => row[col])
+            .filter(Boolean)
+        )].sort((a, b) => a.toString().localeCompare(b.toString()));
+
+        // Remove Choices instance before updating options
+        if (sel.choicesInstance) {
+          sel.choicesInstance.destroy();
+          sel.choicesInstance = null;
+        }
+        sel.innerHTML = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = '__all__';
+        allOpt.textContent = 'Select All';
+        sel.appendChild(allOpt);
+        options.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        });
+
+        // Restore previous selection if possible
+        if (prev && prev.length) {
+          Array.from(sel.options).forEach(opt => {
+            if (prev.includes(opt.value)) opt.selected = true;
+          });
+        }
+
+        // Re-initialize Choices and store the instance
+        sel.choicesInstance = new Choices(sel, { removeItemButton: true, searchEnabled: true, shouldSort: false, placeholder: true });
+
+        // If 'Select All' was previously selected, select all options except '__all__'
+        if (prev.includes('__all__')) {
+          Array.from(sel.options).forEach(opt => {
+            if (opt.value !== '__all__') opt.selected = true;
+          });
+          sel.options[0].selected = false;
+          sel.choicesInstance.setValue(Array.from(sel.options).filter(opt => opt.value !== '__all__').map(opt => ({ value: opt.value, label: opt.textContent })));
+        }
+      });
+      updateChart();
+    }
+
+    function handleSelectAllUI(selectEl) {
+      const allValues = Array.from(selectEl.options)
+        .filter(opt => opt.value !== '__all__')
+        .map(opt => opt.value);
+      const selectedValues = Array.from(selectEl.selectedOptions)
+        .map(opt => opt.value)
+        .filter(v => v !== '__all__');
+      if (selectedValues.length === allValues.length) {
+        // All selected, show only 'Select All'
+        if (selectEl.choicesInstance) {
+          selectEl.choicesInstance.removeActiveItems();
+          // Add a custom tag for 'Select All'
+          selectEl.choicesInstance._addItem({
+            value: '__all__',
+            label: 'Select All',
+            choiceId: 'select-all-custom',
+            groupId: -1,
+            customProperties: null,
+            placeholder: false,
+            keyCode: null
+          });
+        }
+      }
+    }
+
+    countrySelect.addEventListener("change", function () {
+      const selected = Array.from(countrySelect.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__')) {
+        // Select all options in the <select> for filtering
+        Array.from(countrySelect.options).forEach(opt => {
+          if (opt.value !== '__all__') opt.selected = true;
+        });
+        // Show only 'Select All' in the Choices.js UI
+        if (countrySelect.choicesInstance) {
+          countrySelect.choicesInstance.removeActiveItems();
+          countrySelect.choicesInstance.setChoiceByValue('__all__');
+        }
+        updateAllFiltersAndDropdowns('countrySelect');
+        return;
+      }
+      updateAllFiltersAndDropdowns('countrySelect');
+      handleSelectAllUI(countrySelect);
+    });
+    portfolioSelect.addEventListener("change", function () {
+      const selected = Array.from(portfolioSelect.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__')) {
+        Array.from(portfolioSelect.options).forEach(opt => {
+          if (opt.value !== '__all__') opt.selected = true;
+        });
+        if (portfolioSelect.choicesInstance) {
+          portfolioSelect.choicesInstance.removeActiveItems();
+          portfolioSelect.choicesInstance.setChoiceByValue('__all__');
+        }
+        updateAllFiltersAndDropdowns('portfolioSelect');
+        return;
+      }
+      updateAllFiltersAndDropdowns('portfolioSelect');
+      handleSelectAllUI(portfolioSelect);
+    });
+    assetSelect.addEventListener("change", function () {
+      const selected = Array.from(assetSelect.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__')) {
+        Array.from(assetSelect.options).forEach(opt => {
+          if (opt.value !== '__all__') opt.selected = true;
+        });
+        if (assetSelect.choicesInstance) {
+          assetSelect.choicesInstance.removeActiveItems();
+          assetSelect.choicesInstance.setChoiceByValue('__all__');
+        }
+        updateAllFiltersAndDropdowns('assetSelect');
+        return;
+      }
+      updateAllFiltersAndDropdowns('assetSelect');
+      handleSelectAllUI(assetSelect);
+    });
+
+    function updateChart() {
+      const year = yearSelect.value;
+      const month = monthSelect.value;
+      const countries = getSelectedValues(countrySelect);
+      const portfolios = getSelectedValues(portfolioSelect);
+      const assets = getSelectedValues(assetSelect);
+
+      const filteredRows = allData.filter(r => {
+        const [rowYear, rowMonth] = r.month.split('-');
+        return (
+          (year === '__all__' || rowYear === year) &&
+          (month === '__all__' || rowMonth === month) &&
+          (countries.length === 0 || countries.includes(r.country)) &&
+          (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+          (assets.length === 0 || assets.includes(String(r.assetno)))
+        );
+      });
+
+      const container = document.getElementById("waterfall");
+      if (!filteredRows.length) {
+        if (window.Plotly) Plotly.purge("waterfall");
+        container.innerHTML = "<h3 style='color:red'>No data found for this selection</h3>";
+        container.style.minHeight = "1000px";
+        return;
+      } else {
+        if (window.Plotly) Plotly.purge("waterfall");
+        container.innerHTML = "";
+        container.style.minHeight = "1000px";
+      }
+
+      const sum = key => filteredRows.reduce((acc, r) => acc + (+r[key] || 0), 0);
+      const steps = [
+        { name: "IC<br>Approved<br>Budget", value: sum('ic_approved_budget'), type: "absolute" },
+        { name: "Expected<br>Budget", value: sum('expected_budget'), type: "absolute" },
+        { name: "Weather<br>Loss<br>or<br>Gain", value: sum('weather_loss_or_gain'), type: "relative" },
+        { name: "Grid<br>Curtailment", value: sum('grid_curtailment'), type: "relative" },
+        { name: "Grid<br>Outage", value: sum('grid_outage'), type: "relative" },
+        { name: "Operation<br>Budget", value: sum('operation_budget'), type: "absolute" },
+        { name: "Breakdown<br>Loss", value: sum('breakdown_loss'), type: "relative" },
+        { name: "Unclassified<br>Loss", value: sum('unclassified_loss'), type: "relative" },
+        { name: "Actual<br>Generation", value: sum('actual_generation'), type: "absolute" }
+      ];
+
+      console.log('Waterfall step names:', steps.map(s => s.name));
+      // For debugging: hardcode the first color to green, then use the mapping for the rest
+      const colors = ["#4CAF50"].concat(steps.slice(1).map(s => {
+        if (s.name === "Actual<br>Generation") return "#1976D2";
+        if (s.type === "relative") return s.value < 0 ? "#FF4136" : "#8BC34A";
+        return "#1976D2";
+      }));
+      console.log('Waterfall colors:', colors);
+
+      let monthsForTitle = [];
+      if (year !== '__all__' && month !== '__all__') {
+        monthsForTitle = [year + '-' + month];
+      } else if (year !== '__all__') {
+        monthsForTitle = [year];
+      } else if (month !== '__all__') {
+        monthsForTitle = [month];
+      }
+      const waterfallTitle = buildChartTitle('Waterfall Chart', monthsForTitle, countries, portfolios, assets, getUnique(allData, 'country'), getUnique(allData, 'portfolio'));
+
+      const layout = {
+        title: {
+          text: waterfallTitle,
+          font: { size: getResponsiveFontSize(45, 56, 18), family: "Arial, sans-serif", color: "#225184" }
+        },
+        xaxis: {
+          title: {
+            font: { size: getResponsiveFontSize(25, 44, 12), family: "Arial Black, Arial, sans-serif", color: "#222" }
+          },
+          tickfont: { size: getResponsiveFontSize(35, 44, 12) },
+          tickangle: 0,
+          automargin: true
+        },
+        yaxis: {
+          title: {
+            text: "Energy (MWh)",
+            font: { size: getResponsiveFontSize(30, 44, 12) }
+          },
+          tickfont: { size: getResponsiveFontSize(35, 44, 12) },
+          zeroline: true
+        },
+        autosize: true,
+        height: window.innerHeight * 0.55,
+        margin: { t: 110, b: 100, l: 60, r: 30 }
+      };
+
+      const trace = {
+        type: "waterfall",
+        orientation: "v",
+        measure: steps.map(s => s.type),
+        x: steps.map(s => s.name),
+        y: steps.map(s => s.value),
+        text: steps.map(s => formatNumber(s.value)),
+        textposition: "outside",
+        textfont: { size: getResponsiveFontSize(38, 44, 10), color: "#222", family: "Arial, sans-serif", weight: "bold" },
+        marker: { color: colors },
+        connector: { line: { color: "white" } }
+      };
+
+      // Find a fixed y-position for all percentages (e.g., 10% of max y)
+      const maxY = Math.max(...steps.map(s => Math.abs(s.value)));
+      const percentY = maxY * 0.10; // 10% up from the base
+
+      const xLabels = steps.map(s => s.name);
+      const percentages = steps.map(s => {
+        return steps[1].value && steps[1].value !== 0 ? ((s.value / steps[1].value) * 100) : 0;
+      });
+      let cumulative = 0;
+      const annotations = steps.map((s, i) => ({
+        x: xLabels[i],
+        y: percentY,
+        text: `<b>${Math.round(percentages[i])}%</b>`,
+        showarrow: false,
+        font: { size: getResponsiveFontSize(38, 44, 10), color: '#000', family: 'Arial, sans-serif', weight: 'bold' },
+        xanchor: 'center',
+        yanchor: 'middle',
+        align: 'center',
+      }));
+      layout.annotations = annotations;
+
+      Plotly.newPlot("waterfall", [trace], layout, { responsive: true });
+
+      updateBreakdownChart(filteredRows);
+    }
+
+    function updateBreakdownChart(filteredRows) {
+      const container = document.getElementById("breakdown");
+      if (!filteredRows.length) {
+        if (window.Plotly) Plotly.purge("breakdown");
+        container.innerHTML = "<h3 style='color:red'>No data found for this selection</h3>";
+        return;
+      } else {
+        if (window.Plotly) Plotly.purge("breakdown");
+        container.innerHTML = "";
+      }
+      const failureTypes = [
+        { key: 'string failure', label: 'String Failure (MWh)', color: '#339cff' },
+        { key: 'inverter failure', label: 'Inverter Failure (MWh)', color: '#1a237e' },
+        { key: 'mv failure', label: 'MV Failure (MWh)', color: '#ff7043' },
+        { key: 'hv failure', label: 'HV Failure (MWh)', color: '#512da8' }
+      ];
+
+      const uniqueAssets = [...new Set(filteredRows.map(r => r.assetno))].sort((a, b) => Number(a) - Number(b));
+      const accumulatedData = uniqueAssets.map(assetNo => {
+        const assetRows = filteredRows.filter(r => r.assetno === assetNo);
+        const failures = {};
+        failureTypes.forEach(ft => {
+          failures[ft.key] = assetRows.reduce((sum, row) => sum + Math.abs(Number(row[ft.key]) || 0), 0);
+        });
+        return { assetno: assetNo, ...failures };
+      });
+
+      const reversedData = [...accumulatedData];
+
+      const traces = failureTypes.map(ft => {
+        const values = reversedData.map(d => Math.abs(Number(d[ft.key]) || 0));
+        return {
+          name: ft.label,
+          y: reversedData.map(d => d.assetno),
+          x: values,
+          type: 'bar',
+          orientation: 'h',
+          marker: { color: ft.color },
+          text: values.map(v => v ? `${Math.round(v)} MWh` : ''),
+          textposition: 'auto',
+          textfont: { size: getResponsiveFontSize(30, 44, 10), color: "#fff", family: "Arial, sans-serif", weight: "bold" },
+          hovertemplate: '%{y}<br>%{text}<extra></extra>',
+          width: 0.95,
+          cliponaxis: false
+        };
+      });
+
+      const allCountries = getUnique(allData, 'country');
+      const allPortfolios = getUnique(allData, 'portfolio');
+      const months = [...new Set(filteredRows.map(r => r.month))];
+      const countries = [...new Set(filteredRows.map(r => r.country))];
+      const portfolios = [...new Set(filteredRows.map(r => r.portfolio))];
+      const assetNos = [...new Set(filteredRows.map(r => r.assetno))];
+
+      const waterfallTitle = buildChartTitle('Waterfall Chart', months, countries, portfolios, assetNos, allCountries, allPortfolios);
+      const breakdownTitle = buildChartTitle('Breakdown Details', months, countries, portfolios, assetNos, allCountries, allPortfolios);
+
+      Plotly.newPlot('breakdown', traces, {
+        barmode: 'stack',
+        barnorm: 'percent',
+        title: {
+          text: breakdownTitle,
+          font: {
+            size: getResponsiveFontSize(45, 56, 18),
+            family: 'Arial, sans-serif',
+            color: '#225184'
+          }
+        },
+        xaxis: {
+          title: 'Losses (MWh)',
+          automargin: true,
+          tickfont: { size: getResponsiveFontSize(35, 44, 12) }
+        },
+        yaxis: {
+          title: {
+            text: 'Asset No',
+            font: { size: getResponsiveFontSize(50, 60, 16) }
+          },
+          automargin: true,
+          tickfont: { size: getResponsiveFontSize(35, 44, 12) },
+          tickmode: 'array',
+          ticktext: reversedData.map(d => d.assetno),
+          tickvals: reversedData.map(d => d.assetno),
+          autorange: true
+        },
+        height: Math.max(1500, reversedData.length * 80),
+        margin: { t: 90, b: 110, l: 200, r: 40 },
+        legend: { 
+          orientation: 'h', 
+          yanchor: 'top', 
+          y: 0,
+          xanchor: 'center', 
+          x: 0.5, 
+          font: { size: getResponsiveFontSize(45, 56, 18) },
+          itemsizing: 'constant',
+          itemwidth: 150
+        },
+        bargap: 0.10
+      });
+    }
+
+    document.getElementById('resetFiltersBtn').addEventListener('click', function() {
+      [yearSelect, monthSelect, countrySelect, portfolioSelect, assetSelect].forEach(select => {
+        Array.from(select.options).forEach(opt => opt.selected = false);
+        if (select.options.length > 0) select.options[0].selected = true;
+      });
+      updateAllFiltersAndDropdowns();
+    });
+
+    function buildChartTitle(prefix, months, countries, portfolios, assetNos, allCountries, allPortfolios) {
+      let monthTitle = 'YTD';
+      if (months.length === 1) {
+        monthTitle = formatMonthLabel(months[0]);
+      } else if (months.length > 1) {
+        monthTitle = formatMonthLabel(months[0]) + ' – ' + formatMonthLabel(months[months.length - 1]);
+      }
+
+      let countryTitle = 'All Countries';
+      if (countries.length === 1) {
+        countryTitle = countries[0];
+      } else if (countries.length > 1 && countries.length < allCountries.length) {
+        countryTitle = 'Multiple Countries';
+      }
+
+      let portfolioTitle = 'All Portfolios';
+      if (portfolios.length === 1) {
+        portfolioTitle = portfolios[0];
+      } else if (portfolios.length > 1 && portfolios.length < allPortfolios.length) {
+        portfolioTitle = 'Multiple Portfolios';
+      }
+
+      let assetTitle = 'All Assets';
+      if (assetNos.length === 1) {
+        assetTitle = 'Asset ' + assetNos[0];
+      } else if (assetNos.length > 1 && assetNos.length < allCountries.length) {
+        assetTitle = 'Multiple Assets';
+      }
+
+      return `${prefix}: ${countryTitle} - ${portfolioTitle} - ${monthTitle} - ${assetTitle}`;
+    }
+
+    
+    // AUTO-LOAD CSV
+    document.addEventListener("DOMContentLoaded", function () {
+      // allData is already available
+      const allData = JSON.parse('{{ all_data|safe|escapejs }}');
+      populateDropdown(countrySelect, getUnique(allData, 'country'), []);
+      populateDropdown(portfolioSelect, getUnique(allData, 'portfolio'), []);
+      populateDropdown(assetSelect, getUnique(allData, 'assetno'), []);
+      updateAllFiltersAndDropdowns();
+    });
+
+    // Responsive font size helper for charts
+    function getResponsiveFontSize(base, max = 36, min = 10) {
+      const width = window.innerWidth;
+      return Math.min(Math.max(Math.round(base * (width / 1920)), min), max);
+    }
+
+    // On window resize, re-render or resize charts
+    window.addEventListener('resize', function() {
+      if (window.Plotly) {
+        Plotly.Plots.resize(document.getElementById('waterfall'));
+        Plotly.Plots.resize(document.getElementById('breakdown'));
+      }
+      // If you have custom update functions, call them here as well.
+    });
+  </script>
+
+<script>
+  function onResizeAll() {
+    if (window.barChart) barChart.resize();
+    if (window.cdChart) cdChart.resize();
+    if (window.socChart) socChart.resize();
+    if (window.rteChart) rteChart.resize();
+    if (window.Plotly) {
+      ['waterfall','breakdown'].forEach(id => {
+        const gd = document.getElementById(id);
+        if (gd && gd.data) Plotly.Plots.resize(gd);
+      });
+    }
+    if (window.map) map.invalidateSize();
+  }
+  window.addEventListener('resize', onResizeAll);
+  window.addEventListener('load', onResizeAll);
+</script>
+</body>
+</html>

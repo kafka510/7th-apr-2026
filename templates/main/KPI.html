@@ -1,0 +1,2641 @@
+{% load static %}
+{% load cache_busting %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KPI ANALYTICS </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <!-- App Version: {{ APP_VERSION }} -->
+  <!-- Tailwind CSS for styles -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <!-- ECharts for bar chart -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <!-- AOS for animations -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <!-- PapaParse for CSV parsing if needed -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <!-- BestCalendar Component -->
+  <script src="{% static_hash "bestcalendar.js" %}"></script>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /* Modern styling inspired by Realtimemonitoring.html */
+    :root {
+      --bg-color: #f5f7fa;
+      --card-bg: #ffffff;
+      --accent: #4e89ae;
+      --accent-light: #a8dadc;
+      --text-color: #333;
+      --border-color: #e0e0e0;
+      --primary-blue: #2563eb;
+      --primary-green: #16a34a;
+      --kpi-accent: #0072CE;
+    }
+
+    /* --- Tab Interface Styling - Based on IC Budget Vs Expected.html --- */
+    .tab-container {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+    
+    .tab-nav {
+      display: flex;
+      background: rgba(230, 241, 252, 0.8);
+      border: 1px solid #b3d7f2;
+      border-radius: 8px 8px 0 0;
+      margin-top: 0.3rem;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    
+    .tab-button {
+      flex: 1;
+      padding: 0.4rem 0.6rem;
+      background: rgba(230, 241, 252, 0.8);
+      border: none;
+      color: #6c757d !important;
+      font-size: 1.1rem !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-right: 1px solid #b3d7f2;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    
+    .tab-button:last-child {
+      border-right: none;
+    }
+    
+    .tab-button:hover {
+      background: rgba(209, 231, 255, 0.9);
+      color: #0072CE !important;
+      transform: translateY(-1px);
+    }
+    
+    .tab-button.active {
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      color: white !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 8px rgba(10, 115, 209, 0.3);
+    }
+    
+    .tab-content {
+      background: white;
+      border: 1px solid #b3d7f2;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      min-height: 250px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      overflow: visible;
+    }
+    
+    .tab-pane {
+      display: none;
+      padding: 0.75rem;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    .tab-pane.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Responsive tab design */
+    @media (max-width: 1440px) {
+      .tab-nav {
+        margin-top: 0.2rem;
+      }
+      
+      .tab-button {
+        padding: 0.3rem 0.5rem;
+        font-size: 1rem !important;
+      }
+      
+      .tab-content {
+        min-height: 200px;
+      }
+      
+      .tab-pane {
+        padding: 0.5rem;
+      }
+    }
+    
+    @media (max-width: 1220px) {
+      .tab-nav {
+        margin-top: 0.2rem;
+      }
+      
+      .tab-button {
+        padding: 0.3rem 0.5rem;
+        font-size: 1rem !important;
+      }
+      
+      .tab-content {
+        min-height: 200px;
+      }
+      
+      .tab-pane {
+        padding: 0.5rem;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .tab-nav {
+        flex-direction: column;
+        border-radius: 8px 8px 0 0;
+      }
+      
+      .tab-button {
+        border-right: none;
+        border-bottom: 1px solid #b3d7f2;
+        text-align: center;
+        padding: 0.25rem 0.4rem;
+        font-size: 0.9rem !important;
+      }
+      
+      .tab-button:last-child {
+        border-bottom: none;
+      }
+      
+      .tab-content {
+        min-height: 150px;
+      }
+    }
+
+    /* --- Remarks/Summary Box Styling --- */
+    .remarks-container {
+      margin-top: 0.25rem;
+      padding: 0.5rem;
+      background: linear-gradient(135deg, #f8fbff 0%, #e6f1fc 100%);
+      border: 1px solid #b3d7f2;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 114, 206, 0.1);
+    }
+    
+    .remarks-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.25rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 2px solid #0072CE;
+    }
+    
+    .remarks-icon {
+      font-size: 1.25rem;
+      color: #0072CE;
+      margin-right: 0.75rem;
+    }
+    
+    .remarks-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #0072CE;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+    }
+    
+    .remarks-content {
+      font-size: 0.8rem;
+      line-height: 1.3;
+      color: #374151;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    }
+    
+    .remarks-highlight {
+      background: linear-gradient(120deg, #0072CE 0%, #0056b3 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      margin: 0.75rem 0;
+      font-weight: 600;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0, 114, 206, 0.2);
+    }
+    
+    .remarks-list {
+      list-style: none;
+      padding: 0;
+      margin: 0.75rem 0;
+    }
+    
+    .remarks-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+    }
+    
+    .remarks-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .remarks-list li::before {
+      content: '•';
+      color: #0072CE;
+      font-weight: bold;
+      margin-right: 0.75rem;
+      font-size: 1.2rem;
+    }
+    
+    .remarks-metric {
+      display: inline-block;
+      background: #0072CE;
+      color: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin: 0 0.25rem;
+    }
+    
+    .remarks-trend {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin: 0 0.25rem;
+    }
+    
+    .trend-positive {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .trend-negative {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+    
+    .trend-neutral {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .trend-icon {
+      margin-right: 0.25rem;
+    }
+    
+    /* Loading state for remarks */
+    .remarks-loading {
+      text-align: center;
+      padding: 2rem;
+      color: #6b7280;
+    }
+    
+    .remarks-loading .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e5e7eb;
+      border-radius: 50%;
+      border-top-color: #0072CE;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 0.5rem;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Responsive remarks */
+    @media (max-width: 768px) {
+      .remarks-container {
+        padding: 1rem;
+        margin-top: 1rem;
+      }
+      
+      .remarks-title {
+        font-size: 1rem;
+      }
+      
+      .remarks-content {
+        font-size: 0.9rem;
+      }
+    }
+
+    /* --- bfz macro: font size consistency for all axis, data, and cards --- */
+    :root {
+      --bfz-font-xs: 0.97rem;   /* For filter labels, card labels, axis labels */
+      --bfz-font-sm: 1.1rem;    /* For card values, small chart data */
+      --bfz-font-md: 1.25rem;   /* For chart axis/data on medium screens */
+      --bfz-font-lg: 1.5rem;    /* For chart axis/data on large screens */
+    }
+    .bfz-label, .gauge-title, .filter-label-font, select.filter-select, #kpiRow span {
+      font-size: var(--bfz-font-xs) !important;
+    }
+    .bfz-value, .gauge-value, .kpi-card span.font-extrabold {
+      font-size: var(--bfz-font-sm) !important;
+    }
+    @media (min-width: 700px) {
+      .bfz-value, .gauge-value, .kpi-card span.font-extrabold {
+        font-size: var(--bfz-font-md) !important;
+      }
+      .bfz-label, .gauge-title, .filter-label-font, select.filter-select, #kpiRow span {
+        font-size: var(--bfz-font-xs) !important;
+      }
+    }
+    @media (min-width: 1200px) {
+      .bfz-value, .gauge-value, .kpi-card span.font-extrabold {
+        font-size: var(--bfz-font-lg) !important;
+      }
+      .bfz-label, .gauge-title, .filter-label-font, select.filter-select, #kpiRow span {
+        font-size: var(--bfz-font-xs) !important;
+      }
+    }
+    /* End bfz macro font size section */
+    /* --- Modern body and layout styling --- */
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+      background: var(--bg-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      overflow-x: hidden;
+      margin: 0;
+    }
+    
+    body {
+      overflow-y: hidden !important;
+      overflow-x: hidden;
+    }
+    
+    .main-content {
+      width: 100vw;
+      height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    /* Modern glass effect */
+    .glass {
+      background: var(--card-bg);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Enhanced Dashboard Header */
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 12px 1px 12px;
+      background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      border-radius: 0;
+      margin-bottom: 2px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+    }
+    .dashboard-header .title {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin: 0;
+      display: block;
+      text-align: center;
+      width: 100%;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* Multi-select dropdown styling with checkboxes */
+    .multi-select-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      z-index: 9999;
+    }
+    
+    .multi-select-trigger {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-color);
+      transition: border-color 0.2s;
+    }
+    
+    .multi-select-trigger:hover {
+      border-color: var(--accent);
+    }
+    
+    .multi-select-trigger.active {
+      border-color: var(--accent);
+    }
+    
+    .multi-select-arrow {
+      font-size: 12px;
+      color: var(--accent);
+      transition: transform 0.2s;
+    }
+    
+    .multi-select-trigger.active .multi-select-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .multi-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 9999;
+      max-height: 300px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: none;
+      padding: 4px 0;
+      scrollbar-width: thin;
+      scrollbar-color: #0072CE #f1f1f1;
+      min-width: 100%;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb {
+      background: #0072CE;
+      border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb:hover {
+      background: #0056b3;
+    }
+    
+    /* Specific styling for asset filter dropdowns to show more options */
+    #gaugeAssetNoFilterDropdown,
+    #advancedAssetNoFilterDropdown {
+      min-width: 250px !important;
+      width: auto !important;
+    }
+    
+    /* Specific styling for portfolio filter dropdowns to ensure Select All is visible */
+    #gaugePortfolioFilterDropdown,
+    #advancedPortfolioFilterDropdown {
+      min-width: 250px !important;
+      width: auto !important;
+    }
+    
+    /* Ensure portfolio filter containers are wide enough and don't clip dropdowns */
+    .multi-select-container:has(#gaugePortfolioFilterDropdown),
+    .multi-select-container:has(#advancedPortfolioFilterDropdown) {
+      min-width: 220px !important;
+      flex: 1 !important;
+      overflow: visible !important;
+      position: relative !important;
+    }
+    
+    /* Ensure the portfolio filter trigger is wide enough */
+    #gaugePortfolioFilterTrigger,
+    #advancedPortfolioFilterTrigger {
+      min-width: 200px !important;
+      width: auto !important;
+    }
+    
+    /* Ensure asset codes are fully visible */
+    #gaugeAssetNoFilterDropdown .multi-select-option,
+    #advancedAssetNoFilterDropdown .multi-select-option {
+      white-space: nowrap !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      padding: 10px 12px !important;
+      font-size: 13px !important;
+    }
+    
+    /* Ensure portfolio options are fully visible and Select All is prominent */
+    #gaugePortfolioFilterDropdown .multi-select-option,
+    #advancedPortfolioFilterDropdown .multi-select-option {
+      white-space: nowrap !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      padding: 10px 12px !important;
+      font-size: 13px !important;
+    }
+    
+    /* Make Select All option more prominent in portfolio filters */
+    #gaugePortfolioFilterDropdown .select-all-option,
+    #advancedPortfolioFilterDropdown .select-all-option {
+      background: #f8fbff !important;
+      border-bottom: 2px solid #0072CE !important;
+      font-weight: 700 !important;
+      color: #0072CE !important;
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 10 !important;
+    }
+    
+
+    
+    /* Ensure dropdowns can extend beyond container boundaries */
+    .tab-pane {
+      overflow: visible !important;
+    }
+    
+    .dashboard-main {
+      overflow: visible !important;
+    }
+    
+    /* Force all parent containers to allow overflow */
+    .tab-container,
+    .tab-content,
+    .tab-pane,
+    .dashboard-main,
+    .main-content {
+      overflow: visible !important;
+    }
+    
+    /* Make asset filter containers wider and don't clip dropdowns */
+    .multi-select-container:has(#gaugeAssetNoFilterDropdown),
+    .multi-select-container:has(#advancedAssetNoFilterDropdown) {
+      min-width: 220px !important;
+      flex: 1 !important;
+      overflow: visible !important;
+      position: relative !important;
+    }
+    
+    /* Ensure the asset filter trigger is wide enough */
+    #gaugeAssetNoFilterTrigger,
+    #advancedAssetNoFilterTrigger {
+      min-width: 200px !important;
+      width: auto !important;
+    }
+    
+    .multi-select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-color);
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      min-height: 20px;
+    }
+    
+    .multi-select-option:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .multi-select-option.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.disabled:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.select-all-option {
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    
+    .multi-select-separator {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 4px 0;
+    }
+    
+    /* Checkbox styling */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+      display: none;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      width: 100%;
+      font-size: 14px;
+      color: var(--text-color);
+    }
+    
+    .checkbox-custom {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-radius: 3px;
+      margin-right: 8px;
+      position: relative;
+      background: white;
+      transition: all 0.2s ease;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+      content: '✓';
+      position: absolute;
+      top: -2px;
+      left: 1px;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom::after {
+      content: '−';
+      position: absolute;
+      top: -2px;
+      left: 3px;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .checkbox-text {
+      flex: 1;
+    }
+    
+    .selected-items {
+      display: none; /* Hide selected items tags - only show count in placeholder */
+    }
+    
+    .selected-item {
+      background: var(--accent);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .selected-item .remove {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* Action buttons styling */
+    .action-btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    
+    .update-btn {
+      background: var(--primary-blue);
+      color: white;
+    }
+    
+    .update-btn:hover {
+      background: #1d4ed8;
+    }
+    
+    .reset-btn {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .reset-btn:hover {
+      background: #b91c1c;
+    }
+    /* --- Responsive typography for filters/cards --- */
+    .gauge-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      letter-spacing: 0.5px;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    }
+    
+    /* Chart title styling for gradient effect */
+    .chartjs-title {
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent !important;
+    }
+    .gauge-value {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      /* fallback for JS overlay, but prefer Tailwind below */
+    }
+    
+    .gauge-percentage {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-weight: 600;
+      z-index: 20;
+      pointer-events: none;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 2px 6px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    /* Style filter dropdown content color */
+    select.filter-select, select.filter-select option {
+      color: #0072CE !important;
+    }
+    
+    /* Custom styling for Period Filter in KPI dashboard */
+    #monthMatrixTrigger.month-trigger-btn {
+      background: white !important;
+      color: #0072CE !important;
+      border: 2px solid #0072CE !important;
+      border-radius: 1rem !important;
+      padding: 0.25rem 0.5rem !important;
+      font-size: 0.96rem !important;
+      text-align: left !important;
+      width: 100% !important;
+      transition: all 0.2s !important;
+    }
+    
+    #monthMatrixTrigger.month-trigger-btn:hover {
+      background: #0072CE !important;
+      color: white !important;
+    }
+    
+    /* Custom styling for Advanced Period Filter in KPI dashboard */
+    #advancedMonthMatrixTrigger {
+      background: white !important;
+      color: #0072CE !important;
+      border: 1px solid #b3d7f2 !important;
+      border-radius: 6px !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+      text-align: left !important;
+      width: 100% !important;
+      transition: all 0.2s !important;
+      cursor: pointer !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+    }
+    
+    #advancedMonthMatrixTrigger:hover {
+      background: #f8fbff !important;
+      border-color: #0072CE !important;
+    }
+    
+    #advancedMonthMatrixTrigger.active {
+      border-color: #0072CE !important;
+      box-shadow: 0 0 0 2px rgba(0, 114, 206, 0.2) !important;
+    }
+    
+    /* Ensure the calendar picker is properly positioned and visible */
+    #advancedMonthMatrixPicker {
+      position: absolute !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: auto !important;
+      width: 320px !important;
+      z-index: 9999 !important;
+      background: white !important;
+      border: 1px solid #b3d7f2 !important;
+      border-radius: 10px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      margin-top: 4px !important;
+      min-width: 280px !important;
+      max-width: 400px !important;
+      display: none !important; /* Start hidden, controlled by JavaScript */
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 16px !important;
+      padding: 20px !important;
+      font-family: 'Inter', Arial, sans-serif !important;
+      transform: translateX(0) !important;
+    }
+    
+    /* Ensure the picker is visible when displayed */
+    #advancedMonthMatrixPicker[style*="display: flex"] {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Override any conflicting styles */
+    #advancedMonthMatrixPicker.month-matrix-picker {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    /* Compact KPI card row style */
+    .kpi-card {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.4rem 0.2rem !important;
+      min-height: 32px !important;
+      height: 38px !important;
+    }
+    .kpi-inline {
+      font-size: 1rem;
+      color: #0072CE;
+      font-weight: bold;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.3em;
+    }
+    .kpi-inline .label {
+      font-weight: 600;
+      margin-right: 0.2em;
+    }
+    .kpi-inline .value {
+      font-weight: 800;
+    }
+    @media (max-width: 700px) {
+      .kpi-card { min-height: 28px !important; height: 32px !important; }
+      .kpi-inline { font-size: 0.93rem; }
+    }
+    /* Gauge grid responsive styling */
+    .gauge-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      width: 100%;
+      z-index: 1;
+    }
+    
+    @media (max-width: 1100px) {
+      .gauge-grid { 
+        grid-template-columns: repeat(2, 1fr) !important; 
+    }
+      .gauge-title { 
+        font-size: 1rem !important;
+      }
+    }
+    
+    @media (max-width: 700px) {
+      .gauge-grid { 
+        grid-template-columns: 1fr !important; 
+      }
+      .gauge-title { 
+        font-size: 1rem !important;
+      }
+      .gauge-value { 
+        font-size: 1.2rem !important;
+      }
+    }
+    /*--- Chart container responsiveness ---*/
+    .chart-container { min-height: 240px; height: 350px; max-height: 400px; z-index: 1;}
+    @media (min-width: 1440px){
+      .chart-container { min-height: 300px; height: 500px; max-height: 600px;}
+    }
+    @media (max-width: 1439px) and (min-width: 1200px){
+      .chart-container { min-height: 200px; height: 320px; max-height: 380px;}
+    }
+    @media (max-width: 1199px) and (min-width: 900px){
+      .chart-container { min-height: 180px; height: 300px; max-height: 350px;}
+    }
+    @media (max-width: 899px) and (min-width: 700px){
+      .chart-container { min-height: 160px; height: 280px; max-height: 320px;}
+    }
+    @media (max-width: 699px){
+      .chart-container { min-height: 120px; height: 200px; max-height: 250px;}
+    }
+    /*--- Fit content to viewport without scrolling ---*/
+    .main-content { height: 100vh; width: 100vw; overflow-x: hidden; overflow-y: hidden; }
+    
+    /*--- Advanced chart container responsiveness for larger screens ---*/
+    /* Ensure chart container expands to full width on larger screens */
+    #advancedBarsContainer {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    #advancedBarsContainer .bg-white {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    #advancedBarsContainer #advancedChart2 {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    /* Ensure parent containers also expand fully */
+    .tab-content {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    .tab-pane {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    
+    @media (min-width: 1200px) {
+      #advancedBarsContainer .bg-white {
+        height: 550px !important;
+      }
+      #advancedBarsContainer #advancedChart2 {
+        min-height: 550px !important;
+      }
+    }
+    
+    @media (min-width: 1440px) {
+      #advancedBarsContainer .bg-white {
+        height: 600px !important;
+      }
+      #advancedBarsContainer #advancedChart2 {
+        min-height: 600px !important;
+      }
+    }
+    
+    @media (min-width: 1600px) {
+      #advancedBarsContainer .bg-white {
+        height: 650px !important;
+      }
+      #advancedBarsContainer #advancedChart2 {
+        min-height: 650px !important;
+      }
+    }
+    /* Unified font style for KPI card titles, chart titles, and chart content */
+    .kpi-title, .chart-section-title {
+      font-size: 1rem !important;
+      font-weight: bold !important;
+      color: #0072CE !important;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+    }
+    /* Unified font for data labels in gauge and bar charts */
+    .gauge-value {
+      font-size: 1rem !important;
+      font-weight: bold !important;
+      color: #0072CE !important;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+    }
+
+    /* KPI Summary Cards Styling */
+    #kpiSummaryCards {
+      background: linear-gradient(135deg, #f8fbff 0%, #e6f1fc 100%);
+      border: 1px solid #b3d7f2;
+      box-shadow: 0 2px 8px rgba(0, 114, 206, 0.1);
+    }
+
+    #kpiSummaryCards .kpi-card {
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #kpiSummaryCards .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Responsive KPI cards */
+    @media (max-width: 768px) {
+      #kpiSummaryCards .kpi-card {
+        min-width: 100px;
+        padding: 0.75rem;
+      }
+      
+      #kpiSummaryCards .kpi-card .text-2xl {
+        font-size: 1.5rem;
+      }
+    }
+
+    /* Tooltip positioning for larger screens */
+    @media (min-width: 769px) {
+      #kpiSummaryCards .kpi-card:hover .tooltip {
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+    }
+
+    /* Ensure tooltips are properly positioned */
+    #kpiSummaryCards .tooltip {
+      visibility: hidden;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    #kpiSummaryCards .kpi-card:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    /* Hide KPI cards and gauges when Monthly tab active */
+    body.monthly-active #kpiSummaryCards,
+    body.monthly-active #gaugesSection,
+    body.monthly-active #kpiInfoPanel {
+      display: none !important;
+    }
+    /* Remove unnecessary vertical gap in Monthly tab */
+    body.monthly-active #monthly-generation {
+      padding-top: 0 !important;
+    }
+    body.monthly-active #monthly-generation > .mb-3,
+    body.monthly-active #monthly-generation > .mb-4,
+    body.monthly-active #monthly-generation > .mt-3,
+    body.monthly-active #monthly-generation > .mt-4,
+    body.monthly-active #advancedBarsSection {
+      margin-top: 0 !important;
+    }
+    /* Keep Monthly tab filters visible */
+    /* body.monthly-active #advancedBarsSection { display: none !important; } */
+    body.monthly-active #advancedBarsContainer { margin-top: 0 !important; padding-top: 0 !important; }
+    /* Reduce container chrome in Monthly tab */
+    body.monthly-active .tab-content { min-height: 0 !important; }
+    body.monthly-active #monthly-generation.tab-pane { padding: 0 !important; }
+    body.monthly-active #advancedBarsContainer .bg-white { margin-top: 0 !important; }
+  </style>
+  <style>
+    /* Unify border color to match gauge fill blue */
+    :root { --kpi-blue: #0072CE; }
+    
+    /* Enhanced typography and text styling */
+    .gauge-title {
+      font-weight: 600 !important;
+      letter-spacing: -0.025em !important;
+      line-height: 1.3 !important;
+    }
+    
+    .kpi-card .text-sm {
+      font-weight: 600 !important;
+      letter-spacing: -0.01em !important;
+    }
+    
+    .kpi-card .text-4xl {
+      font-weight: 800 !important;
+      letter-spacing: -0.05em !important;
+    }
+    
+    /* Enhanced multi-select styling */
+    .multi-select-trigger {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      box-shadow: 0 2px 8px -2px rgba(0, 114, 206, 0.1) !important;
+    }
+    
+    .multi-select-trigger:hover {
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 15px -3px rgba(0, 114, 206, 0.2) !important;
+    }
+    /* Filters wrapper with enhanced aesthetics */
+    #gaugesFilters, .filters-wrapper, .filters-container { 
+      border-color: var(--kpi-blue) !important; 
+      box-shadow: 0 8px 25px -5px rgba(0, 114, 206, 0.1), 0 4px 10px -2px rgba(0, 114, 206, 0.05) !important;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%) !important;
+    }
+    /* KPI cards container with enhanced aesthetics */
+    #kpiSummaryCards { 
+      border-color: var(--kpi-blue) !important; 
+      box-shadow: 0 10px 30px -5px rgba(0, 114, 206, 0.1), 0 4px 15px -3px rgba(0, 114, 206, 0.05) !important;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%) !important;
+    }
+    #kpiSummaryCards .kpi-card { 
+      border-color: var(--kpi-blue) !important; 
+      box-shadow: 0 4px 15px -3px rgba(0, 114, 206, 0.1), 0 2px 8px -2px rgba(0, 114, 206, 0.05) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    #kpiSummaryCards .kpi-card:hover {
+      transform: translateY(-3px) scale(1.02) !important;
+      box-shadow: 0 12px 25px -5px rgba(0, 114, 206, 0.2), 0 6px 15px -3px rgba(0, 114, 206, 0.1) !important;
+    }
+    /* Gauge cards - Individual colors for each gauge with enhanced aesthetics */
+    #gaugesSection .gauge-grid > div:nth-child(1) { 
+      border-color: #3b82f6 !important; 
+      box-shadow: 0 8px 25px -5px rgba(59, 130, 246, 0.15), 0 4px 10px -2px rgba(59, 130, 246, 0.08) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%) !important;
+    } /* Blue for IC Approved */
+    #gaugesSection .gauge-grid > div:nth-child(2) { 
+      border-color: #10b981 !important; 
+      box-shadow: 0 8px 25px -5px rgba(16, 185, 129, 0.15), 0 4px 10px -2px rgba(16, 185, 129, 0.08) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 50%, #dcfce7 100%) !important;
+    } /* Green for Expected */
+    #gaugesSection .gauge-grid > div:nth-child(3) { 
+      border-color: #8b5cf6 !important; 
+      box-shadow: 0 8px 25px -5px rgba(139, 92, 246, 0.15), 0 4px 10px -2px rgba(139, 92, 246, 0.08) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #faf5ff 50%, #f3e8ff 100%) !important;
+    } /* Purple for PR */
+    #gaugesSection .gauge-grid > div:nth-child(4) { 
+      border-color: #f59e0b !important; 
+      box-shadow: 0 8px 25px -5px rgba(245, 158, 11, 0.15), 0 4px 10px -2px rgba(245, 158, 11, 0.08) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #fffbeb 50%, #fef3c7 100%) !important;
+    } /* Orange for Irradiation */
+    
+    /* Enhanced hover effects for gauge cards */
+    #gaugesSection .gauge-grid > div:nth-child(1):hover { 
+      border-color: #2563eb !important; 
+      box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.25), 0 8px 16px -4px rgba(59, 130, 246, 0.1) !important;
+      transform: translateY(-2px) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #dbeafe 50%, #bfdbfe 100%) !important;
+    }
+    #gaugesSection .gauge-grid > div:nth-child(2):hover { 
+      border-color: #059669 !important; 
+      box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.25), 0 8px 16px -4px rgba(16, 185, 129, 0.1) !important;
+      transform: translateY(-2px) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #dcfce7 50%, #bbf7d0 100%) !important;
+    }
+    #gaugesSection .gauge-grid > div:nth-child(3):hover { 
+      border-color: #7c3aed !important; 
+      box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.25), 0 8px 16px -4px rgba(139, 92, 246, 0.1) !important;
+      transform: translateY(-2px) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #f3e8ff 50%, #e9d5ff 100%) !important;
+    }
+    #gaugesSection .gauge-grid > div:nth-child(4):hover { 
+      border-color: #d97706 !important; 
+      box-shadow: 0 20px 40px -10px rgba(245, 158, 11, 0.25), 0 8px 16px -4px rgba(245, 158, 11, 0.1) !important;
+      transform: translateY(-2px) !important;
+      background: linear-gradient(135deg, #ffffff 0%, #fef3c7 50%, #fde68a 100%) !important;
+    }
+    /* Info panel under KPI cards */
+    #kpiInfoPanel { border-color: var(--kpi-blue) !important; }
+    /* Enhanced button and form styling */
+    #gaugeDateFilter, #prevDateBtn, #nextDateBtn, #gaugeUpdateBtn, #gaugeResetBtn { 
+      border-color: var(--kpi-blue) !important; 
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    /* Enhanced button hover effects */
+    #gaugeUpdateBtn, #gaugeResetBtn {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+      box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.3), 0 2px 8px -2px rgba(59, 130, 246, 0.1) !important;
+    }
+    
+    #gaugeUpdateBtn:hover, #gaugeResetBtn:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 25px -5px rgba(59, 130, 246, 0.4), 0 4px 15px -3px rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    /* Enhanced form input styling */
+    #gaugeDateFilter {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+      box-shadow: 0 2px 8px -2px rgba(0, 114, 206, 0.1) !important;
+    }
+    
+    #gaugeDateFilter:focus {
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 15px -3px rgba(59, 130, 246, 0.2) !important;
+      border-color: #3b82f6 !important;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+
+  <div class="main-content h-screen">
+    <div class="dashboard-main w-full h-full mx-auto flex flex-col gap-0 p-0" data-aos="fade-up" data-aos-delay="300">
+      <!-- Header -->
+      <div class="w-full mb-0 py-0">
+        <!-- Enhanced Header with Gradient Title -->
+        
+      </div>
+      <!-- Tabbed Interface -->
+      <div class="tab-container">
+        <div class="tab-nav">
+          <button class="tab-button active" onclick="showTab('kpi-gauges')">
+            KPI Gauges - <span id="lastRefreshTime">Last refreshed: --</span>
+          </button>
+          <button class="tab-button" onclick="showTab('monthly-generation')">
+            Monthly Generation Data - <span id="advancedChartTitle">All Data</span>
+          </button>
+        </div>
+        
+        <div class="tab-content">
+          <!-- KPI Gauges Tab -->
+          <div id="kpi-gauges" class="tab-pane active">
+
+          
+          <!-- Gauge Filters -->
+          <div class="mb-1 p-3 bg-gradient-to-r from-slate-50 to-blue-50 rounded-2xl shadow-lg border border-blue-100" style="overflow: visible; font-family: 'Inter', sans-serif;">
+            <div class="flex flex-wrap gap-2 items-end" style="overflow: visible;">
+              <!-- Country Filter for Gauges -->
+              <div class="multi-select-container flex-1 min-w-[140px]">
+                <div id="gaugeCountryFilterTrigger" class="multi-select-trigger bg-white border-2 border-blue-200 rounded-xl px-3 py-2 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <span class="text-blue-800 font-bold text-sm mr-2">🌍 Country:</span>
+                  <span id="gaugeCountryFilterPlaceholder" data-default="All Countries" class="text-blue-700 font-medium">All Countries</span>
+                  <span class="multi-select-arrow text-blue-600">▼</span>
+                </div>
+                <div id="gaugeCountryFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+        </div>
+                <div id="gaugeCountrySelectedItems" class="selected-items"></div>
+      </div>
+
+              <!-- Portfolio Filter for Gauges -->
+              <div class="multi-select-container flex-1 min-w-[140px]">
+                <div id="gaugePortfolioFilterTrigger" class="multi-select-trigger bg-white border-2 border-blue-200 rounded-xl px-3 py-2 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <span class="text-blue-800 font-bold text-sm mr-2">📊 Portfolio:</span>
+                  <span id="gaugePortfolioFilterPlaceholder" data-default="All Portfolios" class="text-blue-700 font-medium">All Portfolios</span>
+                  <span class="multi-select-arrow text-blue-600">▼</span>
+                </div>
+                <div id="gaugePortfolioFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+        </div>
+                <div id="gaugePortfolioSelectedItems" class="selected-items"></div>
+        </div>
+
+              <!-- Asset No Filter for Gauges -->
+              <div class="multi-select-container flex-1 min-w-[120px]">
+                <div id="gaugeAssetNoFilterTrigger" class="multi-select-trigger bg-white border-2 border-blue-200 rounded-xl px-3 py-2 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md">
+                  <span class="text-blue-800 font-bold text-sm mr-2">🏢 Asset No:</span>
+                  <span id="gaugeAssetNoFilterPlaceholder" data-default="All Assets" class="text-blue-700 font-medium">All Assets</span>
+                  <span class="multi-select-arrow text-blue-600">▼</span>
+                </div>
+                <div id="gaugeAssetNoFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+                </div>
+                <div id="gaugeAssetNoSelectedItems" class="selected-items"></div>
+              </div>
+
+              <!-- Date Filter for Gauges -->
+        <div class="flex-1 min-w-[200px] max-w-[250px]">
+                <div class="flex items-center gap-1">
+                  <button id="prevDateBtn" class="px-2 py-2 text-blue-700 border-2 border-blue-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md" title="Previous Date">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </button>
+                  <input type="date" id="gaugeDateFilter" class="flex-1 px-3 py-2 text-sm bg-white text-blue-700 border-2 border-blue-200 rounded-lg hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md font-medium" value="">
+                  <button id="nextDateBtn" class="px-2 py-2 text-blue-700 border-2 border-blue-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-all duration-300 shadow-sm hover:shadow-md" title="Next Date">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Gauge Action Buttons -->
+              <div class="flex gap-1 items-end ml-2">
+                <button id="gaugeUpdateBtn" type="button" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl transform hover:scale-105">
+                  🔄 Update
+                </button>
+                <button id="gaugeResetBtn" type="button" class="bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 px-4 py-2 rounded-lg font-bold text-xs transition-all duration-300 whitespace-nowrap shadow-lg hover:shadow-xl transform hover:scale-105">
+                  🔄 Reset
+                </button>
+              </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- KPI Summary Cards - Using site_state column from latest data -->
+          <div id="kpiSummaryCards" class="mb-2 p-3 bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl shadow-lg border border-blue-100" style="font-family: 'Inter', sans-serif;">
+            <div class="flex flex-wrap gap-2 justify-center items-center">
+              <!-- Total Sites Card -->
+              <div class="kpi-card bg-white border-2 border-blue-200 rounded-2xl p-3 w-[220px] h-[90px] relative group cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 flex-shrink-0 hover:scale-105" 
+                   data-tooltip="Total number of sites based on current filters"
+                   data-card-type="total"
+                   onclick="showKPITooltip('total')">
+                <div class="flex items-center w-full h-full relative">
+                  <div class="flex items-center">
+                    <div class="text-2xl mr-3">🏢</div>
+                    <div class="text-sm font-bold text-blue-800">Total Sites</div>
+                  </div>
+                  <div id="totalSitesCount" class="text-4xl font-black text-blue-900 leading-none absolute right-4 top-1/2 transform -translate-y-1/2">0</div>
+                </div>
+              </div>
+              
+              <!-- Active Sites Card -->
+              <div class="kpi-card bg-white border-2 border-green-200 rounded-2xl p-3 w-[220px] h-[90px] relative group cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 flex-shrink-0 hover:scale-105" 
+                   data-tooltip="Sites with actual generation > 0"
+                   data-card-type="active"
+                   onclick="showKPITooltip('active')">
+                <div class="flex items-center w-full h-full relative">
+                  <div class="flex items-center">
+                    <div class="text-2xl mr-3">✅</div>
+                    <div class="text-sm font-bold text-green-800">Active Sites</div>
+                  </div>
+                  <div id="activeSitesCount" class="text-4xl font-black text-green-900 leading-none absolute right-4 top-1/2 transform -translate-y-1/2">0</div>
+                </div>
+              </div>
+              
+              <!-- Inactive Sites Card -->
+              <div class="kpi-card bg-white border-2 border-orange-200 rounded-2xl p-3 w-[220px] h-[90px] relative group cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 flex-shrink-0 hover:scale-105" 
+                   data-tooltip="Sites with no generation (Total - Active)"
+                   data-card-type="inactive"
+                   onclick="showKPITooltip('inactive')">
+                <div class="flex items-center w-full h-full relative">
+                  <div class="flex items-center">
+                    <div class="text-2xl mr-3">⚠️</div>
+                    <div class="text-sm font-bold text-orange-800">Inactive Sites</div>
+                  </div>
+                  <div id="inactiveSitesCount" class="text-4xl font-black text-orange-900 leading-none absolute right-4 top-1/2 transform -translate-y-1/2">0</div>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+          
+          <!-- KPI Card Tooltips -->
+          <div id="kpiTooltipOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen p-4">
+              <div id="kpiTooltip" class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+                <!-- Tooltip Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex items-center justify-between">
+                  <div>
+                    <h3 id="tooltipTitle" class="text-xl font-bold"></h3>
+                    <p id="tooltipSubtitle" class="text-blue-100 text-sm"></p>
+                  </div>
+                  <button id="closeTooltip" class="text-white hover:text-gray-200 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-all">
+                    ×
+                  </button>
+                </div>
+                
+                <!-- Tooltip Content -->
+                <div class="p-4">
+                  <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm font-semibold text-gray-700">Site List:</span>
+                      <span id="siteCount" class="text-sm text-gray-500"></span>
+                    </div>
+                    <div id="siteList" class="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                      <!-- Site list will be populated here -->
+                    </div>
+                  </div>
+                  
+                  <!-- Summary Stats -->
+                  <div class="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-200">
+                    <div class="text-center">
+                      <div class="text-2xl font-bold text-blue-600" id="tooltipTotal">0</div>
+                      <div class="text-xs text-gray-600">Total Sites</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="text-2xl font-bold text-green-600" id="tooltipActive">0</div>
+                      <div class="text-xs text-gray-600">Active Sites</div>
+                    </div>
+                    <div class="text-center">
+                      <div class="text-2xl font-bold text-orange-600" id="tooltipInactive">0</div>
+                      <div class="text-xs text-gray-600">Inactive Sites</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- KPI Cards Info Panel (dynamic) -->
+          <div id="kpiInfoPanel" class="hidden mb-4 p-4 bg-white border border-blue-300 rounded-xl shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <div id="kpiInfoHeader" class="text-sm text-[#0f3b63]">
+                <span id="kpiInfoTitle" class="font-semibold text-green-600"></span>
+                <span class="mx-2">·</span>
+                <span id="kpiInfoDesc" class="text-gray-700"></span>
+              </div>
+              <button id="kpiInfoClose" type="button" class="w-7 h-7 flex items-center justify-center rounded-md border border-blue-300 text-[#0f3b63] hover:bg-blue-50">×</button>
+            </div>
+            <div id="kpiInfoAssets" class="flex flex-wrap gap-2"></div>
+          </div>
+
+          <!-- KPI Cards JavaScript logic removed -->
+          
+          <!-- Gauge Charts -->
+          <div id="gaugesSection" class="transition-all duration-500 overflow-visible max-h-[2000px]">
+            <div class="gauge-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full h-auto">
+              <!-- IC Approved vs Actual Gauge -->
+              <div class="bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center relative p-4 w-full h-[240px] border-3 border-blue-500 hover:border-blue-600 group">
+                <div class="flex items-center justify-center mb-3 z-10">
+                  <div class="text-2xl mr-2">⚡</div>
+                  <div class="gauge-title text-sm font-bold text-blue-800 text-center leading-tight" data-i18n="kpi.icVsActual">Actual Gen Vs IC Approved (MWh)</div>
+                </div>
+                <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                  <canvas id="icActualGauge" class="absolute inset-0 w-full h-full"></canvas>
+                </div>
+                
+              </div>
+              
+              <!-- Expected vs Actual Gauge -->
+              <div class="bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center relative p-4 w-full h-[240px] border-3 border-green-500 hover:border-green-600 group">
+                <div class="flex items-center justify-center mb-3 z-10">
+                  <div class="text-2xl mr-2">📊</div>
+                  <div class="gauge-title text-sm font-bold text-green-800 text-center leading-tight" data-i18n="kpi.expectedVsActual">Actual Gen Vs Expected (MWh)</div>
+                </div>
+                <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                  <canvas id="expActualGauge" class="absolute inset-0 w-full h-full"></canvas>
+                </div>
+                
+              </div>
+              
+              <!-- PR Gauge -->
+              <div class="bg-gradient-to-br from-white to-purple-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center relative p-4 w-full h-[240px] border-3 border-purple-500 hover:border-purple-600 group">
+                <div class="flex items-center justify-center mb-3 z-10">
+                  <div class="text-2xl mr-2">📈</div>
+                  <div class="gauge-title text-sm font-bold text-purple-800 text-center leading-tight" data-i18n="kpi.pr">Actual PR vs Expected PR (%)</div>
+                </div>
+                <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                  <canvas id="prGauge" class="absolute inset-0 w-full h-full"></canvas>
+                </div>
+                
+              </div>
+              
+              <!-- Irradiation Gauge -->
+              <div class="bg-gradient-to-br from-white to-orange-50 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-center relative p-4 w-full h-[240px] border-3 border-orange-500 hover:border-orange-600 group">
+                <div class="flex items-center justify-center mb-3 z-10">
+                  <div class="text-2xl mr-2">☀️</div>
+                  <div class="gauge-title text-sm font-bold text-orange-800 text-center leading-tight" data-i18n="kpi.irradiation">Actual vs Budget Irradiation (kWh/m²)</div>
+                </div>
+                <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                  <canvas id="irrGauge" class="absolute inset-0 w-full h-full"></canvas>
+                </div>
+                
+              </div>
+            </div>
+          </div>
+          
+
+        </div>
+        
+        <!-- Monthly Generation Data Tab -->
+        <div id="monthly-generation" class="tab-pane">
+
+          
+          <!-- Advanced Filters -->
+          <div class="mb-1 p-1 bg-gray-50 rounded-lg" id="advancedBarsSection" style="overflow: visible;">
+            <div class="flex flex-wrap gap-3 items-end" style="overflow: visible;">
+              <!-- Chart Type Selection (First) -->
+              <div class="multi-select-container flex-1 min-w-[120px]">
+                <div id="advancedChartTypeFilterTrigger" class="multi-select-trigger">
+                  <span id="advancedChartTypeFilterPlaceholder" data-default="Bar Chart">Bar Chart</span>
+                  <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="advancedChartTypeFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+                </div>
+                <div id="advancedChartTypeSelectedItems" class="selected-items"></div>
+              </div>
+
+              <!-- Parameter Selection (Second) -->
+              <div class="multi-select-container flex-1 min-w-[120px]">
+                <div id="advancedParameterFilterTrigger" class="multi-select-trigger">
+                  <span id="advancedParameterFilterPlaceholder" data-default="Select Parameters (Max 4)" title="Parameter limit depends on chart type: Bar Chart (4 max), Stacked Chart (1 max)">Select Parameters (Max 4)</span>
+                  <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="advancedParameterFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+              </div>
+                <div id="advancedParameterSelectedItems" class="selected-items"></div>
+            </div>
+
+              <!-- Country Selection -->
+              <div class="multi-select-container flex-1 min-w-[120px]">
+                <div id="advancedCountryFilterTrigger" class="multi-select-trigger">
+                  <span id="advancedCountryFilterPlaceholder" data-default="All Countries">All Countries</span>
+                  <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="advancedCountryFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+        </div>
+                <div id="advancedCountrySelectedItems" class="selected-items"></div>
+              </div>
+
+              <!-- Portfolio Selection -->
+              <div class="multi-select-container flex-1 min-w-[120px]">
+                <div id="advancedPortfolioFilterTrigger" class="multi-select-trigger">
+                  <span id="advancedPortfolioFilterPlaceholder" data-default="All Portfolios">All Portfolios</span>
+                  <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="advancedPortfolioFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+                </div>
+                <div id="advancedPortfolioSelectedItems" class="selected-items"></div>
+              </div>
+
+              <!-- Asset No Filter -->
+              <div class="multi-select-container flex-1 min-w-[120px]">
+                <div id="advancedAssetNoFilterTrigger" class="multi-select-trigger">
+                  <span id="advancedAssetNoFilterPlaceholder" data-default="All Assets">All Assets</span>
+                  <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="advancedAssetNoFilterDropdown" class="multi-select-dropdown">
+                  <!-- Options will be populated dynamically -->
+                </div>
+                <div id="advancedAssetNoSelectedItems" class="selected-items"></div>
+              </div>
+
+              <!-- Period Filter -->
+              <div class="relative flex-1 min-w-[120px]">
+                <button id="advancedMonthMatrixTrigger" type="button" class="w-full px-3 py-2 text-[0.96rem] bg-white text-[#4e89ae] border border-gray-300 rounded-md cursor-pointer flex items-center justify-between">
+                  <span class="flex-1 text-left" id="advancedSelectedMonthLabel">Select Period</span>
+                  <span class="ml-2">▼</span>
+                </button>
+                <div id="advancedMonthMatrixPicker"></div>
+              </div>
+
+              <!-- Advanced Action Buttons -->
+              <div class="flex gap-2">
+                <button id="advancedUpdateBtn" type="button" class="action-btn update-btn">
+                  Update
+                </button>
+                <button id="advancedResetBtn" type="button" class="action-btn reset-btn">
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Advanced Charts -->
+          <div id="advancedBarsContainer" class="transition-all duration-500 overflow-visible">
+            <div class="flex flex-col gap-2 w-full">
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200" style="height: 500px; padding: 0;">
+                <div id="advancedChart2" style="width: 100%; height: 100%; min-height: 500px;"></div>
+              </div>
+            </div>
+          </div>
+          
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load modular JavaScript files with cache busting -->
+  <script src="{% static_hash "js/kpi-data-manager.js" %}"></script>
+  <script src="{% static_hash "js/gauge-charts.js" %}"></script>
+  <script src="{% static_hash "js/multi-select.js" %}"></script>
+  <script src="{% static_hash "js/kpi-dashboard.js" %}"></script>
+
+  <!-- Chart setup and data script goes here -->
+  <script>
+    // Initialize AOS animations
+    AOS.init({ duration: 900, once: true });
+
+    // Global dashboard instance
+    let kpiDashboard = null;
+
+    // Tab switching function
+    function showTab(tabId) {
+      // Hide all tab panes
+      const tabPanes = document.querySelectorAll('.tab-pane');
+      tabPanes.forEach(pane => {
+        pane.classList.remove('active');
+      });
+      
+      // Remove active class from all tab buttons
+      const tabButtons = document.querySelectorAll('.tab-button');
+      tabButtons.forEach(button => {
+        button.classList.remove('active');
+      });
+      
+      // Show selected tab
+      const selectedTab = document.getElementById(tabId);
+      if (selectedTab) {
+        selectedTab.classList.add('active');
+      }
+      
+      // Add active class to clicked button (guard if event is unavailable)
+      try {
+        if (typeof event !== 'undefined' && event) {
+          const clickedButton = event.target && event.target.closest ? event.target.closest('.tab-button') : null;
+          if (clickedButton) {
+            clickedButton.classList.add('active');
+          }
+        }
+      } catch (_) { /* no-op */ }
+      
+      // Show/Hide KPI cards and Gauges based on tab
+      const kpiCardsEl = document.getElementById('kpiSummaryCards');
+      const gaugesEl = document.getElementById('gaugesSection');
+      const kpiInfoEl = document.getElementById('kpiInfoPanel');
+      if (tabId === 'monthly-generation') {
+        if (kpiCardsEl) kpiCardsEl.classList.add('hidden');
+        if (gaugesEl) gaugesEl.classList.add('hidden');
+        if (kpiInfoEl) kpiInfoEl.classList.add('hidden');
+      } else {
+        if (kpiCardsEl) kpiCardsEl.classList.remove('hidden');
+        if (gaugesEl) gaugesEl.classList.remove('hidden');
+        if (kpiInfoEl) kpiInfoEl.classList.add('hidden');
+        
+        // If switching to KPI Gauges tab, refresh the gauge charts
+        if (tabId === 'kpi-gauges') {
+          // Trigger gauge chart refresh after a delay to ensure container is visible
+          setTimeout(() => {
+            // Call the global refresh function if available
+            if (typeof window.refreshGaugeCharts === 'function') {
+              window.refreshGaugeCharts();
+            }
+            
+            // Also trigger refresh through the dashboard instance
+            if (window.kpiDashboard && window.kpiDashboard.gaugeManager) {
+              if (typeof window.kpiDashboard.gaugeManager.forceRefreshCharts === 'function') {
+                window.kpiDashboard.gaugeManager.forceRefreshCharts();
+              }
+              // Also trigger a full update
+              if (typeof window.kpiDashboard.gaugeManager.updateCharts === 'function') {
+                window.kpiDashboard.gaugeManager.updateCharts();
+              }
+            }
+          }, 300);
+        }
+      }
+      
+      // Add a body class to control monthly visibility via CSS
+      try {
+        if (tabId === 'monthly-generation') {
+          document.body.classList.add('monthly-active');
+        } else {
+          document.body.classList.remove('monthly-active');
+        }
+      } catch (_) { /* no-op */ }
+
+      // Trigger resize event for charts to redraw properly
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+    }
+
+    // Generate KPI Gauge Remarks
+    function generateGaugeRemarks(gaugeData) {
+      if (!gaugeData || Object.keys(gaugeData).length === 0) {
+        return '<div class="remarks-highlight">No data available for analysis</div>';
+      }
+
+      let remarks = '';
+      const insights = [];
+
+      // Analyze IC vs Actual Generation
+      if (gaugeData.icActual) {
+        const icActual = gaugeData.icActual;
+        const percentage = icActual.percentage;
+        const actualValue = icActual.actual;
+        const icValue = icActual.ic;
+        
+        if (percentage >= 100) {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> achievement against IC approved budget - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Excellent Performance</span>`);
+        } else if (percentage >= 90) {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> achievement against IC approved budget - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Good Performance</span>`);
+        } else if (percentage >= 80) {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> achievement against IC approved budget - <span class="trend-neutral"><i class="fas fa-minus trend-icon"></i>Moderate Performance</span>`);
+        } else {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> achievement against IC approved budget - <span class="trend-negative"><i class="fas fa-arrow-down trend-icon"></i>Needs Attention</span>`);
+        }
+      }
+
+      // Analyze Expected vs Actual Generation
+      if (gaugeData.expActual) {
+        const expActual = gaugeData.expActual;
+        const percentage = expActual.percentage;
+        
+        if (percentage >= 100) {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> achievement against expected budget - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Exceeding Expectations</span>`);
+        } else if (percentage >= 90) {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> achievement against expected budget - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Meeting Expectations</span>`);
+        } else {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> achievement against expected budget - <span class="trend-negative"><i class="fas fa-arrow-down trend-icon"></i>Below Expectations</span>`);
+        }
+      }
+
+      // Analyze PR Performance
+      if (gaugeData.pr) {
+        const pr = gaugeData.pr;
+        const actualPR = pr.actual;
+        const expectedPR = pr.expected;
+        const difference = actualPR - expectedPR;
+        
+        if (difference > 0) {
+          insights.push(`<span class="remarks-metric">${actualPR.toFixed(1)}%</span> actual PR vs <span class="remarks-metric">${expectedPR.toFixed(1)}%</span> expected - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>+${difference.toFixed(1)}% Above Target</span>`);
+        } else if (difference < 0) {
+          insights.push(`<span class="remarks-metric">${actualPR.toFixed(1)}%</span> actual PR vs <span class="remarks-metric">${expectedPR.toFixed(1)}%</span> expected - <span class="trend-negative"><i class="fas fa-arrow-down trend-icon"></i>${difference.toFixed(1)}% Below Target</span>`);
+        } else {
+          insights.push(`<span class="remarks-metric">${actualPR.toFixed(1)}%</span> actual PR vs <span class="remarks-metric">${expectedPR.toFixed(1)}%</span> expected - <span class="trend-neutral"><i class="fas fa-minus trend-icon"></i>On Target</span>`);
+        }
+      }
+
+      // Analyze Irradiation Performance
+      if (gaugeData.irr) {
+        const irr = gaugeData.irr;
+        const actualIrr = irr.actual;
+        const budgetIrr = irr.budget;
+        const percentage = (actualIrr / budgetIrr) * 100;
+        
+        if (percentage >= 100) {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> actual vs budgeted irradiation - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Above Budget</span>`);
+        } else if (percentage >= 90) {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> actual vs budgeted irradiation - <span class="trend-neutral"><i class="fas fa-minus trend-icon"></i>Near Budget</span>`);
+        } else {
+          insights.push(`<span class="remarks-metric">${percentage.toFixed(1)}%</span> actual vs budgeted irradiation - <span class="trend-negative"><i class="fas fa-arrow-down trend-icon"></i>Below Budget</span>`);
+        }
+      }
+
+      // Generate overall performance summary
+      const positiveCount = insights.filter(insight => insight.includes('trend-positive')).length;
+      const negativeCount = insights.filter(insight => insight.includes('trend-negative')).length;
+      
+      let overallSentiment = '';
+      if (positiveCount > negativeCount) {
+        overallSentiment = '<div class="remarks-highlight">Overall Performance: <span class="trend-positive"><i class="fas fa-thumbs-up trend-icon"></i>Strong Performance</span></div>';
+      } else if (negativeCount > positiveCount) {
+        overallSentiment = '<div class="remarks-highlight">Overall Performance: <span class="trend-negative"><i class="fas fa-exclamation-triangle trend-icon"></i>Needs Improvement</span></div>';
+      } else {
+        overallSentiment = '<div class="remarks-highlight">Overall Performance: <span class="trend-neutral"><i class="fas fa-minus trend-icon"></i>Mixed Results</span></div>';
+      }
+
+      remarks = overallSentiment + '<ul class="remarks-list">' + insights.map(insight => `<li>${insight}</li>`).join('') + '</ul>';
+      
+      return remarks;
+    }
+
+    // Generate Monthly Generation Data Remarks
+    function generateMonthlyRemarks(chartData) {
+      if (!chartData || !chartData.generation || !chartData.pr || !chartData.irr) {
+        return '<div class="remarks-highlight">No monthly data available for analysis</div>';
+      }
+
+      let remarks = '';
+      const insights = [];
+
+      // Analyze Generation Trends
+      const generationData = chartData.generation;
+      if (generationData.actual && generationData.expected) {
+        const actualTotal = generationData.actual.reduce((sum, val) => sum + val, 0);
+        const expectedTotal = generationData.expected.reduce((sum, val) => sum + val, 0);
+        const generationPercentage = (actualTotal / expectedTotal) * 100;
+        
+        if (generationPercentage >= 100) {
+          insights.push(`<span class="remarks-metric">${generationPercentage.toFixed(1)}%</span> total generation achievement - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Exceeding Targets</span>`);
+        } else if (generationPercentage >= 90) {
+          insights.push(`<span class="remarks-metric">${generationPercentage.toFixed(1)}%</span> total generation achievement - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Meeting Targets</span>`);
+        } else {
+          insights.push(`<span class="remarks-metric">${generationPercentage.toFixed(1)}%</span> total generation achievement - <span class="trend-negative"><i class="fas fa-arrow-down trend-icon"></i>Below Targets</span>`);
+        }
+
+        // Find best and worst performing months
+        const monthlyPerformance = generationData.actual.map((actual, index) => ({
+          month: index,
+          actual: actual,
+          expected: generationData.expected[index],
+          percentage: (actual / generationData.expected[index]) * 100
+        })).filter(item => item.expected > 0);
+
+        if (monthlyPerformance.length > 0) {
+          const bestMonth = monthlyPerformance.reduce((best, current) => 
+            current.percentage > best.percentage ? current : best
+          );
+          const worstMonth = monthlyPerformance.reduce((worst, current) => 
+            current.percentage < worst.percentage ? current : worst
+          );
+
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          insights.push(`Best performing month: <span class="remarks-metric">${monthNames[bestMonth.month]}</span> (${bestMonth.percentage.toFixed(1)}% achievement)`);
+          insights.push(`Lowest performing month: <span class="remarks-metric">${monthNames[worstMonth.month]}</span> (${worstMonth.percentage.toFixed(1)}% achievement)`);
+        }
+      }
+
+      // Analyze PR Trends
+      const prData = chartData.pr;
+      if (prData.actual && prData.expected) {
+        const actualPRAvg = prData.actual.reduce((sum, val) => sum + val, 0) / prData.actual.filter(val => val > 0).length;
+        const expectedPRAvg = prData.expected.reduce((sum, val) => sum + val, 0) / prData.expected.filter(val => val > 0).length;
+        
+        if (actualPRAvg > expectedPRAvg) {
+          insights.push(`<span class="remarks-metric">${actualPRAvg.toFixed(1)}%</span> average actual PR vs <span class="remarks-metric">${expectedPRAvg.toFixed(1)}%</span> expected - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Above Average</span>`);
+        } else {
+          insights.push(`<span class="remarks-metric">${actualPRAvg.toFixed(1)}%</span> average actual PR vs <span class="remarks-metric">${expectedPRAvg.toFixed(1)}%</span> expected - <span class="trend-negative"><i class="fas fa-arrow-down trend-icon"></i>Below Average</span>`);
+        }
+      }
+
+      // Analyze Irradiation Trends
+      const irrData = chartData.irr;
+      if (irrData.actual && irrData.budget) {
+        const actualIrrTotal = irrData.actual.reduce((sum, val) => sum + val, 0);
+        const budgetIrrTotal = irrData.budget.reduce((sum, val) => sum + val, 0);
+        const irrPercentage = (actualIrrTotal / budgetIrrTotal) * 100;
+        
+        if (irrPercentage >= 100) {
+          insights.push(`<span class="remarks-metric">${irrPercentage.toFixed(1)}%</span> total irradiation vs budget - <span class="trend-positive"><i class="fas fa-arrow-up trend-icon"></i>Above Budget</span>`);
+        } else {
+          insights.push(`<span class="remarks-metric">${irrPercentage.toFixed(1)}%</span> total irradiation vs budget - <span class="trend-negative"><i class="fas fa-arrow-down trend-icon"></i>Below Budget</span>`);
+        }
+      }
+
+      // Generate overall summary
+      const positiveCount = insights.filter(insight => insight.includes('trend-positive')).length;
+      const negativeCount = insights.filter(insight => insight.includes('trend-negative')).length;
+      
+      let overallSentiment = '';
+      if (positiveCount > negativeCount) {
+        overallSentiment = '<div class="remarks-highlight">Monthly Analysis: <span class="trend-positive"><i class="fas fa-chart-line trend-icon"></i>Positive Trends</span></div>';
+      } else if (negativeCount > positiveCount) {
+        overallSentiment = '<div class="remarks-highlight">Monthly Analysis: <span class="trend-negative"><i class="fas fa-chart-line trend-icon"></i>Areas for Improvement</span></div>';
+      } else {
+        overallSentiment = '<div class="remarks-highlight">Monthly Analysis: <span class="trend-neutral"><i class="fas fa-minus trend-icon"></i>Mixed Performance</span></div>';
+      }
+
+      remarks = overallSentiment + '<ul class="remarks-list">' + insights.map(insight => `<li>${insight}</li>`).join('') + '</ul>';
+      
+      return remarks;
+    }
+
+    // Update remarks when data changes
+    function updateRemarks() {
+      // Update gauge remarks if gauge data is available
+      if (window.gaugeData) {
+        const gaugeRemarks = generateGaugeRemarks(window.gaugeData);
+        const gaugeRemarksElement = document.getElementById('gaugeRemarksContent');
+        if (gaugeRemarksElement) {
+          gaugeRemarksElement.innerHTML = gaugeRemarks;
+        }
+      }
+
+      // Update monthly remarks if chart data is available
+      if (window.chartData) {
+        const monthlyRemarks = generateMonthlyRemarks(window.chartData);
+        const monthlyRemarksElement = document.getElementById('monthlyRemarksContent');
+        if (monthlyRemarksElement) {
+          monthlyRemarksElement.innerHTML = monthlyRemarks;
+        }
+      }
+    }
+
+    // Responsive font size helper for Chart.js
+    function getResponsiveFontSize(small, medium, large) {
+      const width = window.innerWidth;
+      if (width < 768) return small;      // Mobile
+      if (width < 1200) return medium;    // Tablet/Laptop
+      return large;                       // Desktop/Big Monitor
+    }
+
+    // Populate filters based on data
+    function populateFilters(data) {
+      const countrySelect = document.getElementById('countrySelect');
+      const portfolioSelect = document.getElementById('portfolioSelect');
+      const selectedCountry = countrySelect.value;
+
+      // Get unique countries
+      const countries = Array.from(new Set(data.map(r => r.country))).sort();
+
+      // Get portfolios for the selected country (or all if none selected)
+      let portfolios;
+      if (selectedCountry) {
+        portfolios = Array.from(new Set(data.filter(r => r.country === selectedCountry).map(r => r.portfolio))).sort();
+      } else {
+        portfolios = Array.from(new Set(data.map(r => r.portfolio))).sort();
+      }
+
+      function options(arr, allText) {
+        return `<option value="">All ${allText}</option>` + arr.map(v => `<option value="${v}">${v}</option>`).join('');
+      }
+
+      countrySelect.innerHTML = options(countries, "Countries");
+      countrySelect.value = selectedCountry; // retain selection
+
+      portfolioSelect.innerHTML = options(portfolios, "Portfolios");
+      // If the current portfolio is not in the new list, reset it
+      if (!portfolios.includes(portfolioSelect.value)) {
+        portfolioSelect.value = '';
+      }
+    }
+
+    function applyFilters() {
+      const country = document.getElementById('countrySelect').value;
+      const portfolio = document.getElementById('portfolioSelect').value;
+      
+      // Get period filter from BestCalendar
+      let selectedMonth = null;
+      let selectedYear = null;
+      if (window.advancedCalendar && typeof window.advancedCalendar.getSelectedPeriod === 'function') {
+        try {
+          const period = window.advancedCalendar.getSelectedPeriod();
+          selectedMonth = period.month;
+          selectedYear = period.year;
+        } catch (error) {
+          // Error getting period from BestCalendar
+        }
+      }
+      
+      filteredData = rawData.filter(row => {
+        const countryMatch = !country || row.country === country;
+        const portfolioMatch = !portfolio || row.portfolio === portfolio;
+        
+        let periodMatch = true;
+        if (selectedMonth) {
+          // If specific month is selected, match exact month
+          periodMatch = row.month === selectedMonth;
+        } else if (selectedYear) {
+          // If only year is selected, match year
+          periodMatch = row.month && row.month.startsWith(selectedYear.toString());
+        }
+        
+        return countryMatch && portfolioMatch && periodMatch;
+      });
+      
+      // Monthly Generation tab should not update KPI cards or gauges
+      updateCharts();
+    }
+
+    function animateNumber(el, target, isFloat=false, duration=700, unit='') {
+      const start = +el.textContent.replace(/,/g, '') || 0;
+      const diff = target - start;
+      let startTime = null;
+      function animate(ts) {
+        if (!startTime) startTime = ts;
+        const progress = Math.min((ts - startTime) / duration, 1);
+        const value = start + diff * progress;
+        el.textContent = isFloat
+          ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+          : Math.round(value).toLocaleString();
+        if (progress < 1) requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function formatK(val, decimals = 1) {
+      if (Math.abs(val) >= 1000) {
+        return (val / 1000).toFixed(decimals).replace(/\.0+$/, '') + 'K';
+      }
+      return val;
+    }
+
+    function updateKPICards() {
+      // Update the three main KPI cards
+      const icBudget = filteredData.reduce((sum, r) => sum + (+r.ic_approved_budget || 0), 0);
+      const expectedBudget = filteredData.reduce((sum, r) => sum + (+r.expected_budget || 0), 0);
+      const actualGeneration = filteredData.reduce((sum, r) => sum + (+r.actual_generation || 0), 0);
+      animateNumber(document.getElementById('icBudget'), icBudget, false, 700);
+      animateNumber(document.getElementById('expectedBudget'), expectedBudget, false, 700);
+      animateNumber(document.getElementById('actualGeneration'), actualGeneration, false, 700);
+    }
+
+    function updateCharts() {
+      // Destroy previous chart instances
+      if (chartInstances.generation) chartInstances.generation.destroy();
+      if (chartInstances.pr) chartInstances.pr.destroy();
+      if (chartInstances.irr) chartInstances.irr.destroy();
+      if (filteredData.length === 0) return;
+
+      // Store chart data for remarks generation
+      window.chartData = {
+        generation: { actual: [], expected: [] },
+        pr: { actual: [], expected: [] },
+        irr: { actual: [], budget: [] }
+      };
+
+      // Get selected period from BestCalendar
+      let selectedMonth = null;
+      let selectedYear = null;
+      if (window.advancedCalendar && typeof window.advancedCalendar.getSelectedPeriod === 'function') {
+        try {
+          const period = window.advancedCalendar.getSelectedPeriod();
+          selectedMonth = period.month;
+          selectedYear = period.year;
+        } catch (error) {
+          // Error getting period from BestCalendar
+        }
+      }
+      // Months for the selected year
+      const months = [
+        '01','02','03','04','05','06','07','08','09','10','11','12'
+      ];
+      const monthLabels = [
+        'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
+      ];
+      // Group data by month for the selected year
+      let monthMap = {};
+      months.forEach((m, i) => {
+        monthMap[m] = {
+          actual: 0,
+          expected: 0,
+          expectedPR: 0,
+          actualPR: 0,
+          budgetIrr: 0,
+          actualIrr: 0,
+          count: 0,
+          prCount: 0,  // Separate counter for valid PR values
+          // Weighted calculation variables
+          weightedExpectedPR: 0,
+          weightedActualPR: 0,
+          weightedBudgetIrr: 0,
+          weightedActualIrr: 0,
+          totalWeightPR: 0,
+          totalWeightIrr: 0
+        };
+      });
+      filteredData.forEach(row => {
+        if (!row.month) return;
+        const rowYear = row.month.slice(0,4);
+        const rowMonth = row.month.slice(5,7);
+        
+        // Skip if year doesn't match (when year is selected)
+        if (selectedYear && !selectedMonth && rowYear !== selectedYear.toString()) return;
+        
+        // Skip if month doesn't match (when specific month is selected)
+        if (selectedMonth && row.month !== selectedMonth) return;
+        
+        if (monthMap[rowMonth]) {
+          monthMap[rowMonth].actual += +row.actual_generation || 0;
+          monthMap[rowMonth].expected += +row.expected_budget || 0;
+          
+          // Get weight for calculations (use only capacity as weight)
+          const weight = +row.capacity || 1;
+          
+          // Weighted PR calculations
+          const expectedPR = +row.expected_pr;
+          const actualPR = +row.actual_pr;
+          
+          if (!isNaN(expectedPR) && expectedPR !== null && row.expected_pr !== '' && row.expected_pr !== 'NaN') {
+            monthMap[rowMonth].expectedPR += expectedPR;
+            monthMap[rowMonth].weightedExpectedPR += expectedPR * weight;
+            monthMap[rowMonth].totalWeightPR += weight;
+          }
+          if (!isNaN(actualPR) && actualPR !== null && row.actual_pr !== '' && row.actual_pr !== 'NaN') {
+            monthMap[rowMonth].actualPR += actualPR;
+            monthMap[rowMonth].weightedActualPR += actualPR * weight;
+            monthMap[rowMonth].totalWeightPR += weight;
+          }
+          
+          // Count valid PR entries
+          if ((!isNaN(expectedPR) && expectedPR !== null && row.expected_pr !== '' && row.expected_pr !== 'NaN') ||
+              (!isNaN(actualPR) && actualPR !== null && row.actual_pr !== '' && row.actual_pr !== 'NaN')) {
+            monthMap[rowMonth].prCount += 1;
+          }
+          
+          // Weighted Irradiation calculations
+          const budgetIrr = +row.budgeted_irradiation || 0;
+          const actualIrr = +row.actual_irradiation || 0;
+          const irrWeight = +row.capacity || 1;
+          
+
+          
+          monthMap[rowMonth].budgetIrr += budgetIrr;
+          monthMap[rowMonth].actualIrr += actualIrr;
+          monthMap[rowMonth].weightedBudgetIrr += budgetIrr * irrWeight;
+          monthMap[rowMonth].weightedActualIrr += actualIrr * irrWeight;
+          monthMap[rowMonth].totalWeightIrr += irrWeight;
+          
+          monthMap[rowMonth].count += 1;
+        }
+      });
+      // Prepare data arrays using weighted averages when available
+      const actuals = months.map(m => monthMap[m].actual);
+      const expecteds = months.map(m => monthMap[m].expected);
+      
+      // Use weighted PR averages when weights are available, otherwise fallback to simple average
+      const expectedPRs = months.map(m => {
+        if (monthMap[m].totalWeightPR > 0) {
+          return (monthMap[m].weightedExpectedPR / monthMap[m].totalWeightPR) * 100;
+        } else if (monthMap[m].prCount > 0) {
+          return (monthMap[m].expectedPR / monthMap[m].prCount) * 100;
+        }
+        return 0;
+      });
+      
+      const actualPRs = months.map(m => {
+        if (monthMap[m].totalWeightPR > 0) {
+          return (monthMap[m].weightedActualPR / monthMap[m].totalWeightPR) * 100;
+        } else if (monthMap[m].prCount > 0) {
+          return (monthMap[m].actualPR / monthMap[m].prCount) * 100;
+        }
+        return 0;
+      });
+      
+      // Use weighted irradiation averages when weights are available, otherwise fallback to simple sum
+      const budgetIrrs = months.map(m => {
+        if (monthMap[m].totalWeightIrr > 0) {
+          return monthMap[m].weightedBudgetIrr / monthMap[m].totalWeightIrr;
+        }
+        return monthMap[m].budgetIrr;
+      });
+      
+      const actualIrrs = months.map(m => {
+        if (monthMap[m].totalWeightIrr > 0) {
+          return monthMap[m].weightedActualIrr / monthMap[m].totalWeightIrr;
+        }
+        return monthMap[m].actualIrr;
+      });
+
+      // Store data for remarks generation
+      window.chartData.generation.actual = actuals;
+      window.chartData.generation.expected = expecteds;
+      window.chartData.pr.actual = actualPRs;
+      window.chartData.pr.expected = expectedPRs;
+      window.chartData.irr.actual = actualIrrs;
+      window.chartData.irr.budget = budgetIrrs;
+
+      // Calculate max values for y-axis scaling, fallback to 1 if all data is zero
+      const divider = 1.05;
+      const maxGen = Math.max(1, Math.max(...actuals, ...expecteds)) * divider;
+      const maxPR = Math.max(1, Math.max(...expectedPRs, ...actualPRs)) * divider;
+      const maxIrr = Math.max(1, Math.max(...budgetIrrs, ...actualIrrs)) * divider;
+
+      // Chart 1: Generation Comparison
+      const ctxGen = document.getElementById('generationChart').getContext('2d');
+      chartInstances.generation = new Chart(ctxGen, {
+        type: 'bar',
+        data: {
+          labels: monthLabels,
+          datasets: [
+            {
+              label: "Actual Generation (MWh)",
+              data: actuals,
+              backgroundColor: "rgba(255, 212, 59, 0.8)",
+            },
+            {
+              label: "Expected Budget (MWh)",
+              data: expecteds,
+              backgroundColor: "rgba(19, 230, 195, 0.5)",
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              align: 'center',
+              labels: { color: "#0072CE", font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } }
+            },
+            title: {
+              display: true,
+              text: 'Expected Budget vs Actual Generation',
+              color: 'transparent',
+              font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' },
+              padding: { bottom: 18 }
+            },
+            datalabels: {
+              color: '#0072CE',
+              anchor: 'end',
+              align: 'top',
+              font: { weight: 'bold', size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' },
+              textStrokeColor: '#fff',
+              textStrokeWidth: 2,
+              formatter: function(value) { return value >= 1000 ? Math.round(value/1000) + 'K' : value; }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + (context.parsed.y >= 1000 ? Math.round(context.parsed.y/1000) + 'K' : context.parsed.y) + ' MWh';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Month', color: '#0072CE', font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              ticks: { color: "#0072CE", font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              grid: { color: "#0072CE22", drawOnChartArea: false },
+              barPercentage: 0.2,
+              categoryPercentage: 0.5
+            },
+            y: {
+              title: { display: true, text: 'Generation (MWh)', color: '#0072CE', font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              ticks: { color: "#0072CE", font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' }, callback: function(val) { return val >= 1000 ? Math.round(val/1000) + 'K' : val; } },
+              grid: { color: "#0072CE22" },
+              max: maxGen
+            }
+          },
+          layout: { padding: { top: 10, bottom: 10, left: 5, right: 5 } },
+          responsive: true,
+          maintainAspectRatio: false,
+        },
+        plugins: [ChartDataLabels]
+      });
+
+      // Chart 2: PR Comparison
+      const ctxPR = document.getElementById('prChart').getContext('2d');
+      chartInstances.pr = new Chart(ctxPR, {
+        type: 'bar',
+        data: {
+          labels: monthLabels,
+          datasets: [
+            {
+              label: "Expected PR (%)",
+              data: expectedPRs,
+              backgroundColor: "#00b6ff",
+            },
+            {
+              label: "Actual PR (%)",
+              data: actualPRs,
+              backgroundColor: "#ffb380",
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              align: 'center',
+              labels: { color: "#0072CE", font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } }
+            },
+            title: {
+              display: true,
+              text: 'Expected PR vs Actual PR',
+              color: 'transparent',
+              font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' },
+              padding: { bottom: 18 }
+            },
+            datalabels: {
+              color: '#0072CE',
+              anchor: 'end',
+              align: 'top',
+              font: { weight: 'bold', size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' },
+              textStrokeColor: '#fff',
+              textStrokeWidth: 2,
+              formatter: function(value) { return value > 0 ? Math.round(value) + '%' : ''; }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + (context.parsed.y ? context.parsed.y.toFixed(2) + '%' : '');
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Month', color: '#0072CE', font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              ticks: { color: "#0072CE", font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              grid: { color: "#0072CE22", drawOnChartArea: false },
+              barPercentage: 0.2,
+              categoryPercentage: 0.5
+            },
+            y: {
+              title: { display: true, text: 'PR (%)', color: '#0072CE', font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              ticks: { color: "#0072CE", font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              grid: { color: "#0072CE22" },
+              max: maxPR
+            }
+          },
+          layout: { padding: { top: 10, bottom: 10, left: 5, right: 5 } },
+          responsive: true,
+          maintainAspectRatio: false,
+        },
+        plugins: [ChartDataLabels]
+      });
+
+      // Chart 3: Irradiation Comparison
+      const ctxIrr = document.getElementById('irrChart').getContext('2d');
+      chartInstances.irr = new Chart(ctxIrr, {
+        type: 'bar',
+        data: {
+          labels: monthLabels,
+          datasets: [
+            {
+              label: "Budgeted Irradiation (kWh/m²)",
+              data: budgetIrrs,
+              backgroundColor: "#ffd43b",
+            },
+            {
+              label: "Actual Irradiation (kWh/m²)",
+              data: actualIrrs,
+              backgroundColor: "#13e6c3",
+            }
+          ]
+        },
+        options: {
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom',
+              align: 'center',
+              labels: { color: "#0072CE", font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } }
+            },
+            title: {
+              display: true,
+              text: 'Budgeted Irradiation vs Actual Irradiation',
+              color: 'transparent',
+              font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' },
+              padding: { bottom: 18 }
+            },
+            datalabels: {
+              color: '#0072CE',
+              anchor: 'end',
+              align: 'top',
+              font: { weight: 'bold', size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' },
+              textStrokeColor: '#fff',
+              textStrokeWidth: 2,
+              formatter: function(value) { return value >= 1000 ? Math.round(value/1000) + 'K' : value; }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + (context.parsed.y >= 1000 ? Math.round(context.parsed.y/1000) + 'K' : context.parsed.y) + ' kWh/m²';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Month', color: '#0072CE', font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              ticks: { color: "#0072CE", font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              grid: { color: "#0072CE22", drawOnChartArea: false },
+              barPercentage: 0.2,
+              categoryPercentage: 0.5
+            },
+            y: {
+              title: { display: true, text: 'Irradiation (kWh/m²)', color: '#0072CE', font: { size: 16, weight: 'bold', family: 'Inter, Segoe UI, Arial, sans-serif' } },
+              ticks: { color: "#0072CE", font: { size: 16, family: 'Inter, Segoe UI, Arial, sans-serif' }, callback: function(val) { return val >= 1000 ? Math.round(val/1000) + 'K' : val; } },
+              grid: { color: "#0072CE22" },
+              max: maxIrr
+            }
+          },
+          layout: { padding: { top: 10, bottom: 10, left: 5, right: 5 } },
+          responsive: true,
+          maintainAspectRatio: false,
+        },
+        plugins: [ChartDataLabels]
+      });
+      
+      // Apply gradient styling to chart titles
+      setTimeout(() => {
+        const chartTitles = document.querySelectorAll('canvas[id*="Chart"]').forEach(canvas => {
+          const chartContainer = canvas.closest('.bg-white');
+          if (chartContainer) {
+            const titleElement = chartContainer.querySelector('h3, .chart-title');
+            if (titleElement) {
+              titleElement.classList.add('chartjs-title');
+            }
+          }
+        });
+      }, 100);
+
+      // Update remarks after charts are created
+      setTimeout(() => {
+        updateRemarks();
+      }, 200);
+    }
+
+    // Load data from Django views and initialize dashboard
+    async function loadData() {
+      try {
+      {% if error_message %}
+        // Error loading KPI data
+        
+          return;
+      {% elif kpi_data_json %}
+          // Set yield data from Django context
+          window.kpiDataJson = {{ kpi_data_json|safe }};
+      {% else %}
+          // No KPI data available from Django context
+          window.kpiDataJson = [];
+      {% endif %}
+      
+      {% if yield_data_json %}
+          // Set YieldData for historical data (January-September)
+          window.yieldDataJson = {{ yield_data_json|safe }};
+      {% else %}
+          // No YieldData available from Django context
+          window.yieldDataJson = [];
+      {% endif %}
+        
+        // Check if dashboard already exists
+        if (kpiDashboard && kpiDashboard.isInitialized) {
+          // If dashboard exists, just refresh the data
+          await kpiDashboard.refresh();
+          
+          // Force data manager to reload fresh data
+          if (kpiDashboard.dataManager) {
+            await kpiDashboard.dataManager.loadData();
+          }
+          
+          // Update refresh time
+          updateLastRefreshTime();
+        } else {
+          // Initialize new dashboard
+          kpiDashboard = new KPIDashboard();
+          window.kpiDashboard = kpiDashboard; // Store globally for reset function access
+          await kpiDashboard.init();
+          
+          // Set initial refresh time
+          updateLastRefreshTime();
+          
+          // Update remarks after dashboard initialization
+          setTimeout(() => {
+            updateRemarks();
+          }, 500);
+        }
+      
+    } catch (error) {
+      // Failed to load KPI data
+      
+    }
+  }
+
+
+
+
+    
+    // Auto-load on page ready
+    window.addEventListener('DOMContentLoaded', loadData);
+    
+    // Helper function to set indeterminate state for checkboxes
+    function setIndeterminateState() {
+      // Find all checkboxes with data-indeterminate attribute and set their indeterminate property
+      document.querySelectorAll('input[type="checkbox"][data-indeterminate="true"]').forEach(checkbox => {
+        checkbox.indeterminate = true;
+      });
+    }
+    
+    // Call this after the multi-select components are rendered
+    setTimeout(setIndeterminateState, 100);
+
+    // Auto-refresh functionality - refresh every 10 minutes (600,000 milliseconds)
+    let refreshInterval;
+    
+    function startAutoRefresh() {
+      // Clear any existing interval
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+      
+      // Set up new interval for 10 minutes
+      refreshInterval = setInterval(async () => {
+        // Auto-refreshing KPI dashboard data...
+        try {
+          // Reload data
+          await loadData();
+          
+          // Show a subtle notification that data was refreshed
+          showRefreshNotification();
+        } catch (error) {
+          // Auto-refresh failed
+        }
+      }, 600000); // 10 minutes = 600,000 milliseconds
+    }
+    
+    function stopAutoRefresh() {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+        // Auto-refresh stopped
+      }
+    }
+    
+    function updateLastRefreshTime() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+      const dateString = now.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      
+      const lastRefreshElement = document.getElementById('lastRefreshTime');
+      if (lastRefreshElement) {
+        lastRefreshElement.textContent = `Last refreshed: ${dateString} ${timeString}`;
+      }
+    }
+
+    function showRefreshNotification() {
+      // Update the last refresh time
+      updateLastRefreshTime();
+      
+      // Create a subtle notification element
+      const notification = document.createElement('div');
+      notification.id = 'refreshNotification';
+      notification.innerHTML = `
+        <div style="
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #0072CE;
+          color: white;
+          padding: 12px 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          z-index: 10000;
+          opacity: 0;
+          transform: translateX(100%);
+          transition: all 0.3s ease;
+        ">
+          <i class="fas fa-sync-alt" style="margin-right: 8px;"></i>
+          Data refreshed automatically
+        </div>
+      `;
+      
+      document.body.appendChild(notification);
+      
+      // Animate in
+      setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+      }, 100);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        }, 300);
+      }, 3000);
+    }
+    
+    // Start auto-refresh when page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      // Start auto-refresh after initial load
+      setTimeout(() => {
+        startAutoRefresh();
+        // Auto-refresh started - will refresh every 10 minutes
+      }, 1000);
+    });
+    
+    // Stop auto-refresh when page becomes hidden (user switches tabs)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopAutoRefresh();
+        // Auto-refresh paused - page not visible
+      } else {
+        startAutoRefresh();
+                  // Auto-refresh resumed - page visible again
+      }
+    });
+    
+    
+    // Clean up interval when page unloads
+    window.addEventListener('beforeunload', () => {
+      stopAutoRefresh();
+    });
+
+    // Global functions for KPI tooltips
+    function showKPITooltip(cardType) {
+      if (window.kpiDashboard && window.kpiDashboard.showKPITooltip) {
+        window.kpiDashboard.showKPITooltip(cardType);
+      }
+    }
+
+    function hideKPITooltip() {
+      if (window.kpiDashboard && window.kpiDashboard.hideKPITooltip) {
+        window.kpiDashboard.hideKPITooltip();
+      }
+    }
+
+    // Add event listeners for tooltip
+    document.addEventListener('DOMContentLoaded', function() {
+      // Close tooltip when clicking outside or on close button
+      const overlay = document.getElementById('kpiTooltipOverlay');
+      const closeButton = document.getElementById('closeTooltip');
+      
+      if (overlay) {
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) {
+            hideKPITooltip();
+          }
+        });
+      }
+      
+      if (closeButton) {
+        closeButton.addEventListener('click', hideKPITooltip);
+      }
+      
+      // Close tooltip with Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          hideKPITooltip();
+        }
+      });
+    });
+
+</script>
+</body>
+</html>

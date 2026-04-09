@@ -1,0 +1,1208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}API Documentation{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar with Table of Contents -->
+        <div class="col-md-3">
+            <div class="card position-sticky" style="top: 80px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Contents</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="#overview" class="list-group-item list-group-item-action">Overview</a>
+                    <a href="#your-access" class="list-group-item list-group-item-action">Your Access</a>
+                    <a href="#api-keys" class="list-group-item list-group-item-action">API Keys</a>
+                    <a href="#authentication" class="list-group-item list-group-item-action">Authentication</a>
+                    <a href="#endpoints" class="list-group-item list-group-item-action">API Endpoints</a>
+                    <a href="#advanced-filtering" class="list-group-item list-group-item-action">Advanced Filtering</a>
+                    <a href="#how-it-works" class="list-group-item list-group-item-action">How It Works</a>
+                    <a href="#examples" class="list-group-item list-group-item-action">Code Examples</a>
+                    <a href="#rate-limits" class="list-group-item list-group-item-action">Rate Limits</a>
+                    <a href="#errors" class="list-group-item list-group-item-action">Error Codes</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-9">
+            <!-- Header -->
+            <div class="mb-4">
+                <h1><i class="fas fa-book text-primary"></i> API Documentation</h1>
+                <p class="lead">Complete guide to accessing your data via API</p>
+                
+                <!-- Access Level Info -->
+                {% if api_user.access_level == 'api_only' %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> You have <strong>API-only access</strong>. This page is your main interface for accessing our services via API.
+                    </div>
+                {% elif api_user.access_level == 'both' %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> You have <strong>both web and API access</strong>. You can access the 
+                        <a href="{% url 'main:unified_operations_dashboard' %}" class="alert-link">web dashboard</a> or use the API as documented here.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Overview Section -->
+            <section id="overview" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="mb-0"><i class="fas fa-info-circle"></i> Overview</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Welcome to the Peak Energy API! This documentation will help you integrate your systems with our API to access your data programmatically.</p>
+                        
+                        <h5>What you can do with the API:</h5>
+                        <ul>
+                            <li>Retrieve data from authorized tables</li>
+                            <li><strong>Advanced filtering</strong> with date ranges, text search, and numeric ranges</li>
+                            <li>Aggregate data for analytics</li>
+                            <li>Access real-time and historical data</li>
+                            <li>Combine multiple filters for complex queries</li>
+                        </ul>
+
+                        <div class="alert alert-info">
+                            <strong><i class="fas fa-shield-alt"></i> Security:</strong> All API requests are read-only and respect your hierarchical access permissions (countries, portfolios, sites).
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Your Access Section -->
+            <section id="your-access" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h3 class="mb-0"><i class="fas fa-user-shield"></i> Your Access</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>User Information:</h5>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="40%">Username:</th>
+                                        <td><strong>{{ request.user.username }}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Email:</th>
+                                        <td>{{ request.user.email }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Access Level:</th>
+                                        <td><span class="badge bg-primary">{{ api_user.get_access_level_display }}</span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Data Access:</h5>
+                                {% if accessible_countries %}
+                                    <p><strong>Countries:</strong> {{ accessible_countries|join:", " }}</p>
+                                {% endif %}
+                                {% if accessible_portfolios %}
+                                    <p><strong>Portfolios:</strong> {{ accessible_portfolios|join:", " }}</p>
+                                {% endif %}
+                                {% if accessible_sites %}
+                                    <p><strong>Sites:</strong> {{ accessible_sites.count }} site(s)</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Keys Section -->
+            <section id="api-keys" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0"><i class="fas fa-key"></i> Your API Keys</h3>
+                            <a href="{% url 'api:dashboard' %}" class="btn btn-sm btn-light">
+                                <i class="fas fa-plus"></i> Generate New Key
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if api_keys %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Key Prefix</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                            <th>Expires</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for key in api_keys %}
+                                        <tr>
+                                            <td><strong>{{ key.name }}</strong></td>
+                                            <td><code>{{ key.key_prefix }}...</code></td>
+                                            <td>
+                                                {% if key.status == 'active' %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ key.status|title }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ key.created_at|date:"Y-m-d" }}</td>
+                                            <td>
+                                                {% if key.expires_at %}
+                                                    {{ key.expires_at|date:"Y-m-d" }}
+                                                {% else %}
+                                                    Never
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> You don't have any API keys yet.
+                                <a href="{% url 'api:dashboard' %}" class="alert-link">Generate your first API key</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Authentication Section -->
+            <section id="authentication" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h3 class="mb-0"><i class="fas fa-lock"></i> Authentication</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-primary">
+                            <h5 class="alert-heading"><i class="fas fa-shield-alt"></i> Two-Tier Authentication System</h5>
+                            <p class="mb-0">Our API uses a secure two-tier authentication system:</p>
+                            <ol class="mb-0 mt-2">
+                                <li><strong>API Key</strong> (long-lived, secret) → Request token</li>
+                                <li><strong>Active Token</strong> (short-lived, disposable) → Make requests</li>
+                            </ol>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-step-forward"></i> Step 1: Request an Active Token</h5>
+                        <p>Use your API key to request an active token:</p>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <strong>Request:</strong>
+                            </div>
+                            <div class="card-body">
+                                <pre class="bg-light p-3 rounded mb-0"><code>POST {{ request.scheme }}://{{ request.get_host }}/api/v1/auth/token
+Content-Type: application/json
+
+{
+    "api_key": "your-api-key-here",
+    "lifetime_minutes": 60,      // Optional: 1-1440 (1 min to 24 hours)
+    "max_uses": 100              // Optional: 1-10000 requests
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <strong>Response:</strong>
+                            </div>
+                            <div class="card-body">
+                                <pre class="bg-light p-3 rounded mb-0"><code>{
+    "success": true,
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_at": "2025-10-20T11:00:00Z",
+    "lifetime_minutes": 60,
+    "max_uses": 100,
+    "created_at": "2025-10-20T10:00:00Z"
+}</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <strong><i class="fas fa-info-circle"></i> Token Configuration:</strong>
+                            <ul class="mb-0">
+                                <li><strong>lifetime_minutes</strong>: How long the token stays valid (default: 60 minutes, max: 1440 minutes / 24 hours)</li>
+                                <li><strong>max_uses</strong>: Maximum number of API calls with this token (default: 100, max: 10,000)</li>
+                                <li>You can customize these values per token request</li>
+                                <li>Tokens expire when time limit OR usage limit is reached (whichever comes first)</li>
+                            </ul>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-step-forward"></i> Step 2: Use the Token for API Calls</h5>
+                        <p>Include the token in the <code>X-API-Token</code> header for all data requests:</p>
+                        
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <strong>Request:</strong>
+                            </div>
+                            <div class="card-body">
+                                <pre class="bg-light p-3 rounded mb-0"><code>GET {{ request.scheme }}://{{ request.get_host }}/api/v1/data/YieldData?page=1&page_size=10
+X-API-Token: your-active-token-here</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-success">
+                            <strong><i class="fas fa-check-circle"></i> Why Two-Tier Authentication?</strong>
+                            <ul class="mb-0">
+                                <li><strong>Enhanced Security</strong>: Your API key is only exposed when requesting a token (not on every request)</li>
+                                <li><strong>Limited Risk</strong>: If a token is stolen, it expires quickly and has limited uses</li>
+                                <li><strong>Better Control</strong>: Each token has its own lifetime and usage limits</li>
+                                <li><strong>Easy Revocation</strong>: Tokens expire automatically without revoking the API key</li>
+                            </ul>
+                        </div>
+
+                        <div class="alert alert-warning mt-3">
+                            <strong><i class="fas fa-exclamation-triangle"></i> Security Best Practices:</strong>
+                            <ul class="mb-0">
+                                <li><strong>Never share your API key</strong> - It's like a password</li>
+                                <li><strong>Use HTTPS only</strong> - Never send keys or tokens over HTTP</li>
+                                <li><strong>Store keys securely</strong> - Use environment variables, not code</li>
+                                <li><strong>Use active tokens for all requests</strong> - Don't send API key with every request</li>
+                                <li><strong>Request short-lived tokens</strong> - Use minimum lifetime needed for your task</li>
+                                <li><strong>Monitor token usage</strong> - Check for unauthorized access in logs</li>
+                            </ul>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-sync-alt"></i> Token Expiration & Renewal</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-warning text-dark">
+                                        <strong>Token Expires When:</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="mb-0">
+                                            <li>Time limit reached (e.g., 60 minutes)</li>
+                                            <li><strong>OR</strong> Usage limit reached (e.g., 100 requests)</li>
+                                            <li>Whichever comes first</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <strong>When Token Expires:</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="mb-0">
+                                            <li>Request a new token with your API key</li>
+                                            <li>Your API key remains valid</li>
+                                            <li>No need to contact administrator</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- API Endpoints Section -->
+            <section id="endpoints" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0"><i class="fas fa-code"></i> API Endpoints</h3>
+                    </div>
+                    <div class="card-body">
+                        <h5>Base URL</h5>
+                        <pre class="bg-light p-3 rounded"><code>{{ request.scheme }}://{{ request.get_host }}/api/v1/</code></pre>
+
+                        <div class="alert alert-info mb-4">
+                            <strong><i class="fas fa-database"></i> Automatic Data Filtering:</strong>
+                            <p class="mb-0">All API responses are automatically filtered based on your access permissions:</p>
+                            <ul class="mb-0">
+                                <li><strong>Hierarchical Access</strong>: Data filtered by your accessible countries, portfolios, or sites</li>
+                                <li><strong>Column Restrictions</strong>: Sensitive columns are automatically hidden or masked</li>
+                                <li><strong>Read-Only</strong>: All endpoints are read-only - you cannot modify data</li>
+                            </ul>
+                        </div>
+
+                        <h5 class="mt-4">Available Endpoints:</h5>
+                        
+                        <div class="accordion" id="endpointsAccordion">
+                            <!-- Authentication -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingAuth">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAuth">
+                                        <strong>1. Authentication Endpoint</strong>
+                                    </button>
+                                </h2>
+                                <div id="collapseAuth" class="accordion-collapse collapse show" data-bs-parent="#endpointsAccordion">
+                                    <div class="accordion-body">
+                                        <h6><span class="badge bg-success">POST</span> Request Active Token</h6>
+                                        <pre class="bg-light p-2"><code>POST /api/v1/auth/token</code></pre>
+                                        <p><strong>Headers:</strong></p>
+                                        <ul>
+                                            <li><code>Content-Type: application/json</code></li>
+                                        </ul>
+                                        <p><strong>Request Body:</strong></p>
+                                        <pre class="bg-light p-2"><code>{
+    "api_key": "your-api-key",
+    "lifetime_minutes": 60,    // Optional: 1-1440 minutes (default: 60)
+    "max_uses": 100            // Optional: 1-10000 (default: 100)
+}</code></pre>
+                                        <p><strong>Response:</strong></p>
+                                        <pre class="bg-light p-2"><code>{
+    "success": true,
+    "token": "generated-token-here",
+    "expires_at": "2025-10-20T11:00:00Z",
+    "lifetime_minutes": 60,
+    "max_uses": 100
+}</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Schema Discovery -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingSchema">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSchema">
+                                        <strong>2. Schema Discovery Endpoints</strong>
+                                    </button>
+                                </h2>
+                                <div id="collapseSchema" class="accordion-collapse collapse" data-bs-parent="#endpointsAccordion">
+                                    <div class="accordion-body">
+                                        <h6><span class="badge bg-primary">GET</span> List Available Tables</h6>
+                                        <pre class="bg-light p-2"><code>GET /api/v1/schema/tables</code></pre>
+                                        <p><strong>Headers:</strong></p>
+                                        <ul>
+                                            <li><code>X-API-Key: your-api-key</code> (API key authentication)</li>
+                                        </ul>
+                                        <p><strong>Response:</strong></p>
+                                        <pre class="bg-light p-2"><code>{
+    "success": true,
+    "tables": [
+        {
+            "name": "YieldData",
+            "permissions": {
+                "can_read": true,
+                "can_filter": true,
+                "can_aggregate": true
+            }
+        },
+        // ... more tables
+    ]
+}</code></pre>
+
+                                        <h6 class="mt-3"><span class="badge bg-primary">GET</span> Get Table Schema</h6>
+                                        <pre class="bg-light p-2"><code>GET /api/v1/schema/tables/{table_name}</code></pre>
+                                        <p><strong>Headers:</strong></p>
+                                        <ul>
+                                            <li><code>X-API-Key: your-api-key</code></li>
+                                        </ul>
+                                        <p><strong>Response:</strong></p>
+                                        <pre class="bg-light p-2"><code>{
+    "success": true,
+    "table_name": "YieldData",
+    "columns": [
+        {
+            "name": "id",
+            "type": "integer",
+            "nullable": false
+        },
+        {
+            "name": "assetno",
+            "type": "varchar",
+            "nullable": true
+        }
+        // ... more columns (hidden columns excluded)
+    ]
+}</code></pre>
+                                        <div class="alert alert-info mt-2 mb-0">
+                                            <small><i class="fas fa-info-circle"></i> Schema endpoints use API key authentication (not token required)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Data Access -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingData">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseData">
+                                        <strong>3. Data Access Endpoints</strong>
+                                    </button>
+                                </h2>
+                                <div class="accordion-collapse collapse" id="collapseData" data-bs-parent="#endpointsAccordion">
+                                    <div class="accordion-body">
+                                        <h6><span class="badge bg-primary">GET</span> Get Table Data</h6>
+                                        <pre class="bg-light p-2"><code>GET /api/v1/data/{table_name}?page=1&page_size=100&order_by=id</code></pre>
+                                        <p><strong>Headers:</strong></p>
+                                        <ul>
+                                            <li><code>X-API-Token: your-active-token</code> (Required - use token from Step 1)</li>
+                                        </ul>
+                                        <p><strong>Query Parameters:</strong></p>
+                                        <ul>
+                                            <li><code>page</code>: Page number (default: 1, min: 1)</li>
+                                            <li><code>page_size</code>: Records per page (default: 100, max: your table permission limit)</li>
+                                            <li><code>filter</code>: JSON object with filter conditions (optional)</li>
+                                            <li><code>fields</code>: Comma-separated list of fields to return (optional, default: all allowed)</li>
+                                            <li><code>order_by</code>: Field name to order by (optional, prefix with - for descending)</li>
+                                        </ul>
+                                        <p><strong>Example with filters:</strong></p>
+                                        <pre class="bg-light p-2"><code>GET /api/v1/data/YieldData?filter={"month":"2025-01"}&page=1&page_size=50</code></pre>
+                                        <p><strong>Response:</strong></p>
+                                        <pre class="bg-light p-2"><code>{
+    "success": true,
+    "data": [
+        {
+            "id": 1,
+            "assetno": "SITE001",
+            "month": "2025-01",
+            "yield_kwh": 50000,
+            "pr": 85.5
+            // ... more fields (hidden columns excluded)
+        }
+        // ... more records
+    ],
+    "pagination": {
+        "page": 1,
+        "page_size": 50,
+        "total_records": 1500,
+        "total_pages": 30,
+        "has_next": true,
+        "has_previous": false
+    }
+}</code></pre>
+
+                                        <h6 class="mt-4"><span class="badge bg-primary">GET</span> Aggregate Data</h6>
+                                        <pre class="bg-light p-2"><code>GET /api/v1/data/{table_name}/aggregate?operation=sum&field=yield_kwh</code></pre>
+                                        <p><strong>Headers:</strong></p>
+                                        <ul>
+                                            <li><code>X-API-Token: your-active-token</code> (Required)</li>
+                                        </ul>
+                                        <p><strong>Query Parameters:</strong></p>
+                                        <ul>
+                                            <li><code>operation</code>: count, sum, avg, min, max (required)</li>
+                                            <li><code>field</code>: Field to aggregate (required for sum/avg/min/max)</li>
+                                            <li><code>filter</code>: JSON object with filter conditions (optional)</li>
+                                        </ul>
+                                        <p><strong>Response:</strong></p>
+                                        <pre class="bg-light p-2"><code>{
+    "success": true,
+    "result": 1250000,
+    "operation": "sum",
+    "field": "yield_kwh",
+    "filter": {"month": "2025-01"}
+}</code></pre>
+                                        <div class="alert alert-warning mt-2 mb-0">
+                                            <small><i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Data endpoints require active token authentication (not just API key)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Filtering Section -->
+            <section id="advanced-filtering" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h3 class="mb-0"><i class="fas fa-filter"></i> Advanced Filtering System</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success">
+                            <h5 class="alert-heading"><i class="fas fa-star"></i> New Feature: Intelligent Filtering</h5>
+                            <p class="mb-0">The API now supports <strong>advanced filtering</strong> with automatic field type detection and multiple filter operators!</p>
+                        </div>
+
+                        <h5><i class="fas fa-calendar-alt"></i> Date Range Filtering</h5>
+                        <p>Filter data by date ranges for DateTimeField and DateField columns:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <strong>Single Date</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"day_date": "2024-01-15"}</code></pre>
+                                        <small class="text-muted">Get records for specific date</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <strong>Date Range</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"day_date": {
+    "start": "2024-01-01",
+    "end": "2024-12-31"
+}}</code></pre>
+                                        <small class="text-muted">Get records within date range</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-search"></i> Text Search Filtering</h5>
+                        <p>Search and filter text fields with multiple operators:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <strong>Exact Match</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"asset_code": "KR_BW_19"}</code></pre>
+                                        <small class="text-muted">Exact string match</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-warning text-dark">
+                                        <strong>Contains Search</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"asset_name": {"contains": "KR_BW"}}</code></pre>
+                                        <small class="text-muted">Case-sensitive contains</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card border-secondary">
+                                    <div class="card-header bg-secondary text-white">
+                                        <strong>Case-Insensitive</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"asset_name": {"icontains": "solar"}}</code></pre>
+                                        <small class="text-muted">Case-insensitive contains</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-dark">
+                                    <div class="card-header bg-dark text-white">
+                                        <strong>Starts With</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"country": {"startswith": "KR"}}</code></pre>
+                                        <small class="text-muted">Starts with specific text</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-calculator"></i> Numeric Range Filtering</h5>
+                        <p>Filter numeric fields with range operators:</p>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-danger">
+                                    <div class="card-header bg-danger text-white">
+                                        <strong>Exact Value</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"daily_prod_rec": 150.5}</code></pre>
+                                        <small class="text-muted">Exact numeric match</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <strong>Min/Max Range</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"daily_prod_rec": {
+    "min": 100,
+    "max": 1000
+}}</code></pre>
+                                        <small class="text-muted">Between min and max values</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <strong>Greater Than</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"daily_prod_rec": {"gte": 100}}</code></pre>
+                                        <small class="text-muted">Greater than or equal</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-warning text-dark">
+                                        <strong>Less Than</strong>
+                                    </div>
+                                    <div class="card-body">
+                                        <pre class="bg-light p-2 mb-2"><code>{"daily_prod_rec": {"lt": 1000}}</code></pre>
+                                        <small class="text-muted">Less than</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-layer-group"></i> Combined Filtering</h5>
+                        <p>Combine multiple filters for complex queries:</p>
+                        
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <strong>Multiple Filters Example</strong>
+                            </div>
+                            <div class="card-body">
+                                <pre class="bg-light p-3"><code>{
+    "asset_code": {"contains": "KR_BW"},
+    "day_date": {"start": "2024-01-01", "end": "2024-12-31"},
+    "daily_prod_rec": {"gte": 100}
+}</code></pre>
+                                <small class="text-muted">Get KR_BW assets from 2024 with production ≥ 100 kWh</small>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-magic"></i> Automatic Field Detection</h5>
+                        <div class="alert alert-info">
+                            <p class="mb-0"><strong>The system automatically detects field types and applies the appropriate filtering:</strong></p>
+                            <ul class="mb-0 mt-2">
+                                <li><strong>DateTimeField/DateField</strong> → Date range filtering</li>
+                                <li><strong>CharField/TextField</strong> → Text search filtering</li>
+                                <li><strong>FloatField/IntegerField</strong> → Numeric range filtering</li>
+                            </ul>
+                        </div>
+
+                        <h5 class="mt-4"><i class="fas fa-code"></i> Usage Examples</h5>
+                        <div class="accordion" id="filteringExamples">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example1">
+                                        Date Range Filter
+                                    </button>
+                                </h2>
+                                <div id="example1" class="accordion-collapse collapse" data-bs-parent="#filteringExamples">
+                                    <div class="accordion-body">
+                                        <pre class="bg-light p-3"><code>GET /api/v1/data/YieldData?filter={"day_date": {"start": "2024-01-01", "end": "2024-12-31"}}</code></pre>
+                                        <p class="mb-0">Get all yield data for 2024</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example2">
+                                        Text Search Filter
+                                    </button>
+                                </h2>
+                                <div id="example2" class="accordion-collapse collapse" data-bs-parent="#filteringExamples">
+                                    <div class="accordion-body">
+                                        <pre class="bg-light p-3"><code>GET /api/v1/data/AssetList?filter={"asset_name": {"icontains": "solar"}}</code></pre>
+                                        <p class="mb-0">Find all assets with "solar" in the name (case-insensitive)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example3">
+                                        Numeric Range Filter
+                                    </button>
+                                </h2>
+                                <div id="example3" class="accordion-collapse collapse" data-bs-parent="#filteringExamples">
+                                    <div class="accordion-body">
+                                        <pre class="bg-light p-3"><code>GET /api/v1/data/YieldData?filter={"daily_prod_rec": {"gte": 1000}}</code></pre>
+                                        <p class="mb-0">Get records with daily production ≥ 1000 kWh</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example4">
+                                        Combined Filter
+                                    </button>
+                                </h2>
+                                <div id="example4" class="accordion-collapse collapse" data-bs-parent="#filteringExamples">
+                                    <div class="accordion-body">
+                                        <pre class="bg-light p-3"><code>GET /api/v1/data/YieldData?filter={
+    "asset_code": {"contains": "KR_BW"},
+    "day_date": {"start": "2024-06-01"},
+    "daily_prod_rec": {"min": 500, "max": 2000}
+}</code></pre>
+                                        <p class="mb-0">Get KR_BW assets from June 2024 onwards with production between 500-2000 kWh</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning mt-4">
+                            <h6 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Important Notes</h6>
+                            <ul class="mb-0">
+                                <li><strong>Date Format:</strong> Use <code>YYYY-MM-DD</code> format (e.g., "2024-01-15")</li>
+                                <li><strong>JSON Format:</strong> Filter parameter must be valid JSON</li>
+                                <li><strong>Field Names:</strong> Use exact database field names (case-sensitive)</li>
+                                <li><strong>Performance:</strong> Combined filters are optimized for database performance</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- How It Works Section -->
+            <section id="how-it-works" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h3 class="mb-0"><i class="fas fa-cogs"></i> How It Works</h3>
+                    </div>
+                    <div class="card-body">
+                        <h5><i class="fas fa-route"></i> Complete Authentication Flow</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card border-primary mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-primary">Step 1️⃣: Get Your API Key</h6>
+                                        <p class="card-text">
+                                            Generate an API key from the <a href="{% url 'api:dashboard' %}">My API Dashboard</a>.
+                                            Your API key is a long-lived secret (like a password) that identifies you.
+                                        </p>
+                                        <div class="alert alert-warning mb-0">
+                                            <small><strong>Important:</strong> API keys are shown only once! Save it securely.</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center mb-2">
+                                    <i class="fas fa-arrow-down fa-2x text-muted"></i>
+                                </div>
+
+                                <div class="card border-success mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">Step 2️⃣: Request an Active Token</h6>
+                                        <p class="card-text">
+                                            Send your API key to <code>/api/v1/auth/token</code> to get a short-lived active token.
+                                        </p>
+                                        <pre class="bg-light p-2 mb-2"><code>POST /api/v1/auth/token
+{
+  "api_key": "pk_xxxxx",
+  "lifetime_minutes": 60,
+  "max_uses": 100
+}</code></pre>
+                                        <div class="alert alert-info mb-0">
+                                            <small><strong>Token Properties:</strong></small>
+                                            <ul class="mb-0">
+                                                <li><strong>Lifetime:</strong> 1-1440 minutes (default: 60 min = 1 hour)</li>
+                                                <li><strong>Max Uses:</strong> 1-10,000 requests (default: 100)</li>
+                                                <li><strong>Expiration:</strong> Whichever limit is reached first</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center mb-2">
+                                    <i class="fas fa-arrow-down fa-2x text-muted"></i>
+                                </div>
+
+                                <div class="card border-info mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-info">Step 3️⃣: Use Token for Data Requests</h6>
+                                        <p class="card-text">
+                                            Include the token in the <code>X-API-Token</code> header for all data and aggregate requests.
+                                        </p>
+                                        <pre class="bg-light p-2 mb-2"><code>GET /api/v1/data/YieldData
+X-API-Token: your-active-token-here</code></pre>
+                                        <div class="alert alert-success mb-0">
+                                            <small><strong>Why Use Tokens?</strong> Your API key is only exposed once (when requesting the token), not on every request. This is much more secure!</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center mb-2">
+                                    <i class="fas fa-arrow-down fa-2x text-muted"></i>
+                                </div>
+
+                                <div class="card border-warning">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-warning">Step 4️⃣: Token Expires? Request a New One</h6>
+                                        <p class="card-text mb-0">
+                                            When your token expires (after 60 minutes or 100 uses), simply request a new token with your API key. Repeat Step 2!
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h5><i class="fas fa-shield-alt"></i> Security Features</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="list-group">
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1"><i class="fas fa-key text-primary"></i> API Key Security</h6>
+                                        <small class="text-muted">
+                                            • 256-bit cryptographically secure keys<br>
+                                            • SHA-256 hashed storage (never stored in plaintext)<br>
+                                            • Shown only once during generation
+                                        </small>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1"><i class="fas fa-clock text-warning"></i> Token Expiration</h6>
+                                        <small class="text-muted">
+                                            • Automatic expiration (60 min default)<br>
+                                            • Maximum 24 hours (1440 minutes)<br>
+                                            • Limits risk if token is stolen
+                                        </small>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1"><i class="fas fa-hashtag text-info"></i> Usage Limits</h6>
+                                        <small class="text-muted">
+                                            • Max requests per token (100 default)<br>
+                                            • Maximum 10,000 requests<br>
+                                            • Prevents token abuse
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="list-group">
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1"><i class="fas fa-filter text-success"></i> Data Filtering</h6>
+                                        <small class="text-muted">
+                                            • Automatic filtering by your accessible sites<br>
+                                            • Respects country/portfolio/site hierarchy<br>
+                                            • You only see your authorized data
+                                        </small>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1"><i class="fas fa-columns text-danger"></i> Column Restrictions</h6>
+                                        <small class="text-muted">
+                                            • Sensitive columns automatically hidden<br>
+                                            • Confidential data automatically masked<br>
+                                            • Cannot be bypassed by clients
+                                        </small>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <h6 class="mb-1"><i class="fas fa-eye-slash text-secondary"></i> Read-Only Access</h6>
+                                        <small class="text-muted">
+                                            • All endpoints are GET only (no writes)<br>
+                                            • Impossible to modify data via API<br>
+                                            • Data integrity guaranteed
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h5><i class="fas fa-question-circle"></i> Common Questions</h5>
+                        <div class="accordion" id="faqAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                        Why do I need both an API key and a token?
+                                    </button>
+                                </h2>
+                                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        <strong>Security!</strong> Your API key is like a password - it's secret and long-lived. 
+                                        By using it only to get tokens (not for every request), you reduce the risk of exposure. 
+                                        If someone intercepts a token, it only works for a short time and limited number of requests.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                        How do I increase token lifetime or max uses?
+                                    </button>
+                                </h2>
+                                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        You can specify custom values when requesting a token:<br>
+                                        <code>{"lifetime_minutes": 240, "max_uses": 1000}</code><br>
+                                        <ul class="mt-2 mb-0">
+                                            <li><strong>Lifetime range:</strong> 1 to 1440 minutes (24 hours max)</li>
+                                            <li><strong>Max uses range:</strong> 1 to 10,000 requests</li>
+                                            <li><strong>For longer needs:</strong> Contact your administrator</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                        What happens when my token expires?
+                                    </button>
+                                </h2>
+                                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        You'll receive a <code>401 Unauthorized</code> response with error code <code>TOKEN_EXPIRED</code> or <code>MAX_USES_EXCEEDED</code>. 
+                                        Simply request a new token using your API key (Step 2 again). Your API key remains valid!
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                        What data can I access?
+                                    </button>
+                                </h2>
+                                <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        <strong>You can only access data from your assigned sites.</strong>
+                                        <ul class="mb-0">
+                                            {% if accessible_countries %}
+                                                <li>You have access to <strong>all sites</strong> in: {{ accessible_countries|join:", " }}</li>
+                                            {% endif %}
+                                            {% if accessible_portfolios %}
+                                                <li>You have access to <strong>all sites</strong> in portfolios: {{ accessible_portfolios|join:", " }}</li>
+                                            {% endif %}
+                                            {% if accessible_sites %}
+                                                <li>You have access to <strong>{{ accessible_sites.count }} specific site(s)</strong></li>
+                                            {% endif %}
+                                            <li>All API responses are automatically filtered to include only your authorized data</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Code Examples Section -->
+            <section id="examples" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="mb-0"><i class="fas fa-code"></i> Code Examples</h3>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="codeExampleTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="python-tab" data-bs-toggle="tab" data-bs-target="#python" type="button" role="tab">
+                                    Python
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="curl-tab" data-bs-toggle="tab" data-bs-target="#curl" type="button" role="tab">
+                                    cURL
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="javascript-tab" data-bs-toggle="tab" data-bs-target="#javascript" type="button" role="tab">
+                                    JavaScript
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="codeExampleTabContent">
+                            <!-- Python Example -->
+                            <div class="tab-pane fade show active" id="python" role="tabpanel">
+                                <pre class="bg-light p-3 rounded mt-3"><code>import requests
+
+# Step 1: Get active token
+api_key = "your-api-key-here"
+token_response = requests.post(
+    "{{ request.scheme }}://{{ request.get_host }}/api/v1/auth/token",
+    json={
+        "api_key": api_key,
+        "lifetime_minutes": 60,
+        "max_uses": 100
+    }
+)
+token = token_response.json()["token"]
+
+# Step 2: Fetch data with advanced filtering
+headers = {"X-API-Token": token}
+response = requests.get(
+    "{{ request.scheme }}://{{ request.get_host }}/api/v1/data/YieldData",
+    headers=headers,
+    params={
+        "page": 1, 
+        "page_size": 10,
+        "filter": '{"day_date": {"start": "2024-01-01", "end": "2024-12-31"}, "daily_prod_rec": {"gte": 100}}'
+    }
+)
+data = response.json()
+print(data)</code></pre>
+                            </div>
+
+                            <!-- cURL Example -->
+                            <div class="tab-pane fade" id="curl" role="tabpanel">
+                                <pre class="bg-light p-3 rounded mt-3"><code># Step 1: Get active token
+curl -X POST {{ request.scheme }}://{{ request.get_host }}/api/v1/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"api_key":"your-api-key-here","lifetime_minutes":60,"max_uses":100}'
+
+# Step 2: Fetch data with advanced filtering
+curl -X GET "{{ request.scheme }}://{{ request.get_host }}/api/v1/data/YieldData?page=1&page_size=10&filter=%7B%22day_date%22%3A%7B%22start%22%3A%222024-01-01%22%2C%22end%22%3A%222024-12-31%22%7D%2C%22daily_prod_rec%22%3A%7B%22gte%22%3A100%7D%7D" \
+  -H "X-API-Token: your-active-token-here"</code></pre>
+                            </div>
+
+                            <!-- JavaScript Example -->
+                            <div class="tab-pane fade" id="javascript" role="tabpanel">
+                                <pre class="bg-light p-3 rounded mt-3"><code>// Step 1: Get active token
+const apiKey = "your-api-key-here";
+const tokenResponse = await fetch("{{ request.scheme }}://{{ request.get_host }}/api/v1/auth/token", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+        api_key: apiKey,
+        lifetime_minutes: 60,
+        max_uses: 100
+    })
+});
+const {token} = await tokenResponse.json();
+
+// Step 2: Fetch data with advanced filtering
+const filterParams = new URLSearchParams({
+    page: '1',
+    page_size: '10',
+    filter: JSON.stringify({
+        "day_date": {"start": "2024-01-01", "end": "2024-12-31"},
+        "daily_prod_rec": {"gte": 100}
+    })
+});
+
+const dataResponse = await fetch(
+    `{{ request.scheme }}://{{ request.get_host }}/api/v1/data/YieldData?${filterParams}`,
+    {headers: {"X-API-Token": token}}
+);
+const data = await dataResponse.json();
+console.log(data);</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rate Limits Section -->
+            <section id="rate-limits" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h3 class="mb-0"><i class="fas fa-tachometer-alt"></i> Rate Limits</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>Your current rate limits:</p>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center p-3 border rounded">
+                                    <h4 class="text-primary">{{ api_user.rate_limit_per_minute }}</h4>
+                                    <p class="text-muted mb-0">Requests per Minute</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center p-3 border rounded">
+                                    <h4 class="text-success">{{ api_user.rate_limit_per_hour }}</h4>
+                                    <p class="text-muted mb-0">Requests per Hour</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center p-3 border rounded">
+                                    <h4 class="text-warning">{{ api_user.rate_limit_per_day }}</h4>
+                                    <p class="text-muted mb-0">Requests per Day</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle"></i> If you exceed these limits, you'll receive a 429 (Too Many Requests) response. Wait before retrying.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Codes Section -->
+            <section id="errors" class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h3 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Error Codes</h3>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Message</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>401</code></td>
+                                    <td>Unauthorized</td>
+                                    <td>Invalid or missing API credentials</td>
+                                </tr>
+                                <tr>
+                                    <td><code>403</code></td>
+                                    <td>Forbidden</td>
+                                    <td>You don't have permission to access this resource</td>
+                                </tr>
+                                <tr>
+                                    <td><code>404</code></td>
+                                    <td>Not Found</td>
+                                    <td>The requested resource doesn't exist</td>
+                                </tr>
+                                <tr>
+                                    <td><code>429</code></td>
+                                    <td>Too Many Requests</td>
+                                    <td>Rate limit exceeded</td>
+                                </tr>
+                                <tr>
+                                    <td><code>500</code></td>
+                                    <td>Internal Server Error</td>
+                                    <td>Something went wrong on our end</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Support Section -->
+            <section class="mb-5">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h3 class="mb-0"><i class="fas fa-life-ring"></i> Need Help?</h3>
+                    </div>
+                    <div class="card-body">
+                        <p>If you have questions or need assistance, please contact your administrator or support team.</p>
+                        <p><strong>Additional Resources:</strong></p>
+                        <ul>
+                            <li><a href="{% url 'api:dashboard' %}">My API Dashboard</a> - Manage your API keys</li>
+                            <li><a href="{% url 'accounts:logout' %}">Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    .position-sticky {
+        position: sticky !important;
+    }
+    
+    pre {
+        border: 1px solid #dee2e6;
+    }
+    
+    code {
+        color: #e83e8c;
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background-color: #e7f3ff;
+    }
+</style>
+
+{% endblock %}
+

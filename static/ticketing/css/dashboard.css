@@ -1,0 +1,488 @@
+/* dashboard.css - Freshdesk style */
+
+:root{
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --muted:#6c757d;
+  --border:#e9ecef;
+  --primary:#0d6efd;
+  --success:#198754;
+  --warning:#ffc107;
+  --danger:#dc3545;
+  --glass: rgba(13,110,253,0.06);
+  --kpi-height:38px;
+}
+
+body {
+  background: var(--bg);
+  color: #222;
+  font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* wrapper spacing - full width utilization */
+.dashboard-wrapper { 
+  padding: 0 18px 40px; 
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* Remove extra spacing between filter bar and content */
+.dashboard-wrapper > main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Override any container constraints from base.html */
+.dashboard-wrapper.container-fluid {
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Override Bootstrap container-fluid defaults */
+.dashboard-wrapper.container-fluid,
+.container-fluid.dashboard-wrapper {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Full width on large screens (1200px+) */
+@media (min-width: 1200px) {
+  .dashboard-wrapper {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  
+  /* Better spacing for charts on wide screens */
+  .row.g-3 > [class*="col-"] {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  
+  /* Optimize KPI row spacing */
+  .kpi-row {
+    margin-left: -6px;
+    margin-right: -6px;
+  }
+  
+  .kpi-row > [class*="col-"] {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
+
+/* Extra large screens (1440px+) */
+@media (min-width: 1440px) {
+  .dashboard-wrapper {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+  
+  /* Increase chart sizes on very wide screens */
+  .widget-card .card-body {
+    padding: 18px;
+  }
+  
+  .kpi-card {
+    padding: 8px 10px;
+  }
+  
+  .kpi-value {
+    font-size: 18px;
+  }
+  
+  .kpi-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  
+  /* Better table spacing */
+  .table-dashboard th,
+  .table-dashboard td {
+    padding: 14px 20px;
+  }
+}
+
+/* Ultra wide screens (1800px+) */
+@media (min-width: 1800px) {
+  .dashboard-wrapper {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+  
+  /* Maximize content on ultra-wide screens */
+  .widget-card .card-body {
+    padding: 20px;
+  }
+  
+  .kpi-card {
+    padding: 8px 12px;
+  }
+  
+  .kpi-value {
+    font-size: 18px;
+  }
+  
+  .kpi-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+  
+  /* Enhanced table spacing */
+  .table-dashboard th,
+  .table-dashboard td {
+    padding: 16px 24px;
+  }
+  
+  /* Better chart container spacing */
+  .row.g-3 > [class*="col-"] {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+/* top actions */
+.top-actions { 
+  margin-top: 0;
+  margin-bottom: 12px;
+  padding-top: 0;
+}
+
+.top-actions .page-title h2 { margin: 0; font-weight:600; }
+.top-actions .page-title small { display:block; margin-top:3px; }
+
+/* horizontal filter bar - matching All Tickets page */
+#sticky-filter-bar {
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(16,24,40,0.03);
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  padding: 0.75rem 1rem !important;
+}
+
+/* Remove spacing from form inside filter bar */
+#sticky-filter-bar form {
+  margin-bottom: 0 !important;
+}
+
+/* Remove spacing between filter bar and main */
+#sticky-filter-bar + main {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+#sticky-filter-bar.sticky-shadow {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-1px);
+}
+
+/* No labels - matching All Tickets page style */
+#sticky-filter-bar .form-label {
+  display: none;
+}
+
+/* Ensure all filter inputs have identical styling - matching All Tickets */
+#sticky-filter-bar .form-select-sm,
+#sticky-filter-bar .form-control-sm,
+#sticky-filter-bar input[type="date"] {
+  height: 38px !important;
+  font-size: 0.875rem !important;
+  width: 100% !important;
+  min-width: 120px;
+  border-radius: 8px;
+  padding: 0.375rem 0.75rem !important;
+  line-height: 1.5 !important;
+  border: 1px solid #ced4da !important;
+  background-color: #fff !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  vertical-align: middle;
+}
+
+/* Flatpickr date range picker styling */
+#sticky-filter-bar #f-date-range {
+  cursor: pointer;
+  background-color: #fff;
+}
+
+#sticky-filter-bar #f-date-range:focus {
+  outline: none;
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Style Flatpickr calendar to match filter bar */
+.flatpickr-calendar {
+  font-family: inherit;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+  background: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.flatpickr-day.inRange {
+  background: rgba(13, 110, 253, 0.1);
+  border-color: rgba(13, 110, 253, 0.2);
+}
+
+#sticky-filter-bar .position-relative {
+  position: relative;
+}
+
+/* Filter columns - reduced width by 20% (from 16.67% to ~13.33%) */
+#sticky-filter-bar .col-md-auto {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 120px;
+  max-width: 13.5%;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+/* First column no left padding */
+#sticky-filter-bar .row > .col-md-auto:first-child {
+  padding-left: 0;
+}
+
+/* Button columns - auto width */
+#sticky-filter-bar .col-md-auto.d-grid {
+  min-width: auto;
+  max-width: none;
+  width: auto;
+}
+
+/* Ensure form controls take full width and match styling */
+#sticky-filter-bar .form-select,
+#sticky-filter-bar .form-control,
+#sticky-filter-bar select,
+#sticky-filter-bar input {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Button styling - matching All Tickets */
+#sticky-filter-bar .btn-sm {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  height: 38px;
+  white-space: nowrap;
+}
+
+/* KPI cards */
+.kpi-row { 
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+}
+.kpi-card {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  background: var(--card);
+  border-radius: 8px;
+  padding: 6px 8px;
+  height: var(--kpi-height);
+  box-shadow: 0 1px 4px rgba(16,24,40,0.03);
+  border: 1px solid var(--border);
+}
+.kpi-icon {
+  width:32px; height:32px; border-radius: 8px;
+  display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px;
+  flex-shrink: 0;
+}
+.kpi-icon.bg-primary { background: linear-gradient(180deg, #0d6efd, #0b5ed7); }
+.kpi-icon.bg-success { background: linear-gradient(180deg, #198754, #157347); }
+.kpi-icon.bg-warning { background: linear-gradient(180deg, #ffc107, #e0a800); color:#333; }
+.kpi-icon.bg-danger { background: linear-gradient(180deg, #dc3545, #b02a37); }
+.kpi-content { flex:1; min-width: 0; }
+.kpi-value { font-size:16px; font-weight:700; line-height: 1.2; }
+.kpi-label { font-size:11px; color:var(--muted); margin-top:2px; line-height: 1.2; }
+
+/* widget cards */
+.widget-card { border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--card); box-shadow: 0 1px 4px rgba(16,24,40,0.03); }
+.widget-card .card-body { padding: 14px; }
+
+/* tables */
+.table-dashboard { border-collapse: separate; border-spacing: 0; }
+.table-dashboard th, .table-dashboard td { vertical-align: middle; padding: 12px 16px; }
+.table-dashboard thead th { border-bottom: 1px solid var(--border); font-weight:600; font-size:13px; color:#333; }
+.table-dashboard tbody tr td { border-bottom: 1px solid #f2f4f7; font-size:14px; }
+.table-dashboard .title-col { max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* badges */
+.badge { padding: 6px 9px; font-size:12px; border-radius: 6px; }
+.status-raised { background:#e7f5ff; color:#0d6efd; border: 1px solid rgba(13,110,253,0.08); }
+.status-in_progress { background:#fff4e6; color:#fd7e14; border: 1px solid rgba(253,126,20,0.08); }
+.status-submitted { background:#e7f5ff; color:#0d6efd; border: 1px solid rgba(13,110,253,0.08); }
+.status-waiting_for_approval { background:#fff4e6; color:#fd7e14; border: 1px solid rgba(253,126,20,0.08); }
+.status-closed { background:#f8f9fa; color:#6c757d; border: 1px solid rgba(108,117,125,0.08); }
+.status-reopened { background:#e7f5ff; color:#0d6efd; border: 1px solid rgba(13,110,253,0.08); }
+.status-cancelled { background:#f8f9fa; color:#6c757d; border: 1px solid rgba(108,117,125,0.08); }
+
+/* priority badges */
+.badge.priority-low, .badge.priority-Low { background:#e9f7ef; color:#198754; border: 1px solid rgba(25,135,84,0.08); }
+.badge.priority-medium, .badge.priority-Medium { background:#fff7ed; color:#e67700; border: 1px solid rgba(230,119,0,0.08); }
+.badge.priority-high, .badge.priority-High { background:#ffe8e6; color:#d6332a; border: 1px solid rgba(214,51,42,0.08); }
+.badge.priority-critical, .badge.priority-Critical { background:#ffe8e6; color:#dc3545; border: 1px solid rgba(220,53,69,0.08); }
+
+/* list group */
+.list-group-item { padding: 12px 16px; border-bottom: 1px solid #f2f4f7; }
+
+/* responsive: adjust filter bar on small screens */
+@media (max-width: 767.98px) {
+  #sticky-filter-bar .col-md-2 {
+    margin-bottom: 0.5rem;
+  }
+  #sticky-filter-bar .col-md-12 {
+    margin-top: 0.5rem;
+  }
+}
+
+/* small utilities */
+.btn-outline-secondary { border-color: #e6eefc; color:#1f4fa9; }
+.card-header { background:transparent; border-bottom:1px solid var(--border); padding:12px 14px; }
+
+/* Smart Analytics widget styles */
+#analyticsWidgetCard .card-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  gap: 12px; 
+  flex-wrap: nowrap;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.analytics-title {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Analytics controls - single line layout */
+.analytics-controls {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap;
+  gap: 6px !important;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+
+.analytics-controls .form-select-sm {
+  flex-shrink: 0;
+  min-width: auto;
+  max-width: none;
+}
+
+#analyticsViewSelect {
+  min-width: 150px;
+  max-width: 180px;
+}
+
+#analyticsTopN {
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+}
+
+#analyticsTrendDays {
+  width: 85px !important;
+  min-width: 85px !important;
+  max-width: 85px !important;
+}
+
+.analytics-controls .btn,
+.analytics-controls .btn-group {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.analytics-controls button[data-toggle="collapse"] {
+  flex-shrink: 0;
+  margin-left: 0;
+  padding: 0.25rem 0.5rem;
+}
+
+.analytics-controls #analyticsRefresh {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.25rem 0.75rem;
+}
+
+.widget-table th, .widget-table td { 
+  padding: 10px 12px; 
+  border-bottom: 1px solid #f2f4f7; 
+}
+
+.widget-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Sparkline styling */
+.widget-table canvas.sparkline {
+  width: 100% !important;
+  max-width: 150px;
+  height: 36px !important;
+}
+
+/* Widget extras */
+#analyticsWidgetCard .chart-wrap { 
+  min-height: 220px; 
+}
+
+.widget-table td, .widget-table th { 
+  vertical-align: middle; 
+}
+
+.sparkline { 
+  width: 120px; 
+  height: 36px; 
+  display: block; 
+}
+
+#analyticsTableContainer { 
+  max-height: 360px; 
+  overflow: auto; 
+}
+
+#analyticsPager { 
+  min-width: 160px; 
+}
+
+.chart-wrap { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+}
+
+#analyticsWidgetCard .form-select-sm {
+  min-width: 150px;
+}
+
+#analyticsWidgetCard .card-body {
+  padding: 16px;
+}
+.card { border-radius: 10px; }
+
+/* subtle hover */
+.kpi-card:hover, .widget-card:hover, .card:hover { transform: translateY(-3px); transition: all 0.18s ease; }
+

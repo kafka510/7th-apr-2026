@@ -1,0 +1,354 @@
+% GHI to GII (Global Horizontal to Global Inclined Irradiance) Transposition
+% Implementation documentation for ghi_to_gii.py
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{amsmath, amssymb}
+\usepackage{siunitx}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{hyperref}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+
+\geometry{margin=2.5cm}
+\sisetup{detect-all}
+
+\title{GHI to GII Transposition Model\\(Implementation Documentation)}
+\author{Internal Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Overview}
+
+The function \texttt{ghi\_to\_gii} implements a physically-based transposition model to convert
+\emph{global horizontal irradiance} (GHI, \(G_h\)) into \emph{global irradiance on an inclined plane} (GII, \(G_T\)).
+
+Main components:
+\begin{itemize}
+  \item Solar geometry (declination, hour angle, zenith angle).
+  \item Extraterrestrial irradiance and clearness index \(k_t\).
+  \item Erbs diffuse fraction correlation.
+  \item Hay--Davies diffuse transposition model on the tilted plane.
+  \item Direct (beam) component on the tilt.
+  \item Ground-reflected component.
+  \item Time zone and longitude corrections based on asset configuration.
+  \item Numerical stabilisation at very low solar elevation.
+\end{itemize}
+
+Inputs (per timestamp):
+\begin{itemize}
+  \item \(G_h\): measured global horizontal irradiance \([\si{W/m^2}]\).
+  \item \(t\): timestamp as timezone-aware datetime.
+  \item \(\varphi\): site latitude in degrees (north positive).
+  \item \(\lambda\): site longitude in degrees (east positive).
+  \item \(\beta\): tilt angle in degrees (0 = horizontal).
+  \item \(\gamma\): surface azimuth in degrees (0 = south, east negative, west positive).
+  \item \(h\): site altitude [m]. Taken from \texttt{asset\_list.altitude\_m}; default 0.
+  \item \(\rho\): ground albedo (0--1). Taken from \texttt{asset\_list.albedo}; default 0.2.
+  \item \(T_{\text{local}}\): time zone of the asset (e.g. +08:00) as a fixed offset.
+\end{itemize}
+
+Output:
+\begin{itemize}
+  \item \(G_T\): global irradiance on the tilted plane \([\si{W/m^2}]\).
+\end{itemize}
+
+\section{Time Zones and Solar Time}
+
+\subsection{Local Time and Time Zone Offset}
+
+Given an input timestamp \(t\) (typically in UTC or with any timezone), we first convert it to the asset's local timezone \(T_{\text{local}}\):
+\[
+  t_{\text{loc}} = t \text{ converted to } T_{\text{local}}.
+\]
+
+Let the UTC offset of \(T_{\text{local}}\) be
+\[
+  \Delta_{\text{tz}} = \frac{\text{offset in seconds}}{3600} \quad [\text{hours}].
+\]
+
+We define the local civil time in hours:
+\[
+  h_{\text{loc}} = H + \frac{M}{60} + \frac{S}{3600},
+\]
+where \(H, M, S\) are the hour, minute, and second of \(t_{\text{loc}}\).
+
+\subsection{Approximate Solar Time and Hour Angle}
+
+Longitude \(\lambda\) is in degrees, positive east.
+We approximate solar time as:
+\[
+  h_{\text{sol}} \approx h_{\text{loc}} + \left(\frac{\lambda}{15} - \Delta_{\text{tz}}\right),
+\]
+where:
+\begin{itemize}
+  \item \(\lambda/15\) is the ``longitude time'' in hours,
+  \item \(\Delta_{\text{tz}}\) is the timezone offset in hours.
+\end{itemize}
+
+Hour angle \(\omega\) (degrees) is then:
+\[
+  \omega^\circ = 15\,(h_{\text{sol}} - 12),
+  \qquad
+  \omega = \omega^\circ \cdot \frac{\pi}{180}.
+\]
+
+\section{Solar Geometry}
+
+\subsection{Day of Year and Declination}
+
+Let \(N\) be the day of year (1--366), computed from \(t_{\text{loc}}\) including leap years.
+
+Solar declination \(\delta\) (radians) is approximated by:
+\[
+  \delta = 23.45^\circ \sin\left( \frac{360^\circ}{365} (284 + N) \right),
+\]
+converted to radians in code:
+\[
+  \delta_{\text{rad}} = 23.45 \cdot \frac{\pi}{180}
+  \cdot
+  \sin\left( \frac{360}{365} (284 + N) \cdot \frac{\pi}{180} \right).
+\]
+
+Latitude is converted to radians:
+\[
+  \varphi_{\text{rad}} = \varphi \cdot \frac{\pi}{180}.
+\]
+
+\subsection{Solar Zenith Angle}
+
+We compute:
+\[
+  \cos\theta_z = \sin\varphi_{\text{rad}} \sin\delta_{\text{rad}}
+  + \cos\varphi_{\text{rad}} \cos\delta_{\text{rad}} \cos\omega.
+\]
+
+If \(\cos\theta_z \le 0\), the sun is below the horizon and
+\[
+  G_T = 0.
+\]
+
+Otherwise, clamp:
+\[
+  \cos\theta_z \leftarrow \min(1, \cos\theta_z).
+\]
+
+Solar elevation angle:
+\[
+  \theta_e = 90^\circ - \theta_z = 90^\circ - \arccos(\cos\theta_z) \cdot \frac{180}{\pi}.
+\]
+
+To avoid numerical artefacts at very low sun angles, we use a minimum elevation threshold \(\theta_{\min}\) (e.g. \(\theta_{\min} = 3^\circ\)):
+\[
+  \text{if } \theta_e < \theta_{\min} \text{ then } G_T = G_h \quad\text{(pass through measured horizontal)}.
+\]
+
+\section{Extraterrestrial Horizontal Irradiance and Clearness Index}
+
+Solar constant:
+\[
+  G_{sc} = 1367\ \si{W/m^2}.
+\]
+
+Eccentricity correction factor:
+\[
+  E_0 = 1 + 0.033 \cos\left( \frac{360 N}{365} \cdot \frac{\pi}{180} \right).
+\]
+
+Extraterrestrial irradiance on horizontal:
+\[
+  G_{0h} = G_{sc} E_0 \cos\theta_z.
+\]
+If \(G_{0h} \le 0\), we set \(G_T = 0\).
+
+Clearness index:
+\[
+  k_t = \frac{G_h}{G_{0h}},
+\]
+clamped to:
+\[
+  k_t \leftarrow \max(0, \min(1.2, k_t)).
+\]
+
+\section{Erbs Diffuse Fraction}
+
+Diffuse fraction \(k_d\) via the Erbs correlation:
+
+\[
+k_d =
+\begin{cases}
+  1 - 0.09 k_t, & k_t \le 0.22,\\[6pt]
+  0.9511 - 0.1604 k_t + 4.388 k_t^2 - 16.638 k_t^3 + 12.336 k_t^4, & 0.22 < k_t \le 0.8,\\[6pt]
+  0.165, & k_t > 0.8.
+\end{cases}
+\]
+
+Diffuse horizontal:
+\[
+  D_h = k_d G_h.
+\]
+
+Beam normal irradiance (direct normal, DNI):
+\[
+  \text{DNI} = \frac{G_h - D_h}{\cos\theta_z},
+\]
+with non-negativity:
+\[
+  \text{DNI} = \max(0, \text{DNI}).
+\]
+
+\subsection{Altitude (pressure) correction for beam}
+
+Best practice: at higher altitude, atmospheric path length is shorter, so the direct (beam) irradiance is increased. We use the barometric formula for relative pressure:
+\[
+  \frac{P}{P_0} = \left(1 - 2.25577\times 10^{-5}\, h\right)^{5.25588},
+\]
+with \(h\) in metres and \(P_0 = 101325\ \si{Pa}\). Altitude \(h\) is clamped to \([0, 15000]\ \si{m}\). The beam is then scaled:
+\[
+  \text{DNI} \leftarrow \text{DNI} \cdot \left(\frac{P_0}{P}\right)^{0.7}.
+\]
+The exponent \(0.7\) is a common broadband approximation. This corrected DNI is used in the Hay--Davies anisotropy and in the beam-on-tilt component.
+
+\section{Incidence Angle on Tilted Plane}
+
+Let:
+\[
+  \beta = \text{tilt in radians}, \quad
+  \gamma = \text{surface azimuth in radians}.
+\]
+
+We use the standard incidence-angle formula (orthodox form for surface tilt and azimuth).
+In code:
+
+\begin{align*}
+  \beta  &= \beta^\circ \cdot \frac{\pi}{180},\\
+  \gamma &= \gamma^\circ \cdot \frac{\pi}{180},
+\end{align*}
+
+\[
+\cos\theta_i =
+    \sin\delta_{\text{rad}} \sin\varphi_{\text{rad}} \cos\beta
+  - \sin\delta_{\text{rad}} \cos\varphi_{\text{rad}} \sin\beta \cos\gamma
+  + \cos\delta_{\text{rad}} \cos\varphi_{\text{rad}} \cos\omega \cos\beta
+  + \cos\delta_{\text{rad}} \sin\varphi_{\text{rad}} \cos\omega \sin\beta \cos\gamma
+  + \cos\delta_{\text{rad}} \sin\omega \sin\beta \sin\gamma.
+\]
+
+Clamp:
+\[
+  \cos\theta_i \leftarrow \max(0, \cos\theta_i).
+\]
+
+\section{Hay--Davies Diffuse on Tilt}
+
+Anisotropy index:
+\[
+  a = \frac{\text{DNI}}{G_{sc} E_0}, \quad
+  a \leftarrow \min(1, \max(0, a)).
+\]
+
+Geometric factor:
+\[
+  R_b = \frac{\cos\theta_i}{\cos\theta_z}.
+\]
+
+Diffuse on tilt:
+\[
+  D_T = D_h \left( a R_b + (1-a)\frac{1 + \cos\beta}{2} \right).
+\]
+
+\section{Beam and Ground-Reflected Components}
+
+Beam on tilt:
+\[
+  B_T = \text{DNI} \cos\theta_i.
+\]
+
+Ground-reflected:
+\[
+  R_T = \rho\,G_h \frac{1 - \cos\beta}{2}.
+\]
+
+\section{Final GII}
+
+Total irradiance on the tilt:
+\[
+  G_T = B_T + D_T + R_T.
+\]
+
+We then ensure non-negativity:
+\[
+  G_T \leftarrow \max(0, G_T).
+\]
+
+\section{Special Cases and Filters}
+
+\begin{itemize}
+  \item If \(G_h < 0\) or NaN, we return \(0\).
+  \item If \(\cos\theta_z \le 0\) (sun below horizon), we return \(0\).
+  \item If \(G_{0h} \le 0\), we return \(0\).
+  \item If solar elevation \(\theta_e < \theta_{\min}\) (e.g. \(3^\circ\)), we \emph{bypass} the model and set \(G_T = G_h\) to avoid numerical spikes at the horizon with otherwise clean measurements.
+\end{itemize}
+
+\section{Flow Chart}
+
+The following simple flowchart illustrates the main control flow per timestamp.
+
+\tikzset{
+  block/.style = {rectangle, draw, rounded corners, text width=8em, align=center, minimum height=2em},
+  io/.style    = {trapezium, trapezium left angle=70, trapezium right angle=110, draw, align=center},
+  decision/.style = {diamond, draw, aspect=1.6, align=center},
+  line/.style  = {draw, -{Latex[length=2mm]}}
+}
+
+\begin{figure}[p]
+\centering
+\resizebox{!}{0.8\textheight}{%
+\begin{tikzpicture}[node distance=1.8cm]
+  \node[io] (input) {Input \\ $G_h, t, \varphi, \lambda, \beta, \gamma, h, \rho, T_{\text{local}}$};
+  \node[block, below=of input] (localtime) {Convert $t$ to $t_{\text{loc}}$ using $T_{\text{local}}$};
+  \node[block, below=of localtime] (solar) {Compute $N$, $\delta$, $\cos\theta_z$, $\theta_e$};
+  \node[decision, below=of solar] (belowHorizon) {$\cos\theta_z \le 0$?};
+  \node[block, right=3.8cm of belowHorizon] (return0a) {Set $G_T=0$};
+  \node[decision, below=of belowHorizon] (lowElev) {$\theta_e < \theta_{\min}$?};
+  \node[block, right=3.8cm of lowElev] (passThrough) {Set $G_T = G_h$};
+  \node[block, below=of lowElev] (extrac) {Compute $G_{0h}$, $k_t$};
+  \node[decision, below=of extrac] (g0neg) {$G_{0h} \le 0$?};
+  \node[block, right=3.8cm of g0neg] (return0b) {Set $G_T=0$};
+  \node[block, below=of g0neg] (erbs) {Erbs: $k_d$, $D_h$, DNI};
+  \node[block, below=of erbs] (aoi) {Compute $\cos\theta_i$, $R_b$};
+  \node[block, below=of aoi] (hay) {Hay--Davies: $D_T$};
+  \node[block, below=of hay] (beamground) {Compute $B_T$, $R_T$};
+  \node[block, below=of beamground] (sum) {$G_T = B_T + D_T + R_T$};
+  \node[block, below=of sum] (clamp) {Clamp $G_T \ge 0$};
+  \node[io, below=of clamp] (output) {Output $G_T$};
+
+  \path[line] (input) -- (localtime);
+  \path[line] (localtime) -- (solar);
+  \path[line] (solar) -- (belowHorizon);
+  \path[line] (belowHorizon.east) -- node[above]{Yes} (return0a.west);
+  \path[line] (return0a) |- (output);
+  \path[line] (belowHorizon) -- node[left]{No} (lowElev);
+  \path[line] (lowElev.east) -- node[above]{Yes} (passThrough.west);
+  \path[line] (passThrough) |- (output);
+  \path[line] (lowElev) -- node[left]{No} (extrac);
+  \path[line] (extrac) -- (g0neg);
+  \path[line] (g0neg.east) -- node[above]{Yes} (return0b.west);
+  \path[line] (return0b) |- (output);
+  \path[line] (g0neg) -- node[left]{No} (erbs);
+  \path[line] (erbs) -- (aoi);
+  \path[line] (aoi) -- (hay);
+  \path[line] (hay) -- (beamground);
+  \path[line] (beamground) -- (sum);
+  \path[line] (sum) -- (clamp);
+  \path[line] (clamp) -- (output);
+\end{tikzpicture}
+}%
+\caption{Per-timestamp GHI \(\to\) GII transposition flow.}
+\end{figure}
+
+\end{document}
+

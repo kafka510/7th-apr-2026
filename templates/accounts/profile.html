@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load permission_tags %}
+
+{% block title %}Profile | Peak Energy{% endblock %}
+
+{% block content %}
+<style>
+    .profile-card {
+        max-width: 600px;
+        margin: 20px auto;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        background: white;
+    }
+    .profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px 12px 0 0;
+        padding: 30px;
+        text-align: center;
+    }
+    .profile-body {
+        padding: 30px;
+    }
+    .profile-info {
+        margin-bottom: 15px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        border-radius: 4px;
+    }
+    .profile-info strong {
+        color: #495057;
+        display: inline-block;
+        width: 140px;
+    }
+    .back-buttons {
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- Navigation Buttons -->
+    <div class="back-buttons">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{% url 'main:home' %}" class="btn btn-outline-primary">
+                🏠 Home
+            </a>
+            <a href="{% url 'main:unified_operations_dashboard' %}" class="btn btn-primary">
+                📊 Dashboard
+            </a>
+            <a href="{% url 'accounts:logout' %}" class="btn btn-outline-danger">
+                🚪 Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Profile Card -->
+    <div class="card profile-card">
+        <div class="profile-header">
+            <img src="{% static 'PEAK_LOGO.jpg' %}" alt="Peak Energy" style="max-height: 60px; margin-bottom: 15px;">
+            <h2 class="mb-0">User Profile</h2>
+            <p class="mb-0 opacity-75">Account Information</p>
+        </div>
+        
+        <div class="profile-body">
+            <div class="profile-info">
+                <strong>Username:</strong> {{ user.username }}
+            </div>
+            
+            <div class="profile-info">
+                <strong>Email:</strong> {{ user.email|default:"Not provided" }}
+            </div>
+            
+            <div class="profile-info">
+                <strong>First Name:</strong> {{ user.first_name|default:"Not provided" }}
+            </div>
+            
+            <div class="profile-info">
+                <strong>Last Name:</strong> {{ user.last_name|default:"Not provided" }}
+            </div>
+            
+            {% if user.userprofile %}
+            <div class="profile-info">
+                <strong>Role:</strong> 
+                {% with role=user.userprofile.role %}
+                <span class="badge bg-primary">
+                    {% if role == 'admin' %}
+                        👨‍💼 {{ role|role_label:role }}
+                    {% elif role == 'om' %}
+                        🔧 {{ role|role_label:role }}
+                    {% elif role == 'customer' %}
+                        👤 {{ role|role_label:role }}
+                    {% elif role == 'management' %}
+                        📈 {{ role|role_label:role }}
+                    {% elif role == 'others' %}
+                        👥 {{ role|role_label:role }}
+                    {% else %}
+                        {{ role|role_label:role|default:role|title }}
+                    {% endif %}
+                </span>
+                {% endwith %}
+            </div>
+            
+            {% if user.userprofile.accessible_countries %}
+            <div class="profile-info">
+                <strong>Accessible Countries:</strong> {{ user.userprofile.accessible_countries }}
+            </div>
+            {% endif %}
+            
+            {% if user.userprofile.accessible_portfolios %}
+            <div class="profile-info">
+                <strong>Accessible Portfolios:</strong> {{ user.userprofile.accessible_portfolios }}
+            </div>
+            {% endif %}
+            
+            {% if user.userprofile.accessible_sites %}
+            <div class="profile-info">
+                <strong>Accessible Sites:</strong> {{ user.userprofile.accessible_sites }}
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            <div class="profile-info">
+                <strong>Date Joined:</strong> {{ user.date_joined|date:"F j, Y" }}
+            </div>
+            
+            <div class="profile-info">
+                <strong>Last Login:</strong> {{ user.last_login|date:"F j, Y H:i"|default:"Never" }}
+            </div>
+            
+            <div class="profile-info">
+                <strong>Account Status:</strong> 
+                {% if user.is_active %}
+                    <span class="badge bg-success">✅ Active</span>
+                {% else %}
+                    <span class="badge bg-danger">❌ Inactive</span>
+                {% endif %}c
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="text-center mt-4">
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a href="{% url 'accounts:password_reset' %}" class="btn btn-outline-warning">
+                🔐 Reset Password
+            </a>
+            <a href="{% url 'main:unified_operations_dashboard' %}" class="btn btn-success">
+                📊 Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

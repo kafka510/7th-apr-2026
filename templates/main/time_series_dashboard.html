@@ -1,0 +1,970 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Series Data Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@^2"></script>
+    <style>
+        :root {
+            --primary-color: #001F3F;
+            --secondary-color: #7ab1e7;
+            --accent-color: #00A3FF;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin: 0 auto;
+            max-width: 1400px;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+        }
+
+        .dashboard-header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .dashboard-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .filters-section {
+            background: var(--light-bg);
+            padding: 25px 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            align-items: end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-color), var(--secondary-color));
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            height: fit-content;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 163, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            height: fit-content;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .charts-section {
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f8f9fa;
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chart-type-selector {
+            display: flex;
+            gap: 5px;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 8px;
+        }
+
+        .chart-type-btn {
+            padding: 8px 15px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .chart-type-btn.active {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .chart-type-btn:hover:not(.active) {
+            background: #e9ecef;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--primary-color);
+        }
+
+        .loading-spinner.show {
+            display: block;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        .error-message {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .data-summary {
+            background: #e3f2fd;
+            border-radius: 2px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .no-data-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+            font-size: 1.1rem;
+        }
+
+        .no-data-message i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .dashboard-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .filter-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .chart-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .chart-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .chart-wrapper {
+                height: 300px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-header {
+                padding: 15px 20px;
+            }
+
+            .filters-section,
+            .charts-section {
+                padding: 20px;
+            }
+
+            .chart-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1><i class="fas fa-chart-line"></i> Time Series Data Dashboard</h1>
+            <p>Real-time monitoring and analysis of energy metrics</p>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+                    <div class="filter-row">
+            <div class="filter-group">
+                <label for="site-select"><i class="fas fa-building"></i> Site Name</label>
+                <select id="site-select" class="form-select">
+                    <option value="">All Sites</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="timezone-select"><i class="fas fa-clock"></i> Site Timezone</label>
+                <select id="timezone-select" class="form-select">
+                    <option value="">Auto (from site)</option>
+                    <option value="UTC">UTC</option>
+                    <option value="+05:30">+05:30 (IST)</option>
+                    <option value="+09:00">+09:00 (JST)</option>
+                    <option value="+08:00">+08:00 (CST)</option>
+                    <option value="+00:00">+00:00 (GMT)</option>
+                    <option value="-05:00">-05:00 (EST)</option>
+                    <option value="-08:00">-08:00 (PST)</option>
+                    <option value="+10:00">+10:00 (AEST)</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="start-date"><i class="fas fa-calendar"></i> Start Date</label>
+                <input type="datetime-local" id="start-date" class="form-control">
+            </div>
+
+            <div class="filter-group">
+                <label for="end-date"><i class="fas fa-calendar"></i> End Date</label>
+                <input type="datetime-local" id="end-date" class="form-control">
+            </div>
+
+            <div class="filter-group">
+                <label for="device-select"><i class="fas fa-microchip"></i> Device</label>
+                <select id="device-select" class="form-select">
+                    <option value="">All Devices</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="metric-select"><i class="fas fa-chart-bar"></i> Metric</label>
+                <select id="metric-select" class="form-select">
+                    <option value="">Select Metric</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <button id="load-data-btn" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> Load Data
+                </button>
+                <button id="reset-filters-btn" class="btn btn-secondary ms-2">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+        </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-section">
+            <!-- Loading Spinner -->
+            <div id="loading-spinner" class="loading-spinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3">Loading time series data...</p>
+            </div>
+
+            <!-- Error Message -->
+            <div id="error-message" class="error-message">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="error-text">An error occurred while loading data.</span>
+            </div>
+
+            <!-- Data Summary -->
+            <div id="data-summary" class="data-summary" style="display: none;">
+                <h5><i class="fas fa-info-circle"></i> Data Summary</h5>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-points">0</div>
+                        <div class="stat-label">Data Points</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avg-value">0</div>
+                        <div class="stat-label">Average</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="min-value">0</div>
+                        <div class="stat-label">Minimum</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="max-value">0</div>
+                        <div class="stat-label">Maximum</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Chart -->
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title" id="chart-title">Time Series Data</h3>
+                    <div class="chart-controls">
+                        <div class="chart-type-selector">
+                            <button class="chart-type-btn active" data-type="line">
+                                <i class="fas fa-chart-line"></i> Line
+                            </button>
+                            <button class="chart-type-btn" data-type="bar">
+                                <i class="fas fa-chart-bar"></i> Bar
+                            </button>
+                            <button class="chart-type-btn" data-type="area">
+                                <i class="fas fa-chart-area"></i> Area
+                            </button>
+                        </div>
+                        <button id="export-btn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button id="zoom-in-btn" class="btn btn-outline-secondary btn-sm ms-2">Zoom In</button>
+                        <button id="zoom-out-btn" class="btn btn-outline-secondary btn-sm ms-2">Zoom Out</button>
+                        <button id="reset-zoom-btn" class="btn btn-outline-secondary btn-sm ms-2">Reset Zoom</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="timeSeriesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- No Data Message -->
+            <div id="no-data-message" class="no-data-message" style="display: none;">
+                <i class="fas fa-chart-line"></i>
+                <h4>No Data Available</h4>
+                <p>Please select filters and click "Load Data" to view time series information.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Example color function
+        function getColor(idx) {
+            const colors = [
+                '#00A3FF', '#FF5733', '#28a745', '#ffc107', '#dc3545', '#764ba2', '#7ab1e7'
+            ];
+            return colors[idx % colors.length];
+        }
+        // Global variables
+        let timeSeriesChart = null;
+        let currentData = [];
+        let currentTimezone = 'UTC';
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+            setupEventListeners();
+            loadInitialData();
+        });
+
+        function initializeDashboard() {
+            // Set default date range (last 30 days)
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+            
+            document.getElementById('end-date').value = now.toISOString().slice(0, 16);
+            document.getElementById('start-date').value = thirtyDaysAgo.toISOString().slice(0, 16);
+
+            // Set default timezone
+            document.getElementById('timezone-select').value = 'UTC';
+        }
+
+        function setupEventListeners() {
+            // Load data button
+            document.getElementById('load-data-btn').addEventListener('click', loadTimeSeriesData);
+            
+            // Reset filters button
+            document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
+            
+            // Chart type buttons
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    updateChartType(this.dataset.type);
+                });
+            });
+
+            // Export button
+            document.getElementById('export-btn').addEventListener('click', exportData);
+
+            // Site selection change
+            document.getElementById('site-select').addEventListener('change', async function() {
+                const selectedSite = this.value;
+                await loadDevicesForSite(selectedSite);
+                
+                // Auto-set timezone if site is selected
+                if (selectedSite) {
+                    const selectedOption = this.options[this.selectedIndex];
+                    const siteTimezone = selectedOption.dataset.timezone;
+                    if (siteTimezone) {
+                        document.getElementById('timezone-select').value = siteTimezone;
+                        currentTimezone = siteTimezone;
+                    }
+                }
+            });
+
+            // Timezone change
+            document.getElementById('timezone-select').addEventListener('change', function() {
+                currentTimezone = this.value;
+                if (currentData.length > 0) {
+                    updateChart();
+                }
+            });
+        }
+
+        async function loadInitialData() {
+            try {
+                // Load available sites
+                const sitesResponse = await fetch('/api/sites/');
+                if (sitesResponse.ok) {
+                    const sites = await sitesResponse.json();
+                    populateSiteSelect(sites);
+                }
+
+                // Load available metrics
+                const metricsResponse = await fetch('/api/metrics/');
+                if (metricsResponse.ok) {
+                    const metrics = await metricsResponse.json();
+                    populateMetricSelect(metrics);
+                }
+
+                // Load devices for all sites initially
+                await loadDevicesForSite('');
+            } catch (error) {
+                console.error('Error loading initial data:', error);
+                showError('Failed to load initial configuration data.');
+            }
+        }
+
+        function populateSiteSelect(sites) {
+            const select = document.getElementById('site-select');
+            select.innerHTML = '<option value="">All Sites</option>';
+            
+            sites.forEach(site => {
+                const option = document.createElement('option');
+                option.value = site.code;
+                option.textContent = `${site.name} (${site.country}) - ${site.timezone}`;
+                option.dataset.timezone = site.timezone;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadDevicesForSite(siteCode) {
+            try {
+                const params = new URLSearchParams();
+                if (siteCode) {
+                    params.append('asset_code', siteCode);
+                }
+                
+                const response = await fetch(`/api/devices/?${params}`);
+                if (response.ok) {
+                    const devices = await response.json();
+                    populateDeviceSelect(devices);
+                }
+            } catch (error) {
+                console.error('Error loading devices for site:', error);
+            }
+        }
+
+        function populateDeviceSelect(devices) {
+            const select = document.getElementById('device-select');
+            select.innerHTML = '<option value="">All Devices</option>';
+            
+            devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.id;
+                option.textContent = `${device.name} (${device.site_name})`;
+                select.appendChild(option);
+            });
+        }
+
+        function populateMetricSelect(metrics) {
+            const select = document.getElementById('metric-select');
+            select.innerHTML = '<option value="">Select Metric</option>';
+            
+            metrics.forEach(metric => {
+                const option = document.createElement('option');
+                option.value = metric.key;
+                option.textContent = metric.name;
+                select.appendChild(option);
+            });
+        }
+
+        async function loadTimeSeriesData() {
+            // Always clear currentData before loading new data
+            currentData = [];
+            if (timeSeriesChart) {
+                timeSeriesChart.destroy();
+                timeSeriesChart = null;
+            }
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const siteCode = document.getElementById('site-select').value;
+            const device = document.getElementById('device-select').value;
+            const metric = document.getElementById('metric-select').value;
+
+            if (!startDate || !endDate) {
+                showError('Please select both start and end dates.');
+                return;
+            }
+
+            if (!metric) {
+                showError('Please select a metric to display.');
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            try {
+                const params = new URLSearchParams({
+                    start_date: startDate,
+                    end_date: endDate,
+                    timezone: currentTimezone || 'UTC',
+                    asset_code: siteCode,
+                    device: device,
+                    metric: metric
+                });
+
+                const response = await fetch(`/api/time-series-data/?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentData = data.data;
+                    updateChart();
+                    updateDataSummary();
+                    showDataSummary();
+                    hideNoDataMessage();
+                } else {
+                    throw new Error(data.error || 'Failed to load data');
+                }
+            } catch (error) {
+                console.error('Error loading time series data:', error);
+                showError(`Failed to load data: ${error.message}`);
+                showNoDataMessage();
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('timeSeriesChart').getContext('2d');
+            
+            if (timeSeriesChart) {
+                timeSeriesChart.destroy();
+            }
+
+            if (currentData.length === 0) {
+                showNoDataMessage();
+                return;
+            }
+
+            const chartData = prepareChartData();
+            
+            timeSeriesChart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    const date = new Date(context[0].parsed.x);
+                                    return date.toLocaleString('en-US', {
+                                        timeZone: currentTimezone,
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x',
+                            },
+                            zoom: {
+                                wheel: {
+                                    enabled: true,
+                                },
+                                pinch: {
+                                    enabled: true,
+                                },
+                                mode: 'x',
+                            },
+                            limits: {
+                                x: { minRange: 1000 * 60 * 60 }, // 1 hour minimum range
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                timezone: currentTimezone,
+                                displayFormats: {
+                                    hour: 'MMM dd, HH:mm',
+                                    day: 'MMM dd',
+                                    week: 'MMM dd',
+                                    month: 'MMM yyyy'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: getMetricDisplayName()
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Add event listeners for the zoom buttons after the chart is created:
+            document.getElementById('zoom-in-btn').addEventListener('click', function() {
+                if (timeSeriesChart) {
+                    timeSeriesChart.zoom(1.2);
+                }
+            });
+            document.getElementById('zoom-out-btn').addEventListener('click', function() {
+                if (timeSeriesChart) {
+                    timeSeriesChart.zoom(0.8);
+                }
+            });
+            document.getElementById('reset-zoom-btn').addEventListener('click', function() {
+                if (timeSeriesChart) {
+                    timeSeriesChart.resetZoom();
+                }
+            });
+        }
+
+        // Example color function
+        function getColor(idx) {
+            const colors = [
+                '#00A3FF', '#FF5733', '#28a745', '#ffc107', '#dc3545', '#764ba2', '#7ab1e7'
+            ];
+            return colors[idx % colors.length];
+        }
+
+        function prepareChartData() {
+            // Group data by device
+            const deviceGroups = {};
+            currentData.forEach(item => {
+                if (!deviceGroups[item.device_name]) {
+                    deviceGroups[item.device_name] = [];
+                }
+                deviceGroups[item.device_name].push({
+                    x: new Date(item.timestamp),
+                    y: item.value
+                });
+            });
+
+            // Create a dataset for each device
+            const datasets = Object.keys(deviceGroups).map((deviceName, idx) => ({
+                label: deviceName,
+                data: deviceGroups[deviceName],
+                borderColor: getColor(idx), // You can define getColor to return different colors
+                backgroundColor: 'rgba(0, 163, 255, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 2,
+                pointHoverRadius: 2,
+                pointStyle: 'circle'
+            }));
+
+            return {
+                datasets: datasets
+            };
+        }
+
+        function updateChartType(type) {
+            if (!timeSeriesChart) return;
+
+            timeSeriesChart.config.type = type;
+            
+            if (type === 'area') {
+                timeSeriesChart.data.datasets.forEach(dataset => {
+                    dataset.fill = true;
+                    dataset.backgroundColor = 'rgba(0, 163, 255, 0.3)';
+                });
+            } else {
+                timeSeriesChart.data.datasets.forEach(dataset => {
+                    dataset.fill = false;
+                    dataset.backgroundColor = 'rgba(0, 163, 255, 0.1)';
+                });
+            }
+            
+            timeSeriesChart.update();
+        }
+
+        function updateDataSummary() {
+            if (currentData.length === 0) return;
+
+            const values = currentData.map(item => item.value).filter(v => v !== null && !isNaN(v));
+            
+            if (values.length === 0) return;
+
+            const total = values.length;
+            const avg = values.reduce((a, b) => a + b, 0) / total;
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+
+            document.getElementById('total-points').textContent = total.toLocaleString();
+            document.getElementById('avg-value').textContent = avg.toFixed(2);
+            document.getElementById('min-value').textContent = min.toFixed(2);
+            document.getElementById('max-value').textContent = max.toFixed(2);
+        }
+
+        function getMetricDisplayName() {
+            const metricSelect = document.getElementById('metric-select');
+            const selectedOption = metricSelect.options[metricSelect.selectedIndex];
+            return selectedOption ? selectedOption.textContent : 'Metric';
+        }
+
+        function resetFilters() {
+            document.getElementById('start-date').value = '';
+            document.getElementById('end-date').value = '';
+            document.getElementById('site-select').value = '';
+            document.getElementById('device-select').value = '';
+            document.getElementById('metric-select').value = '';
+            document.getElementById('timezone-select').value = '';
+            
+            if (timeSeriesChart) {
+                timeSeriesChart.destroy();
+                timeSeriesChart = null;
+            }
+            
+            currentData = [];
+            hideDataSummary();
+            showNoDataMessage();
+            hideError();
+        }
+
+        function exportData() {
+            if (currentData.length === 0) {
+                alert('No data to export');
+                return;
+            }
+
+            const csvContent = convertToCSV(currentData);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `time_series_data_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function convertToCSV(data) {
+            const headers = ['Timestamp', 'Device', 'Metric', 'Value'];
+            const rows = data.map(item => [
+                new Date(item.timestamp).toISOString(),
+                item.device_name,
+                getMetricDisplayName(),
+                item.value
+            ]);
+            
+            return [headers, ...rows].map(row => row.join(',')).join('\n');
+        }
+
+        // UI Helper Functions
+        function showLoading(show) {
+            const spinner = document.getElementById('loading-spinner');
+            if (show) {
+                spinner.classList.add('show');
+            } else {
+                spinner.classList.remove('show');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error-message').classList.remove('show');
+        }
+
+        function showDataSummary() {
+            document.getElementById('data-summary').style.display = 'block';
+        }
+
+        function hideDataSummary() {
+            document.getElementById('data-summary').style.display = 'none';
+        }
+
+        function showNoDataMessage() {
+            document.getElementById('no-data-message').style.display = 'block';
+        }
+
+        function hideNoDataMessage() {
+            document.getElementById('no-data-message').style.display = 'none';
+        }
+    </script>
+</body>
+</html> 

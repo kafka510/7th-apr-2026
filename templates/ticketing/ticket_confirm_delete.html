@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Ticket {{ ticket.ticket_number }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i> Confirm Ticket Deletion</h4>
+                    <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="btn btn-light btn-sm">
+                        Cancel
+                    </a>
+                </div>
+                <div class="card-body">
+                    <p class="lead">You are about to permanently delete the ticket <strong>{{ ticket.ticket_number }}</strong>.</p>
+                    <p class="mb-4">
+                        This action will remove the ticket, all comments, attachments, activities, email notifications,
+                        and watcher associations. The files stored with the ticket will also be deleted.
+                    </p>
+
+                    <div class="alert alert-warning">
+                        <h5 class="alert-heading">Summary</h5>
+                        <ul class="mb-0">
+                            <li><strong>{{ related_counts.comments }}</strong> comment(s)</li>
+                            <li><strong>{{ related_counts.attachments }}</strong> attachment(s)</li>
+                            <li><strong>{{ related_counts.activities }}</strong> activity log entr{{ related_counts.activities|pluralize:'y,ies' }}</li>
+                            <li><strong>{{ related_counts.emails }}</strong> email notification entr{{ related_counts.emails|pluralize:'y,ies' }}</li>
+                        </ul>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="text-muted">This operation cannot be undone.</span>
+                            </div>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt me-1"></i> Permanently Delete Ticket
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

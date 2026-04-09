@@ -1,0 +1,60 @@
+User Access Audit Report
+Username,mj
+Timestamp,2025-11-11T12:46:44.868680
+Base URL,http://localhost:5555
+
+USER INFORMATION
+Field,Value
+id,41
+username,mj
+email,jagadeshwar@peakenergy.asia
+first_name,
+last_name,
+is_active,True
+is_staff,False
+is_superuser,False
+date_joined,2025-11-06T10:19:40+00:00
+last_login,2025-11-11T07:16:44.815906+00:00
+
+USER PROFILE
+Field,Value
+Role,om
+Role Label,O&M
+App Access,"Ticketing, Web"
+Ticketing Access,True
+Accessible Countries,SG
+Accessible Portfolios,
+Accessible Sites,
+
+FEATURES
+Feature Key,Feature Label
+bess_performance,BESS Performance
+dashboard,Dashboard
+feedback_submit,Submit Feedback
+generation_report,Generation Report
+home,Home
+kpi_dashboard,KPI Dashboard
+main_dashboard,Main Dashboard
+portfolio_map,Portfolio Map
+pr_gap,PR Gap
+revenue_loss,Revenue Loss
+sales,Sales
+ticketing_my_tickets,My Tickets
+ticketing_ticket_create,Create Ticket
+ticketing_ticket_dashboard,Ticket Dashboard
+ticketing_ticketing_admin,Ticketing Admin
+unified_operations_dashboard,Unified Operations Dashboard
+yield_report,Yield Report
+yield_report_edited,Yield Report (Edited)
+
+CAPABILITIES
+Capability Key,Capability Label
+analytics.access,Analytics Access
+ticketing.access_portal,Ticketing Access Portal
+ticketing.assign,Ticketing Assign
+ticketing.assignable,Ticketing Assignable
+ticketing.view_operations,Ticketing View Operations
+
+API USERS
+Status,Not an API user
+

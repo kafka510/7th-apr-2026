@@ -1,0 +1,170 @@
+{% load static %}
+<!-- Load localStorage encryption script -->
+<script src="{% static 'js/localStorage-encryption.js' %}"></script>
+
+<!-- DEBUG: Conditional check -->
+<!-- security_notice.enabled value: {{ security_notice.enabled }} -->
+<!-- security_notice.enabled type: {{ security_notice.enabled|add:0 }} -->
+
+{% if security_notice.enabled %}
+<!-- Security Notice - Reusable Template -->
+<div id="security-notice" class="alert alert-{{ security_notice.type|default:'info' }} alert-dismissible fade show" role="alert" style="margin-bottom: 20px;">
+    <i class="fas fa-shield-alt me-2"></i>
+    <strong>Security Notice:</strong> {{ security_notice.message }}
+    {% if security_notice.dismissible %}
+        <button type="button" class="btn-close" aria-label="Close"></button>
+    {% endif %}
+</div>
+{% else %}
+<!-- DEBUG: Conditional failed -->
+<div style="background: orange; color: white; padding: 10px; margin: 10px 0;">
+    <strong>⚠️ CONDITIONAL FAILED:</strong><br>
+    security_notice.enabled = {{ security_notice.enabled }}<br>
+    This should not happen if enabled=True
+</div>
+{% endif %}
+
+<style>
+    /* Security Notice Styling */
+    #security-notice {
+        border-left: 4px solid #2196f3;
+        background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+        color: #1565c0;
+        border-radius: 0 4px 4px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        position: relative;
+        z-index: 1;
+        line-height: 1.4;
+        font-size: 0.9rem;
+    }
+    
+    [data-theme='dark'] #security-notice {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d1b3d 100%);
+        color: #64b5f6;
+        border-left-color: #64b5f6;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        #security-notice {
+            font-size: 0.85rem;
+            padding: 10px 15px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if localStorage encryption is available
+        if (typeof window.localStorageEncryption === 'undefined') {
+            console.error('localStorageEncryption not loaded! Security notice may not work properly.');
+        }
+        
+        const securityNotice = document.getElementById('security-notice');
+        if (securityNotice) {
+            console.log('Security notice element found');
+            // Clear any old session storage (migration from previous version)
+            sessionStorage.removeItem('security-notice-dismissed');
+            
+            // Check if dismissed with time-based expiration (24 hours)
+            {% if security_notice.dismissible and security_notice.show_once_per_session %}
+            let dismissedData = null;
+            
+            try {
+                if (typeof window.localStorageEncryption !== 'undefined') {
+                    dismissedData = window.localStorageEncryption.decrypt('security-notice-dismissed');
+                } else {
+                    // Fallback to plain localStorage
+                    dismissedData = localStorage.getItem('security-notice-dismissed');
+                    if (dismissedData) {
+                        dismissedData = JSON.parse(dismissedData);
+                    }
+                }
+            } catch (e) {
+                console.log('Error reading dismissal data:', e);
+                dismissedData = null;
+            }
+            
+            if (dismissedData) {
+                try {
+                    const data = typeof dismissedData === 'object' ? dismissedData : JSON.parse(dismissedData);
+                    const { timestamp, expires } = data;
+                    const now = Date.now();
+                    
+                    // If not expired yet, hide the notice
+                    if (now < expires) {
+                        console.log('Security notice was dismissed and not expired, hiding...');
+                        securityNotice.style.display = 'none';
+                    } else {
+                        // Expired, remove the stored data
+                        console.log('Security notice dismissal expired, removing...');
+                        if (typeof window.localStorageEncryption !== 'undefined') {
+                            window.localStorageEncryption.remove('security-notice-dismissed');
+                        } else {
+                            localStorage.removeItem('security-notice-dismissed');
+                        }
+                    }
+                } catch (e) {
+                    // Invalid data, remove it
+                    console.log('Invalid dismissal data, removing...');
+                    if (typeof window.localStorageEncryption !== 'undefined') {
+                        window.localStorageEncryption.remove('security-notice-dismissed');
+                    } else {
+                        localStorage.removeItem('security-notice-dismissed');
+                    }
+                }
+            }
+            {% endif %}
+            
+            // Handle dismiss button
+            const dismissBtn = securityNotice.querySelector('.btn-close');
+            if (dismissBtn) {
+                console.log('Security notice dismiss button found, adding click handler');
+                
+                dismissBtn.addEventListener('click', function(e) {
+                    console.log('Security notice dismiss button clicked!');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    {% if security_notice.show_once_per_session %}
+                    // Store dismissal with 24-hour expiration using encrypted localStorage
+                    const expires = Date.now() + (24 * 60 * 60 * 1000); // 24 hours
+                    const dismissalData = {
+                        timestamp: Date.now(),
+                        expires: expires
+                    };
+                    
+                    try {
+                        if (typeof window.localStorageEncryption !== 'undefined') {
+                            window.localStorageEncryption.encrypt('security-notice-dismissed', dismissalData);
+                            console.log('Security notice dismissal stored in encrypted localStorage');
+                        } else {
+                            // Fallback to plain localStorage
+                            localStorage.setItem('security-notice-dismissed', JSON.stringify(dismissalData));
+                            console.log('Security notice dismissal stored in plain localStorage (fallback)');
+                        }
+                    } catch (error) {
+                        console.error('Failed to store security notice dismissal:', error);
+                        // Fallback to plain localStorage
+                        localStorage.setItem('security-notice-dismissed', JSON.stringify(dismissalData));
+                    }
+                    {% endif %}
+                    
+                    // Immediately hide the notice with animation
+                    console.log('Hiding security notice...');
+                    securityNotice.style.transition = 'opacity 0.3s ease-out';
+                    securityNotice.style.opacity = '0';
+                    
+                    // Remove from DOM after animation
+                    setTimeout(() => {
+                        securityNotice.style.display = 'none';
+                        securityNotice.remove();
+                        console.log('Security notice removed from DOM');
+                    }, 300);
+                });
+            } else {
+                console.log('Security notice dismiss button not found!');
+            }
+        }
+    });
+</script>

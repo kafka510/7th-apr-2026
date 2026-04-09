@@ -1,0 +1,2828 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>BESS ASSET PERFORMANCE REPORT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap & Choices.js CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,600,700&display=swap" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    /*
+      CUSTOM STYLES SECTION
+      - Defines the visual appearance of the dashboard, including layout, colors, spacing, and responsive behavior.
+      - Styles for header, filters, KPI cards, charts, and buttons ensure a modern, clean, and user-friendly interface.
+      - Media queries make the dashboard responsive for different screen sizes.
+    */
+    /* Modern styling inspired by KPI.html */
+    :root {
+      --bg-color: #f5f7fa;
+      --card-bg: #ffffff;
+      --accent: #4e89ae;
+      --accent-light: #a8dadc;
+      --text-color: #333;
+      --border-color: #e0e0e0;
+      --primary-blue: #2563eb;
+      --primary-green: #16a34a;
+      --kpi-accent: #0072CE;
+      --primary-color: #0072CE;
+      --secondary-color: #87ceeb;
+      --success-color: #4CAF50;
+      --danger-color: #FF4136;
+      --warning-color: #FF7043;
+    }
+
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+      background: var(--bg-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      overflow-x: hidden;
+      margin: 0;
+    }
+    
+    body {
+      overflow-y: auto !important;
+      overflow-x: hidden;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-size: 1.16rem;
+    }
+    
+    .main-content {
+      width: 100vw;
+      height: 90vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: clamp(4px, 1vw, 8px);
+      box-sizing: border-box;
+    }
+    
+    /* Modern glass effect */
+    .glass {
+      background: var(--card-bg);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+    /* Enhanced Dashboard Header */
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px 16px 1px 16px;
+      background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      border-radius: 0 0 20px 20px;
+      margin-bottom: 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      width: calc(100% - 32px) !important;
+      margin-left: 16px !important;
+      margin-right: 16px !important;
+    }
+    .dashboard-header .title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 0;
+      display: block;
+      text-align: center;
+      width: 100%;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .card, .kpi-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+      border: 1.5px solid #87ceeb;
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      height: 100%;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .card:hover, .kpi-card:hover {
+      box-shadow: 0 6px 24px rgba(0,114,206,0.13);
+      transform: translateY(-4px) scale(1.02);
+    }
+    /* ----------------------------------
+       SIMPLE FILTERS STYLING
+    ---------------------------------- */
+    .filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: #ffffff;
+      padding: 4px 20px;
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+      margin: 0 16px !important;
+      margin-bottom: 0;
+      flex-wrap: wrap;
+      width: calc(100% - 32px) !important;
+      max-width: none !important;
+    }
+
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    .filter-item .icon {
+      font-size: 1rem;
+      color: var(--primary-color);
+    }
+
+    .filters select,
+    .filters .month-trigger-btn {
+      border-radius: 8px;
+      font-size: 0.9rem;
+      padding: 6px 12px;
+      border: 1px solid #e0e0e0;
+      background: #f9f9f9;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filters select:hover,
+    .filters .month-trigger-btn:hover {
+      border-color: #0072CE;
+      background: #f0f8ff;
+    }
+
+    .filters select:focus,
+    .filters .month-trigger-btn:focus {
+      outline: none;
+      border-color: #0072CE;
+    }
+
+    .filters .clear-btn {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .filters .clear-btn:hover {
+      background: #e63939;
+    }
+
+    /* Multi-Select Styles */
+    .multi-select-container {
+      position: relative;
+      min-width: 180px;
+      max-width: 280px;
+      width: auto;
+    }
+
+    .multi-select-trigger {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      transition: border-color 0.2s;
+      min-height: 32px;
+    }
+
+    .multi-select-trigger:hover {
+      border-color: var(--primary-color);
+    }
+
+    .multi-select-trigger.active {
+      border-color: var(--primary-color);
+    }
+
+    .multi-select-arrow {
+      font-size: 12px;
+      color: var(--primary-color);
+      transition: transform 0.2s;
+    }
+
+    .multi-select-trigger.active .multi-select-arrow {
+      transform: rotate(180deg);
+    }
+
+    .multi-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      max-height: 250px;
+      overflow-y: auto;
+      overflow-x: visible;
+      display: none;
+      padding: 4px 0;
+      margin-top: 2px;
+      min-width: 100%;
+      width: auto;
+      white-space: nowrap;
+    }
+
+    /* Asset filter dropdown specific styling - HIGH PRIORITY */
+    .filters .filter-item .asset-filter-container .multi-select-dropdown {
+      min-width: 225px !important;
+      max-width: 400px !important;
+      width: auto !important;
+      overflow-x: visible !important;
+      white-space: nowrap !important;
+    }
+
+    /* Force asset filter container to be wider - HIGH PRIORITY */
+    .filters .filter-item .asset-filter-container {
+      min-width: 225px !important;
+      max-width: 400px !important;
+      width: auto !important;
+    }
+
+    /* Ensure asset filter options don't wrap */
+    .asset-filter-container .multi-select-option {
+      white-space: nowrap !important;
+      overflow: visible !important;
+      min-width: 225px !important;
+    }
+
+    .asset-filter-container .checkbox-label {
+      white-space: nowrap !important;
+      overflow: visible !important;
+      min-width: 210px !important;
+    }
+
+    .multi-select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-color);
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      width: 100%;
+      overflow: visible;
+      white-space: nowrap;
+    }
+
+    .multi-select-option:hover {
+      background-color: #f8f9fa;
+    }
+
+    .multi-select-option.select-all-option {
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .multi-select-separator {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 4px 0;
+    }
+
+    /* Checkbox styling */
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      display: none;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      width: 100%;
+      font-size: 0.85rem;
+      color: var(--text-color);
+      min-width: 0;
+      overflow: visible;
+      white-space: nowrap;
+    }
+
+    .checkbox-custom {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-radius: 3px;
+      margin-right: 8px;
+      position: relative;
+      background: white;
+      transition: all 0.2s ease;
+    }
+
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+      content: '✓';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+    }
+
+    .selected-items {
+      display: none; /* Hide selected items display for BESS Report */
+    }
+
+    .selected-item {
+      background: var(--primary-color);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .selected-item .remove {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .selected-item .remove:hover {
+      opacity: 0.8;
+    }
+
+    .multi-select-placeholder {
+      color: #6c757d;
+    }
+
+    /* Reset button positioning */
+    .reset-button-container {
+      margin-left: 8px !important;
+      margin-right: 0 !important;
+      position: relative;
+      right: auto !important;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Month trigger button styling */
+    .month-trigger-btn {
+      width: 100%;
+      background: #f8fbff;
+      border: 1px solid #b3d7f2;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 1rem;
+      color: #0072CE;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    /* BestCalendar positioning fixes */
+    .filter-date {
+      position: relative;
+    }
+    
+    .month-matrix-picker {
+      position: absolute !important;
+      z-index: 9999 !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      background: white !important;
+      border: 1px solid #ccc !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      margin-top: 4px !important;
+      min-width: 280px !important;
+      max-width: 400px !important;
+    }
+    
+    /* BestCalendar compatibility styles */
+    .bc-picker {
+      position: absolute !important;
+      z-index: 9999 !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      background: white !important;
+      border: 1px solid #ccc !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      margin-top: 4px !important;
+      min-width: 280px !important;
+      max-width: 400px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 16px !important;
+      padding: 20px !important;
+    }
+    
+    .bc-hidden {
+      display: none !important;
+    }
+    
+    /* BestCalendar picker default state - hidden */
+    #monthMatrixPicker.bc-picker {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      z-index: 1000 !important;
+    }
+    
+    /* Show picker when explicitly shown */
+    #monthMatrixPicker.bc-picker.show-picker {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    .dashboard-section {
+      background: transparent;
+      border-radius: 1.2rem;
+      box-shadow: none;
+      border: 2px solid #b2d8fc;
+      margin-bottom: 2.2rem;
+      padding: 1.4rem 1.2rem;
+      box-shadow: 0 1px 8px rgba(0,114,206,0.07);
+      width: calc(100% - 32px) !important;
+      margin-left: 16px !important;
+      margin-right: 16px !important;
+    }
+
+    .kpi-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      gap: 3.2rem;
+      margin-bottom: 3.2rem;
+      padding: 0 1.6rem;
+      width: calc(100% - 32px) !important;
+      margin-left: 16px !important;
+      margin-right: 16px !important;
+    }
+    .kpi-card {
+      background: #fafdff;
+      border-radius: 1.9rem;
+      box-shadow: 0 2px 12px rgba(0,114,206,0.10);
+      flex: 1 1 0;
+      text-align: center;
+      border: 2.5px solid #b2d8fc;
+      padding: 2.1rem 1.2rem 1.7rem 1.2rem;
+      min-width: 240px;
+      min-height: 122px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .kpi-card:hover {
+      box-shadow: 0 8px 32px rgba(0,114,206,0.16);
+      transform: translateY(-6px) scale(1.03);
+    }
+    .kpi-label {
+      font-size: 3rem;
+      color: #0074D9;
+      font-weight: 600;
+    }
+    
+    /* Gradient title styling for chart titles */
+    .gradient-title {
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent !important;
+      font-weight: 600;
+    }
+    
+    /* ECharts title gradient styling */
+    .echarts-title {
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent !important;
+      margin-bottom: 8px;
+      letter-spacing: 0.7px;
+    }
+
+    /* --- Tab Interface Styling - Based on KPI.html --- */
+    .tab-container {
+      width: calc(100% - 32px) !important;
+      margin: 0 16px 1rem 16px !important;
+    }
+    
+    .tab-nav {
+      display: flex;
+      background: rgba(230, 241, 252, 0.8);
+      border: 1px solid #b3d7f2;
+      border-radius: 8px 8px 0 0;
+      margin-top: 0;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    
+    .tab-button {
+      flex: 1;
+      padding: 0.4rem 0.6rem;
+      background: rgba(230, 241, 252, 0.8);
+      border: none;
+      color: #6c757d !important;
+      font-size: 1.1rem !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border-right: 1px solid #b3d7f2;
+      letter-spacing: 0.5px;
+      position: relative;
+      overflow: hidden;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    
+    .tab-button:last-child {
+      border-right: none;
+    }
+    
+    .tab-button:hover {
+      background: rgba(209, 231, 255, 0.9);
+      color: #0072CE !important;
+      transform: translateY(-1px);
+    }
+    
+    .tab-button.active {
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      color: white !important;
+      font-weight: 700 !important;
+      box-shadow: 0 2px 8px rgba(10, 115, 209, 0.3);
+    }
+    
+    .tab-content {
+      background: white;
+      border: 1px solid #b3d7f2;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      min-height: 200px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    
+    .tab-pane {
+      display: none;
+      padding: 0.75rem;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    .tab-pane.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Responsive tab design */
+    @media (max-width: 1440px) {
+      .tab-nav {
+        margin-top: 0.2rem;
+      }
+      
+      .tab-button {
+        padding: 0.3rem 0.5rem;
+        font-size: 1rem !important;
+      }
+      
+      .tab-content {
+        min-height: 200px;
+        height: 90%;
+      }
+      
+      .tab-pane {
+        padding: 0.5rem;
+        height: 100%;
+      }
+    }
+    
+    @media (max-width: 1220px) {
+      .tab-nav {
+        margin-top: 0.2rem;
+      }
+      
+      .tab-button {
+        padding: 0.3rem 0.5rem;
+        font-size: 1rem !important;
+      }
+      
+      .tab-content {
+        min-height: 200px;
+      }
+      
+      .tab-pane {
+        padding: 0.5rem;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .tab-nav {
+        flex-direction: column;
+        border-radius: 8px 8px 0 0;
+      }
+      
+      .tab-button {
+        border-right: none;
+        border-bottom: 1px solid #b3d7f2;
+        text-align: center;
+        padding: 0.25rem 0.4rem;
+        font-size: 0.9rem !important;
+      }
+      
+      .tab-button:last-child {
+        border-bottom: none;
+      }
+      
+      .tab-content {
+        min-height: 150px;
+      }
+    }
+    .kpi-value {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #1a3e5b;
+      margin-bottom: 2px;
+    }
+    /* ----------------------------------
+       RESPONSIVE BREAKPOINTS
+    ---------------------------------- */
+    /* Dashboard header responsiveness */
+    @media (max-width: 1200px) {
+      .dashboard-title {
+        padding: 1px 12px 0.5px 12px !important;
+        margin-left: 12px !important;
+        margin-right: 12px !important;
+        width: calc(100% - 24px) !important;
+      }
+      
+      .dashboard-title span {
+        font-size: 0.9rem !important;
+      }
+      
+      .filters {
+        padding: 8px 12px !important;
+        gap: 8px !important;
+        margin: 0 12px !important;
+        width: calc(100% - 24px) !important;
+      }
+      
+      .filter-item {
+        gap: 6px !important;
+      }
+      
+      .filters select, .filters .month-trigger-btn {
+        font-size: 0.85rem !important;
+        padding: 4px 8px !important;
+      }
+      
+      .multi-select-container {
+        min-width: 160px;
+        max-width: 240px;
+      }
+      
+      .asset-filter-container {
+        min-width: 200px !important;
+        max-width: 300px !important;
+      }
+      
+      .asset-filter-container .multi-select-dropdown {
+        min-width: 200px !important;
+        max-width: 300px !important;
+      }
+      
+      .asset-filter-container .multi-select-option {
+        min-width: 200px !important;
+      }
+      
+      .asset-filter-container .checkbox-label {
+        min-width: 185px !important;
+      }
+      
+      .multi-select-trigger {
+        font-size: 0.85rem !important;
+        padding: 4px 8px !important;
+      }
+      
+      .multi-select-option {
+        font-size: 0.8rem !important;
+        padding: 6px 10px !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-title {
+        flex-direction: column;
+        gap: 1px;
+        padding: 1px 12px 0.5px 12px !important;
+      }
+      
+      .dashboard-title .title-content {
+        order: 1;
+      }
+      
+      .filters {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 6px 8px !important;
+        gap: 6px !important;
+        margin: 0 8px !important;
+      }
+      
+      .filter-item {
+        gap: 4px !important;
+      }
+      
+      .filters select, .filters .month-trigger-btn {
+        font-size: 0.8rem !important;
+        padding: 3px 6px !important;
+      }
+      
+      .multi-select-container {
+        min-width: 100%;
+        max-width: 100%;
+      }
+      
+      .multi-select-trigger {
+        font-size: 0.8rem !important;
+        padding: 3px 6px !important;
+      }
+      
+      .multi-select-option {
+        font-size: 0.75rem !important;
+        padding: 5px 8px !important;
+      }
+      
+      .selected-items {
+        margin-top: 2px;
+      }
+      
+      .selected-item {
+        font-size: 0.65rem !important;
+        padding: 1px 4px !important;
+      }
+    }
+
+    @media (max-width: 1400px) {
+      .kpi-card { min-width: 160px; }
+    }
+
+    /* Large screen optimization (above 1440px) */
+    @media (min-width: 1441px) {
+      .container-fluid {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding-left: 1rem;
+        padding-right: 1rem;
+      }
+      
+      .dashboard-header {
+        width: 100%;
+        max-width: none;
+        margin: 0 0 0 0;
+        border-radius: 0;
+      }
+      
+      .filters {
+        width: 100%;
+        max-width: none;
+        margin: 0 0 0 0;
+        justify-content: flex-start;
+        gap: 1.5rem;
+        border-radius: 0;
+      }
+      
+      .kpi-row {
+        width: 100%;
+        max-width: none;
+        margin: 0 0 3.2rem 0;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 0 1rem;
+      }
+      
+      .kpi-card {
+        min-width: 180px;
+        max-width: none;
+        flex: 1;
+        height: 90%;
+        min-height: 110px;
+      }
+      
+      .dashboard-section {
+        width: 100%;
+        max-width: none;
+        margin: 0 0 2.2rem 0;
+        height: 90vh;
+        min-height: 600px;
+      }
+      
+      /* Chart container optimization for large screens */
+      .tab-content {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        height: 90%;
+        min-height: 500px;
+      }
+      
+      /* Ensure charts use full available space */
+      #bessBarChart, #chargeDischargeLine, #socTempLine {
+        width: calc(100% - 32px) !important;
+        height: 90% !important;
+        min-height: 500px;
+        margin-left: 16px !important;
+        margin-right: 16px !important;
+      }
+      
+      /* Tab navigation optimization */
+      .tab-nav {
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 1rem;
+      }
+      
+      /* Main content area */
+      .main-content {
+        width: 100vw;
+        height: 90vh;
+        overflow: hidden;
+      }
+      
+      /* Chart container width consistency */
+      .chart-container, .tab-pane {
+        width: calc(100% - 32px) !important;
+        margin-left: 16px !important;
+        margin-right: 16px !important;
+        max-width: none !important;
+      }
+    }
+
+    /* Extra large screen optimization (above 1920px) */
+    @media (min-width: 1921px) {
+      .container-fluid {
+        width: 100%;
+        max-width: none;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+      }
+      
+      .dashboard-header {
+        width: 100%;
+        max-width: none;
+        width: 100%;
+      }
+      
+      .filters {
+        width: 100%;
+        max-width: none;
+        gap: 2rem;
+        padding: 0.5rem 1.5rem;
+      }
+      
+      .kpi-row {
+        width: 100%;
+        max-width: none;
+        gap: 2rem;
+        padding: 0 1.5rem;
+      }
+      
+      .kpi-card {
+        min-width: 200px;
+        height: 90%;
+        min-height: 120px;
+      }
+      
+      .dashboard-section {
+        width: 100%;
+        max-width: none;
+        height: 90vh;
+        min-height: 700px;
+      }
+      
+      .tab-content {
+        width: 100%;
+        max-width: none;
+        height: 90%;
+        min-height: 600px;
+      }
+      
+      /* Charts for ultra-wide screens */
+      #bessBarChart, #chargeDischargeLine, #socTempLine {
+        width: 100% !important;
+        height: 90% !important;
+        min-height: 600px;
+      }
+    }
+    @media (max-width: 1200px) {
+      .kpi-row { flex-direction: column; gap: 1.5rem; }
+      .dashboard-section { min-width: 0 !important; }
+      .kpi-card { min-width: 120px; }
+    }
+    #loadingSpinner { z-index: 1000; background: #fafdffbb; }
+
+    .btn, button {
+      border-radius: 1.2rem !important;
+      font-weight: 600;
+      font-size: 1.25rem;
+      padding: 0.7rem 2.2rem;
+      box-shadow: 0 2px 8px rgba(0,114,206,0.08);
+      transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .btn:hover, button:hover {
+      background: #005fa3 !important;
+      color: #fff !important;
+      box-shadow: 0 4px 16px rgba(0,114,206,0.13);
+      transform: translateY(-2px) scale(1.01);
+    }
+    /* ==== COMPACT DASHBOARD OVERRIDES ==== */
+    body { font-size: 0.92rem; }
+    .dashboard-title { font-size: 1.2rem; padding: 8px 0; }
+    .dashboard-header { margin-bottom: 1rem; }
+    .filters { gap: 0.7rem; padding: 0 0.8vw; }
+    .kpi-row { gap: 1.2rem; padding: 0 0.5rem; margin-bottom: 1.2rem; }
+    .kpi-card {
+      padding: 1.1rem 0.4rem 0.8rem 0.4rem;
+      min-width: 110px;
+      min-height: 66px;
+    }
+    .kpi-label, .kpi-value { font-size: 1.1rem !important; }
+    .kpi-label { margin-bottom: 2px; }
+    .kpi-card .kpi-value { margin-bottom: 1px; }
+    .dashboard-section { padding: 0.8rem 0.6rem; margin-bottom: 1.2rem; }
+    table { font-size: 1rem; }
+    th { font-size: 1.2rem; padding: 6px 8px; }
+    td { padding: 6px 8px; }
+    .card, .kpi-card { border-radius: 10px; }
+    @media (max-width: 1400px) {
+      .kpi-card { min-width: 90px; }
+    }
+    @media (max-width: 1200px) {
+      .kpi-row { flex-direction: column; gap: 0.8rem; }
+      .dashboard-section { min-width: 0 !important; }
+    }
+    /* Tab interface styles are now handled by the tab CSS above */
+    @media (max-width: 950px) {
+      .kpi-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.6rem !important;
+      }
+      .kpi-row .kpi-card {
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+    }
+    @media (min-width: 950px) and (max-width: 1400px) {
+      body {
+        font-size: 0.46rem !important;
+      }
+      .dashboard-title {
+        font-size: 0.6rem !important;
+      }
+      .kpi-card .kpi-label,
+      .kpi-card .kpi-value {
+        font-size: 0.55rem !important;
+      }
+      .choices__inner,
+      .choices__item,
+      .choices__input,
+      .choices__placeholder {
+        font-size: 0.55rem !important;
+      }
+      table, th, td {
+        font-size: 0.5rem !important;
+      }
+      button, .btn {
+        font-size: 0.6rem !important;
+      }
+    }
+    
+    /* FORCE UNIFORM CONTAINER WIDTHS - Override all existing styles */
+    * {
+      box-sizing: border-box !important;
+    }
+    
+    .container-fluid, .main-content, .dashboard-content {
+      width: 100% !important;
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      position: relative !important;
+    }
+    
+    /* ALL CONTAINERS - EXACT SAME POSITIONING */
+    .dashboard-header,
+    .filters,
+    .kpi-cards,
+    .tab-container,
+    .tab-content,
+    .tab-pane,
+    .chart-container,
+    .dashboard-section,
+    #bessBarChart,
+    #chargeDischargeLine,
+    #socTempLine,
+    .chart-wrapper,
+    .echarts-for-react,
+    .echarts-container,
+    div[id="bessBarChart"],
+    div[id="chargeDischargeLine"],
+    div[id="socTempLine"] {
+      width: calc(100% - 32px) !important;
+      margin-left: 16px !important;
+      margin-right: 16px !important;
+      max-width: none !important;
+      position: relative !important;
+      left: 0 !important;
+      right: 0 !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Specific adjustments for different container types */
+    .tab-content {
+      min-height: 450px !important;
+    }
+    
+    #bessBarChart, #chargeDischargeLine, #socTempLine {
+      min-height: 400px !important;
+    }
+    
+    /* Override any conflicting styles */
+    .dashboard-header {
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 10 !important;
+    }
+    
+    /* Ensure no overlapping */
+    .filters {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+    
+    .kpi-cards {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+    
+    .tab-container {
+      margin-top: 0 !important;
+      margin-bottom: 1rem !important;
+    }
+    
+    /* AGGRESSIVE OVERRIDE - Force all containers to be exactly the same */
+    .container-fluid > * {
+      width: calc(100% - 32px) !important;
+      margin-left: 16px !important;
+      margin-right: 16px !important;
+      max-width: none !important;
+      position: relative !important;
+      left: 0 !important;
+      right: 0 !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Override any inline styles or conflicting CSS */
+    .dashboard-header[style],
+    .filters[style],
+    .kpi-cards[style],
+    .tab-container[style],
+    .tab-content[style] {
+      width: calc(100% - 32px) !important;
+      margin-left: 16px !important;
+      margin-right: 16px !important;
+    }
+    
+    /* Ensure BESS calendar picker is visible */
+    #monthMatrixPicker {
+      z-index: 999999 !important;
+      position: absolute !important;
+      background: white !important;
+      border: 1px solid #e0e0e0 !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      border-radius: 10px !important;
+      padding: 20px !important;
+      min-width: 280px !important;
+      max-width: 400px !important;
+    }
+    
+    /* Ensure the filter card has proper positioning */
+    .filter-month {
+      position: relative !important;
+    }
+    
+
+  </style>
+  <!-- Add BestCalendar script -->
+  <script src="{% static "bestcalendar.js" %}"></script>
+  <!-- Add Multi-Select script -->
+  <script src="{% static "js/multi-select.js" %}"></script>
+  <script>
+    // Ensure BestCalendar is available globally
+    window.addEventListener('load', function() {
+      // BestCalendar initialization check
+    });
+  </script>
+</head>
+<body>
+<!--
+  MAIN CONTAINER
+  - Wraps all dashboard content for consistent padding and layout.
+-->
+<div class="container-fluid py-1">
+  <!--
+    LOADING SPINNER SECTION
+    - Displays a loading indicator while data is being fetched and parsed.
+    - Enhances user experience by providing feedback during data load.
+  -->
+  <div id="loadingSpinner" class="text-center my-4">
+    <div class="spinner-border text-primary" style="width: 3.1rem; height: 3.1rem;"></div>
+    <p style="font-size:1.35rem;">Loading data...</p>
+  </div>
+
+  <!--
+    DASHBOARD HEADER SECTION
+    - Shows the main title of the dashboard.
+    - Provides immediate context to the user about the report's purpose.
+  -->
+  <!-- Enhanced Header with Gradient Title -->
+  <div class="dashboard-header">
+      <span class="title">BESS ASSET PERFORMANCE REPORT</span>
+  </div>
+  <!--
+    FILTERS SECTION
+    - Contains multi-select dropdowns for Country, Portfolio, Asset No, and Year-Month.
+    - Allows users to filter the data interactively, updating the dashboard visuals accordingly.
+    - Includes a Reset button to clear all filters.
+    - Uses custom multi-select components for enhanced functionality.
+  -->
+  <div class="filters">
+    <label class="filter-item" title="Country">
+      <span class="icon" aria-hidden="true">🌍</span>
+      <div class="multi-select-container">
+        <div id="filterCountryTrigger" class="multi-select-trigger">
+          <span id="filterCountryPlaceholder" data-default="All Countries">All Countries</span>
+          <span class="multi-select-arrow">▼</span>
+    </div>
+        <div id="filterCountryDropdown" class="multi-select-dropdown">
+          <!-- Options will be populated dynamically -->
+    </div>
+        <div id="filterCountrySelectedItems" class="selected-items"></div>
+    </div>
+    </label>
+    <label class="filter-item" title="Portfolio">
+      <span class="icon" aria-hidden="true">📂</span>
+      <div class="multi-select-container">
+        <div id="filterPortfolioTrigger" class="multi-select-trigger">
+          <span id="filterPortfolioPlaceholder" data-default="All Portfolios">All Portfolios</span>
+          <span class="multi-select-arrow">▼</span>
+        </div>
+        <div id="filterPortfolioDropdown" class="multi-select-dropdown">
+          <!-- Options will be populated dynamically -->
+        </div>
+        <div id="filterPortfolioSelectedItems" class="selected-items"></div>
+      </div>
+    </label>
+    <label class="filter-item" title="Asset No">
+      <span class="icon" aria-hidden="true">🏭</span>
+      <div class="multi-select-container asset-filter-container" style="min-width: 225px !important; max-width: 400px !important; width: auto !important;">
+        <div id="filterAssetTrigger" class="multi-select-trigger">
+          <span id="filterAssetPlaceholder" data-default="All Assets">All Assets</span>
+          <span class="multi-select-arrow">▼</span>
+        </div>
+        <div id="filterAssetDropdown" class="multi-select-dropdown" style="min-width: 225px !important; max-width: 400px !important; width: auto !important;">
+          <!-- Options will be populated dynamically -->
+        </div>
+        <div id="filterAssetSelectedItems" class="selected-items"></div>
+      </div>
+    </label>
+    <div class="filter-period" style="position: relative; display: inline-block; z-index: 200;">
+      <label class="filter-item" title="Period">
+        <span class="icon" aria-hidden="true">⏳</span>
+        <button id="monthMatrixTrigger" type="button" class="month-trigger-btn">
+          <span id="selectedMonthLabel">Select Period</span>
+      </button>
+      </label>
+      <div id="monthMatrixPicker" class="month-matrix-picker" style="display: none;"></div>
+    </div>
+    <div class="reset-button-container" style="margin-left: 8px; margin-right: 0; position: relative; right: auto;">
+      <button id="resetFiltersBtn" type="button" class="clear-btn">Reset</button>
+    </div>
+  </div>
+  <!--
+    COMPACT KPI SECTION
+    - Displays key performance indicators in a compact grid format like sales.html.
+    - Provides at-a-glance summary statistics based on the filtered data.
+  -->
+  <div class="kpi-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 4px; padding: 4px; box-sizing: border-box; width: calc(100% - 32px); max-width: calc(100% - 32px); margin: 3px 16px 6px 16px; overflow: hidden;" id="bessCards">
+  </div>
+
+  <!-- Tabbed Interface for Charts -->
+  <div class="tab-container">
+    <div class="tab-nav">
+      <button class="tab-button active" onclick="showTab('all-energy-tab')">
+        <i class="fas fa-chart-bar" style="margin-right: 8px;"></i>
+        All Energy (Bar Chart)
+      </button>
+      <button class="tab-button" onclick="showTab('charge-discharge-tab')">
+        <i class="fas fa-chart-line" style="margin-right: 8px;"></i>
+        Charge vs Discharge (Line Chart)
+      </button>
+      <button class="tab-button" onclick="showTab('soc-temp-tab')">
+        <i class="fas fa-thermometer-half" style="margin-right: 8px;"></i>
+        SOC & Temperature (Line Chart)
+      </button>
+    </div>
+    
+    <div class="tab-content">
+            <!-- All Energy Bar Chart Tab -->
+      <div id="all-energy-tab" class="tab-pane active">
+        <div id="bessBarChart" style="height: 100%; min-height: 450px;"></div>
+      </div>
+      
+      <!-- Charge/Discharge Line Chart Tab -->
+      <div id="charge-discharge-tab" class="tab-pane">
+        <div id="chargeDischargeLine" style="height: 100%; min-height: 350px;"></div>
+      </div>
+      
+      <!-- SOC & Temperature Line Chart Tab -->
+      <div id="soc-temp-tab" class="tab-pane">
+        <div id="socTempLine" style="height: 100%; min-height: 350px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<!--
+  JAVASCRIPT SECTION
+  - Handles data loading, parsing, filtering, and visualization.
+  - Implements interactive filter logic, KPI calculation, and chart rendering.
+  - Uses PapaParse for CSV parsing, Choices.js for dropdowns, and ECharts for charts.
+  - Contains utility functions for data manipulation and event listeners for user actions.
+-->
+<script>
+  // Store all parsed data from the CSV
+let bessData = [];
+let selectedMonth = null;
+let selectedYear = null;
+let bessCalendar = null;
+
+// Multi-select instances
+let countryMultiSelect = null;
+let portfolioMultiSelect = null;
+let assetMultiSelect = null;
+
+// BestCalendar month picker logic
+const monthMatrixTrigger = document.getElementById('monthMatrixTrigger');
+const monthMatrixPicker = document.getElementById('monthMatrixPicker');
+const selectedMonthLabel = document.getElementById('selectedMonthLabel');
+
+// Tab switching function for BESS dashboard
+function showTab(tabId) {
+  // Hide all tab panes
+  const tabPanes = document.querySelectorAll('.tab-pane');
+  tabPanes.forEach(pane => {
+    pane.classList.remove('active');
+  });
+  
+  // Remove active class from all tab buttons
+  const tabButtons = document.querySelectorAll('.tab-button');
+  tabButtons.forEach(button => {
+    button.classList.remove('active');
+  });
+  
+  // Show selected tab
+  const selectedTab = document.getElementById(tabId);
+  if (selectedTab) {
+    selectedTab.classList.add('active');
+  }
+  
+  // Add active class to clicked button
+  const clickedButton = event.target.closest('.tab-button');
+  if (clickedButton) {
+    clickedButton.classList.add('active');
+  }
+  
+  // Trigger resize event for charts to redraw properly
+  setTimeout(() => {
+    window.dispatchEvent(new Event('resize'));
+  }, 100);
+}
+
+function populateMultiSelect(multiSelect, values) {
+  if (!multiSelect) return;
+  
+  const options = values.map(val => ({
+    value: val,
+    label: val
+  }));
+  
+  multiSelect.setOptions(options);
+}
+
+function getSelectedValues(multiSelect) {
+  if (!multiSelect) return [];
+  return multiSelect.getSelectedValues();
+}
+
+function getUnique(data, key) {
+  return [...new Set(data.map(row => {
+    let val = row[key];
+    if (typeof val === 'string') return val.trim();
+    if (val !== undefined && val !== null) return String(val).trim();
+    return '';
+  }).filter(Boolean))].sort((a, b) => a.toString().localeCompare(b.toString()));
+}
+
+// Update formatMonthLabel to be robust
+function formatMonthLabel(ym) {
+  if (!ym) return '';
+  const [y, m] = ym.split('-');
+  if (!y || !m) return ym; // fallback for year-only or invalid
+  const date = new Date(Number(y), Number(m) - 1, 1);
+  return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+}
+
+// --- Enhanced Cascading Filter Logic for Multi-Select ---
+function getActiveFilters(excludeFilter = null) {
+  const filters = {};
+  
+  if (excludeFilter !== 'country' && countryMultiSelect) {
+    const countries = countryMultiSelect.getSelectedValues();
+    if (countries.length > 0) {
+      filters.country = countries;
+    }
+  }
+  
+  if (excludeFilter !== 'portfolio' && portfolioMultiSelect) {
+    const portfolios = portfolioMultiSelect.getSelectedValues();
+    if (portfolios.length > 0) {
+      filters.portfolio = portfolios;
+    }
+  }
+  
+  if (excludeFilter !== 'asset' && assetMultiSelect) {
+    const assets = assetMultiSelect.getSelectedValues();
+    if (assets.length > 0) {
+      filters.assetno = assets;
+    }
+  }
+  
+  return filters;
+}
+
+function updateCascadingFilters(changedFilter = null) {
+  let subset = bessData;
+  
+  // Get current country selections
+  const selectedCountries = countryMultiSelect ? countryMultiSelect.getSelectedValues() : [];
+  
+  // Filter subset based on country selection
+  if (selectedCountries.length > 0) {
+    subset = bessData.filter(r => {
+      return selectedCountries.includes(String(r.country || '').trim());
+    });
+  }
+  
+  // Update portfolio options based on country selection
+  const portfolioOptions = [...new Set(subset.map(row => row.portfolio).filter(Boolean))].sort();
+  
+  // Only update portfolio options if country filter changed
+  if (changedFilter === 'country') {
+    populateMultiSelect(portfolioMultiSelect, portfolioOptions);
+    
+    // Clear portfolio selections if they're no longer valid
+    if (portfolioMultiSelect) {
+      const currentPortfolioSelections = portfolioMultiSelect.getSelectedValues();
+      const validPortfolioSelections = currentPortfolioSelections.filter(portfolio => 
+        portfolioOptions.includes(portfolio)
+      );
+      if (validPortfolioSelections.length !== currentPortfolioSelections.length) {
+        portfolioMultiSelect.setSelectedValues(validPortfolioSelections);
+      }
+    }
+  }
+  
+  // Get current portfolio selections
+  const selectedPortfolios = portfolioMultiSelect ? portfolioMultiSelect.getSelectedValues() : [];
+  
+  // Filter subset based on portfolio selection
+  if (selectedPortfolios.length > 0) {
+    subset = subset.filter(r => {
+      return selectedPortfolios.includes(String(r.portfolio || '').trim());
+    });
+  }
+  
+  // Update asset options based on country and portfolio selection
+  const assetOptions = [...new Set(subset.map(row => String(row.asset_no)).filter(Boolean))].sort();
+  
+  // Only update asset options if country or portfolio filter changed
+  if (changedFilter === 'country' || changedFilter === 'portfolio') {
+    populateMultiSelect(assetMultiSelect, assetOptions);
+    
+    // Clear asset selections if they're no longer valid
+    if (assetMultiSelect) {
+      const currentAssetSelections = assetMultiSelect.getSelectedValues();
+      const validAssetSelections = currentAssetSelections.filter(asset => 
+        assetOptions.includes(asset)
+      );
+      if (validAssetSelections.length !== currentAssetSelections.length) {
+        assetMultiSelect.setSelectedValues(validAssetSelections);
+      }
+    }
+  }
+}
+
+// Debounce function for better performance
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+const debouncedUpdateCascading = debounce(updateCascadingFilters, 200);
+// Function to get filtered data based on current selections
+function getFilteredData() {
+  const selectedCountries = countryMultiSelect ? countryMultiSelect.getSelectedValues() : [];
+  const selectedPortfolios = portfolioMultiSelect ? portfolioMultiSelect.getSelectedValues() : [];
+  const selectedAssets = assetMultiSelect ? assetMultiSelect.getSelectedValues() : [];
+  
+  return bessData.filter(row => {
+    // Country filtering
+    const countryMatches = selectedCountries.length === 0 || selectedCountries.includes(String(row.country || '').trim());
+    
+    // Portfolio filtering
+    const portfolioMatches = selectedPortfolios.length === 0 || selectedPortfolios.includes(String(row.portfolio || '').trim());
+    
+    // Asset filtering
+    let assetMatches = selectedAssets.length === 0;
+    if (selectedAssets.length > 0 && row.asset_no) {
+      const rowAssetString = String(row.asset_no).trim();
+      assetMatches = selectedAssets.some(selectedAsset => {
+        const selectedAssetString = String(selectedAsset).trim();
+        return rowAssetString === selectedAssetString || 
+               rowAssetString.endsWith(selectedAssetString) ||
+               selectedAssetString.endsWith(rowAssetString);
+      });
+    }
+    
+    return countryMatches && portfolioMatches && assetMatches;
+  });
+}
+
+const debouncedUpdateChart = debounce(() => {
+  // Get the filtered data based on current selections
+  const filtered = getFilteredData();
+  updateBessVisuals(filtered);
+}, 200);
+
+// --- Multi-Select Event Listeners ---
+function initializeMultiSelects() {
+  // Initialize country multi-select
+  countryMultiSelect = new MultiSelect(
+    'filterCountryTrigger',
+    'filterCountryDropdown',
+    'filterCountryPlaceholder',
+    'filterCountrySelectedItems',
+    function(selectedValues) {
+      debouncedUpdateCascading('country');
+      debouncedUpdateChart();
+    }
+  );
+
+  // Initialize portfolio multi-select
+  portfolioMultiSelect = new MultiSelect(
+    'filterPortfolioTrigger',
+    'filterPortfolioDropdown',
+    'filterPortfolioPlaceholder',
+    'filterPortfolioSelectedItems',
+    function(selectedValues) {
+      debouncedUpdateCascading('portfolio');
+      debouncedUpdateChart();
+    }
+  );
+
+  // Initialize asset multi-select
+  assetMultiSelect = new MultiSelect(
+    'filterAssetTrigger',
+    'filterAssetDropdown',
+    'filterAssetPlaceholder',
+    'filterAssetSelectedItems',
+    function(selectedValues) {
+      debouncedUpdateCascading('asset');
+      debouncedUpdateChart();
+    }
+  );
+  
+  // Override the renderSelectedItems method to prevent showing selected items as tags
+  if (countryMultiSelect) {
+    countryMultiSelect.renderSelectedItems = function() {
+      // Don't render selected items as tags
+      this.selectedItemsContainer.innerHTML = '';
+    };
+    
+    // Override toggleDropdown to ensure options are re-rendered with correct state
+    const originalToggleDropdown = countryMultiSelect.toggleDropdown;
+    countryMultiSelect.toggleDropdown = function() {
+      if (!this.isOpen()) {
+        // When opening, re-render options to ensure correct checkbox states
+        this.renderOptions();
+      }
+      originalToggleDropdown.call(this);
+    };
+    
+    // Override updateDisplay to ensure trigger text is updated properly
+    const originalUpdateDisplay = countryMultiSelect.updateDisplay;
+    countryMultiSelect.updateDisplay = function() {
+      if (this.selectedValues.length === 0) {
+        this.placeholder.textContent = this.placeholder.dataset.default || 'Select options';
+      } else if (this.selectedValues.length === 1) {
+        // Show the single selected item name
+        const option = this.options.find(opt => opt.value === this.selectedValues[0]);
+        this.placeholder.textContent = option ? option.label : '1 selected';
+      } else {
+        // Show count for multiple selections
+        this.placeholder.textContent = `${this.selectedValues.length} selected`;
+      }
+      // Don't call renderSelectedItems since we don't want tags
+    };
+    
+    // Override selectAll to prevent automatic selection of all countries
+    const originalSelectAll = countryMultiSelect.selectAll;
+    countryMultiSelect.selectAll = function() {
+      // Don't automatically select all - let user make explicit choices
+      return;
+    };
+  }
+  
+  if (portfolioMultiSelect) {
+    portfolioMultiSelect.renderSelectedItems = function() {
+      // Don't render selected items as tags
+      this.selectedItemsContainer.innerHTML = '';
+    };
+    
+    // Override toggleDropdown to ensure options are re-rendered with correct state
+    const originalToggleDropdown = portfolioMultiSelect.toggleDropdown;
+    portfolioMultiSelect.toggleDropdown = function() {
+      if (!this.isOpen()) {
+        // When opening, re-render options to ensure correct checkbox states
+        this.renderOptions();
+      }
+      originalToggleDropdown.call(this);
+    };
+    
+    // Override updateDisplay to ensure trigger text is updated properly
+    const originalUpdateDisplay = portfolioMultiSelect.updateDisplay;
+    portfolioMultiSelect.updateDisplay = function() {
+      if (this.selectedValues.length === 0) {
+        this.placeholder.textContent = this.placeholder.dataset.default || 'Select options';
+      } else if (this.selectedValues.length === 1) {
+        // Show the single selected item name
+        const option = this.options.find(opt => opt.value === this.selectedValues[0]);
+        this.placeholder.textContent = option ? option.label : '1 selected';
+      } else {
+        // Show count for multiple selections
+        this.placeholder.textContent = `${this.selectedValues.length} selected`;
+      }
+      // Don't call renderSelectedItems since we don't want tags
+    };
+    
+    // Override selectAll to prevent automatic selection of all portfolios
+    const originalSelectAll = portfolioMultiSelect.selectAll;
+    portfolioMultiSelect.selectAll = function() {
+      // Don't automatically select all - let user make explicit choices
+      return;
+    };
+  }
+  
+  if (assetMultiSelect) {
+    assetMultiSelect.renderSelectedItems = function() {
+      // Don't render selected items as tags
+      this.selectedItemsContainer.innerHTML = '';
+    };
+    
+    // Override toggleDropdown to ensure options are re-rendered with correct state
+    const originalToggleDropdown = assetMultiSelect.toggleDropdown;
+    assetMultiSelect.toggleDropdown = function() {
+      if (!this.isOpen()) {
+        // When opening, re-render options to ensure correct checkbox states
+        this.renderOptions();
+      }
+      originalToggleDropdown.call(this);
+    };
+    
+    // Override updateDisplay to ensure trigger text is updated properly
+    const originalUpdateDisplay = assetMultiSelect.updateDisplay;
+    assetMultiSelect.updateDisplay = function() {
+      if (this.selectedValues.length === 0) {
+        this.placeholder.textContent = this.placeholder.dataset.default || 'Select options';
+      } else if (this.selectedValues.length === 1) {
+        // Show the single selected item name
+        const option = this.options.find(opt => opt.value === this.selectedValues[0]);
+        this.placeholder.textContent = option ? option.label : '1 selected';
+      } else {
+        // Show count for multiple selections
+        this.placeholder.textContent = `${this.selectedValues.length} selected`;
+      }
+      // Don't call renderSelectedItems since we don't want tags
+    };
+    
+    // Override selectAll to prevent automatic selection of all assets
+    const originalSelectAll = assetMultiSelect.selectAll;
+    assetMultiSelect.selectAll = function() {
+      // Don't automatically select all - let user make explicit choices
+      return;
+    };
+  }
+}
+
+// Returns a filtered array based on all current filter values
+function filterData(data, filters) {
+  return data.filter(
+    (row) => {
+      // Convert selected month back to original format for comparison
+      let monthMatches = true;
+      if (filters.month) {
+        const [year, month] = filters.month.split('-');
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthName = monthNames[parseInt(month) - 1];
+        const shortYear = year.slice(-2); // "2025" -> "25"
+        const expectedFormat = `${shortYear}-${monthName}`;
+        monthMatches = row.month === expectedFormat;
+      }
+      
+      // Fix the year filter issue
+      let yearMatches = true;
+      if (filters.year && typeof filters.year === 'string' && filters.year.length > 0) {
+        const yearSuffix = filters.year.slice(-2); // "2025" -> "25"
+        yearMatches = row.month && row.month.startsWith(yearSuffix);
+      }
+      
+      // Get selected values from multi-select components
+      const selectedCountries = countryMultiSelect ? countryMultiSelect.getSelectedValues() : [];
+      const selectedPortfolios = portfolioMultiSelect ? portfolioMultiSelect.getSelectedValues() : [];
+      const selectedAssets = assetMultiSelect ? assetMultiSelect.getSelectedValues() : [];
+      
+
+      
+      const countryMatches = selectedCountries.length === 0 || selectedCountries.includes(String(row.country || '').trim());
+      const portfolioMatches = selectedPortfolios.length === 0 || selectedPortfolios.includes(String(row.portfolio || '').trim());
+      // Asset filtering - handle both full asset codes (KR_BW_18) and partial codes (18)
+      let assetMatches = selectedAssets.length === 0;
+      if (selectedAssets.length > 0 && row.asset_no) {
+        const rowAssetString = String(row.asset_no).trim();
+        assetMatches = selectedAssets.some(selectedAsset => {
+          const selectedAssetString = String(selectedAsset).trim();
+          // Check for exact match first
+          if (rowAssetString === selectedAssetString) return true;
+          // Check if selected asset is a partial code (e.g., "18") and matches the end of full code (e.g., "KR_BW_18")
+          if (rowAssetString.endsWith(selectedAssetString)) return true;
+          // Check if selected asset is a full code and matches the row asset
+          if (selectedAssetString.endsWith(rowAssetString)) return true;
+          // Additional check: case-insensitive comparison
+          if (rowAssetString.toLowerCase() === selectedAssetString.toLowerCase()) return true;
+          return false;
+        });
+        
+        // Debug: Log when no match is found
+        if (!assetMatches) {
+          console.log('Asset filtering - NO MATCH found:', {
+            rowAssetNo: row.asset_no,
+            rowAssetString: rowAssetString,
+            selectedAssets: selectedAssets,
+            selectedAssetStrings: selectedAssets.map(a => String(a).trim())
+          });
+        }
+      }
+      
+
+      
+      return countryMatches && portfolioMatches && assetMatches && monthMatches && yearMatches;
+    }
+  );
+  
+  
+}
+// ========== KPI & CHART LOGIC ==========
+
+// Shows KPI cards and updates charts with currently filtered data
+function updateBessVisuals(filtered) {
+  if (!filtered || filtered.length === 0) {
+    document.getElementById("bessCards").innerHTML = '';
+    ["bessBarChart","chargeDischargeLine","socTempLine"].forEach(function(id){
+      let c = document.getElementById(id);
+      if (c) c.innerHTML = '<div class="text-center text-muted" style="padding: 60px 0; font-size: 1.4rem;">No data available for the selected filters</div>';
+    });
+    return;
+  }
+  
+  // Get calendar selections
+  const countries = getSelectedValues(countryMultiSelect);
+  const portfolios = getSelectedValues(portfolioMultiSelect);
+  const assets = getSelectedValues(assetMultiSelect);
+  const availableMonths = [...new Set(bessData.map(row => row.month))].sort();
+
+  // Determine if a month, year, or range is selected
+  const monthSelected = !!selectedMonth;
+  const yearSelected = !!selectedYear;
+  const rangeSelected = !!(window.currentBestCalendar && window.currentBestCalendar.selectedRange && 
+                          window.currentBestCalendar.selectedRange.start && 
+                          window.currentBestCalendar.selectedRange.end);
+
+
+
+  let filteredRows;
+  if (rangeSelected) {
+    // Range selected: show data for the selected month range
+    const range = window.currentBestCalendar.selectedRange;
+    
+    filteredRows = filtered.filter(r => {
+      const monthValue = r.month;
+      // Convert BESS month format to comparable format
+      if (monthValue && monthValue.includes('-')) {
+        const [year, month] = monthValue.split('-');
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthIndex = monthNames.indexOf(month);
+        if (monthIndex !== -1) {
+          const fullYear = '20' + year; // "25" -> "2025"
+          const monthNum = String(monthIndex + 1).padStart(2, '0'); // Convert to "01", "02", etc.
+          const comparableMonth = `${fullYear}-${monthNum}`;
+          
+          const inRange = comparableMonth >= range.start && comparableMonth <= range.end;
+          const countryMatch = countries.length === 0 || countries.includes(r.country);
+          const portfolioMatch = portfolios.length === 0 || portfolios.includes(r.portfolio);
+          const assetMatch = assets.length === 0 || assets.some(selectedAsset => {
+            const selectedAssetString = String(selectedAsset).trim();
+            const rowAssetString = String(r.asset_no).trim();
+            return rowAssetString === selectedAssetString || 
+                   rowAssetString.endsWith(selectedAssetString) || 
+                   selectedAssetString.endsWith(rowAssetString);
+          });
+          
+          return inRange && countryMatch && portfolioMatch && assetMatch;
+        }
+      }
+      return false;
+    });
+  } else if (monthSelected) {
+    // Month selected: show only that month for everything
+    // Convert selectedMonth to BESS format for comparison
+    let bessMonthFormat = selectedMonth;
+    if (selectedMonth && selectedMonth.includes('-')) {
+      const [year, month] = selectedMonth.split('-');
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIndex = parseInt(month) - 1;
+      const shortYear = year.slice(-2); // "2025" -> "25"
+      bessMonthFormat = `${shortYear}-${monthNames[monthIndex]}`;
+    }
+    
+
+    
+    filteredRows = filtered.filter(r => r.month === bessMonthFormat &&
+      (countries.length === 0 || countries.includes(r.country)) &&
+      (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+      (assets.length === 0 || assets.some(selectedAsset => {
+        const selectedAssetString = String(selectedAsset).trim();
+        const rowAssetString = String(r.asset_no).trim();
+        return rowAssetString === selectedAssetString || 
+               rowAssetString.endsWith(selectedAssetString) || 
+               selectedAssetString.endsWith(rowAssetString);
+      }))
+    );
+  } else if (yearSelected) {
+    // Year selected but no specific month: show all months for that year
+    const shortYear = selectedYear.toString().slice(-2); // "2025" -> "25"
+    filteredRows = filtered.filter(r => {
+      const [rowYear] = r.month.split('-');
+      return rowYear === shortYear &&
+        (countries.length === 0 || countries.includes(r.country)) &&
+        (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+        (assets.length === 0 || assets.some(selectedAsset => {
+          const selectedAssetString = String(selectedAsset).trim();
+          const rowAssetString = String(r.asset_no).trim();
+          return rowAssetString === selectedAssetString || 
+                 rowAssetString.endsWith(selectedAssetString) || 
+                 selectedAssetString.endsWith(rowAssetString);
+        }));
+    });
+  } else {
+    // No month or year selected: show all data with filters applied
+    filteredRows = filtered.filter(r => {
+      return (countries.length === 0 || countries.includes(r.country)) &&
+             (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+             (assets.length === 0 || assets.some(selectedAsset => {
+               const selectedAssetString = String(selectedAsset).trim();
+               const rowAssetString = String(r.asset_no).trim();
+               return rowAssetString === selectedAssetString || 
+                      rowAssetString.endsWith(selectedAssetString) ||
+                      selectedAssetString.endsWith(rowAssetString);
+             }));
+    });
+  }
+
+  // Use filteredRows instead of filtered for all subsequent operations
+
+  if (!filteredRows || filteredRows.length === 0) {
+    document.getElementById("bessCards").innerHTML = '';
+    ["bessBarChart","chargeDischargeLine","socTempLine"].forEach(function(id){
+      let c = document.getElementById(id);
+      if (c) c.innerHTML = '<div class="text-center text-muted" style="padding: 60px 0; font-size: 1.4rem;">No data available for the selected filters</div>';
+    });
+    return;
+  }
+  
+  // (Data prep for current month, average RTE, battery capacity, etc... - can add comments for each variable here)
+  const now = new Date();
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const currentMonthStr = monthNames[now.getMonth()] + "-" + now.getFullYear();
+  
+  function isMonthLE(a, b) {
+    const [ma, ya] = a.split("-");
+    const [mb, yb] = b.split("-");
+    const ia = monthNames.indexOf(ma);
+    const ib = monthNames.indexOf(mb);
+    if (parseInt(ya) < parseInt(yb)) return true;
+    if (parseInt(ya) > parseInt(yb)) return false;
+    return ia <= ib;
+  }
+  function extractMonthYear(str) {
+    if (!str) return null;
+    const parts = str.split('-');
+    if (parts.length === 2) { return str; }
+    else if (parts.length === 3) { return parts[1] + '-' + (parts[2] || now.getFullYear()); }
+    else if (parts.length === 1 && isNaN(parts[0])) { return parts[0] + '-' + now.getFullYear(); }
+    return null;
+  }
+  const filteredByMonth = filteredRows.filter(row => {
+    // For now, let's not filter by month to see if data shows up
+    return true; // Show all data for debugging
+  });
+  
+  function isDateLE(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return d <= new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  }
+  const filteredByDate = filteredRows.filter(row => row.date && isDateLE(row.date));
+  
+  // Average RTE (%)
+  let rteValues = [];
+  const rteAssetSet = new Set();
+  const selectedAssets = assetMultiSelect ? assetMultiSelect.getSelectedValues() : [];
+  
+  // Debug: Log RTE values for first few records
+  
+  if (selectedAssets.length === 0) {
+    filteredRows.forEach(r => {
+      // Check for both rte_percent (from data processing) and rte (from database)
+      const rteValue = r.rte_percent || r.rte;
+      if (r.asset_no && typeof rteValue === 'number' && !isNaN(rteValue) && rteValue > 0 && !rteAssetSet.has(r.asset_no)) {
+        rteValues.push(rteValue);
+        rteAssetSet.add(r.asset_no);
+      }
+    });
+  } else {
+    filteredRows.forEach(r => {
+      // Check for both rte_percent (from data processing) and rte (from database)
+      const rteValue = r.rte_percent || r.rte;
+      if (r.asset_no && typeof rteValue === 'number' && !isNaN(rteValue) && rteValue > 0 && selectedAssets.includes(String(r.asset_no)) && !rteAssetSet.has(r.asset_no)) {
+        rteValues.push(rteValue);
+        rteAssetSet.add(r.asset_no);
+      }
+    });
+  }
+  
+
+  const avgRTE = rteValues.length > 0 ? (rteValues.reduce((sum, v) => sum + v, 0) / rteValues.length).toFixed(2) + '%' : '-';
+  
+  // Battery Capacity logic
+  let batteryCap = "-";
+  const assetSet = new Set();
+  if (selectedAssets.length === 0) {
+    let sum = 0;
+    filteredRows.forEach(r => {
+      if (r.asset_no && r.battery_capacity && !assetSet.has(r.asset_no)) {
+        sum += Number(r.battery_capacity) || 0;
+        assetSet.add(r.asset_no);
+      }
+    });
+    batteryCap = sum > 0 ? sum.toFixed(2) : "-";
+  } else {
+    let sum = 0;
+    filteredRows.forEach(r => {
+      if (r.asset_no && r.battery_capacity && selectedAssets.includes(String(r.asset_no)) && !assetSet.has(r.asset_no)) {
+        sum += Number(r.battery_capacity) || 0;
+        assetSet.add(r.asset_no);
+      }
+    });
+    batteryCap = sum > 0 ? sum.toFixed(2) : "-";
+  }
+  
+  // KPI Cards - calculate min/max values across all filtered data
+  const getMinMax = (data, field, isMin = true) => {
+    const values = data.map(r => r[field]).filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (values.length === 0) return "-";
+    return isMin ? Math.min(...values).toFixed(2) : Math.max(...values).toFixed(2);
+  };
+
+  const kpiData = [
+    { label: "Min SOC", value: getMinMax(filteredRows, "min_soc", true), unit: "%", icon: "📊", color: "#fbbf24", bgGradient: "linear-gradient(135deg, #fffbeb, #fef3c7)" },
+    { label: "Max SOC", value: getMinMax(filteredRows, "max_soc", false), unit: "%", icon: "📈", color: "#8b5cf6", bgGradient: "linear-gradient(135deg, #f5f3ff, #e0e7ff)" },
+    { label: "Min ESS Temperature", value: getMinMax(filteredRows, "min_ess_temperature", true), unit: "°C", icon: "❄️", color: "#06b6d4", bgGradient: "linear-gradient(135deg, #ecfeff, #cffafe)" },
+    { label: "Max ESS Temperature", value: getMinMax(filteredRows, "max_ess_temperature", false), unit: "°C", icon: "🔥", color: "#22c55e", bgGradient: "linear-gradient(135deg, #f0fdf4, #dcfce7)" },
+    { label: "Min ESS Humidity", value: getMinMax(filteredRows, "min_ess_humidity", true), unit: "%", icon: "💧", color: "#d946ef", bgGradient: "linear-gradient(135deg, #fef7ff, #fae8ff)" },
+    { label: "Max ESS Humidity", value: getMinMax(filteredRows, "max_ess_humidity", false), unit: "%", icon: "🌧️", color: "#f97316", bgGradient: "linear-gradient(135deg, #fffbeb, #fed7aa)" },
+    { label: "Battery Capacity", value: batteryCap, unit: "MWh", icon: "🔋", color: "#3b82f6", bgGradient: "linear-gradient(135deg, #f0f9ff, #dbeafe)" },
+    { label: "Average RTE", value: avgRTE, unit: "", icon: "⚡", color: "#10b981", bgGradient: "linear-gradient(135deg, #ecfdf5, #d1fae5)" }
+  ];
+
+  const cardsHTML = kpiData.map(kpi => `
+    <div class="kpi-card" style="padding: clamp(0.25rem, 0.4vw, 0.5rem); border-radius: 0.4rem; box-shadow: 0 3px 10px rgba(0,0,0,0.08); background: ${kpi.bgGradient}; border: 1px solid ${kpi.color}; display: flex; justify-content: space-between; align-items: center; min-height: 45px; overflow: hidden; position: relative; box-sizing: border-box;">
+      <div style="display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0; padding-right: 6px;">
+        <p style="font-size: clamp(9px, 0.8vw, 12px); color: #555; margin: 0; font-weight: 500; word-wrap: break-word; line-height: 1.1;">${kpi.label}</p>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; flex-shrink: 0;">
+        <h2 style="font-size: clamp(14px, 1.2vw, 20px); font-weight: 700; color: #111; margin: 0; line-height: 1;">${kpi.value}${kpi.unit}</h2>
+      </div>
+    </div>
+  `).join("");
+  document.getElementById("bessCards").innerHTML = cardsHTML;
+  
+  // --- ECharts Bar ---
+  function createOrUpdateChart(domId, option) {
+    const dom = document.getElementById(domId);
+    if (echarts.getInstanceByDom(dom)) echarts.dispose(dom);
+    echarts.init(dom).setOption(option);
+  }
+  
+  const monthGroups = {};
+  filteredByMonth.forEach((row) => {
+    const my = extractMonthYear(row.month);
+    if (!my) return;
+    if (!monthGroups[my]) monthGroups[my] = [];
+    monthGroups[my].push(row);
+  });
+  
+  let months = Object.keys(monthGroups).filter(m => isMonthLE(m, currentMonthStr));
+  months = months.sort((a, b) => new Date("01-" + a) - new Date("01-" + b));
+  
+  // Fix the data mapping for charts - handle null values properly
+  const pv = months.map((m) => sum(monthGroups[m], (r) => (r.pv_energy_kwh !== null && r.pv_energy_kwh !== undefined) ? +r.pv_energy_kwh : 0));
+  const exp = months.map((m) => sum(monthGroups[m], (r) => (r.export_energy_kwh !== null && r.export_energy_kwh !== undefined) ? +r.export_energy_kwh : 0));
+  const chg = months.map((m) => sum(monthGroups[m], (r) => (r.charge_energy_kwh !== null && r.charge_energy_kwh !== undefined) ? +r.charge_energy_kwh : 0));
+  const dis = months.map((m) => sum(monthGroups[m], (r) => (r.discharge_energy_kwh !== null && r.discharge_energy_kwh !== undefined) ? +r.discharge_energy_kwh : 0));
+  
+  // Calculate responsive bar width based on screen size and number of months
+  const screenWidth = window.innerWidth;
+  const monthCount = months.length;
+  let barWidth, categoryGap;
+  
+  if (screenWidth <= 1200) {
+    // Laptop screens - smaller bars with more spacing
+    barWidth = Math.max(12, Math.min(18, 200 / monthCount));
+    categoryGap = '15%';
+  } else if (screenWidth <= 1440) {
+    // Medium screens
+    barWidth = Math.max(15, Math.min(22, 250 / monthCount));
+    categoryGap = '12%';
+  } else {
+    // Large screens - original sizing
+    barWidth = Math.max(20, Math.min(30, 300 / monthCount));
+    categoryGap = '10%';
+  }
+
+  createOrUpdateChart("bessBarChart", {
+    title: { text: 'All Energy', left: 'center', textStyle: { fontSize: 16, fontWeight: 'bold', color: 'transparent' } },
+    tooltip: { 
+      trigger: 'axis', 
+      textStyle: { fontSize: 13, fontWeight: 'bold' },
+      formatter: function(params) {
+        let result = params[0].axisValue + '<br/>';
+        params.forEach(function(item) {
+          const formattedValue = Math.round(item.value).toLocaleString();
+          result += item.marker + ' ' + item.seriesName + ': ' + formattedValue + ' kWh<br/>';
+        });
+        return result;
+      }
+    },
+    legend: { data: ['PV Energy','Export Energy','Charge Energy','Discharge Energy'], textStyle: { fontSize: 14, fontWeight: 'bold' }, bottom: 25, left: 'center' },
+    grid: { left: 100, right: 20, bottom: 80, top: 40 },
+    xAxis: { 
+      type: 'category', 
+      data: months, 
+      axisLabel: { formatter: '{value}', fontSize: 13, fontWeight: 'bold' },
+      axisTick: { alignWithLabel: true }
+    },
+    yAxis: { 
+      type: 'value', 
+      name: 'Energy (MWh)',
+      nameLocation: 'middle',
+      nameGap: 80,
+      nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+      axisLabel: { formatter: function(value) { return Math.round(value / 1000) + 'K'; }, fontSize: 13, fontWeight: 'bold' } 
+    },
+    series: [
+      { name: 'PV Energy', type: 'bar', data: pv, barWidth: barWidth, barCategoryGap: categoryGap, label: { show: true, position: 'top', fontWeight: 'bold', fontSize: 13, color: '#222', formatter: params => params.value == null ? '' : Math.round(params.value / 1000) } },
+      { name: 'Export Energy', type: 'bar', data: exp, barWidth: barWidth, barCategoryGap: categoryGap, label: { show: true, position: 'top', fontWeight: 'bold', fontSize: 13, color: '#222', formatter: params => params.value == null ? '' : Math.round(params.value / 1000) } },
+      { name: 'Charge Energy', type: 'bar', data: chg, barWidth: barWidth, barCategoryGap: categoryGap, label: { show: true, position: 'top', fontWeight: 'bold', fontSize: 13, color: '#222', formatter: params => params.value == null ? '' : Math.round(params.value / 1000) } },
+      { name: 'Discharge Energy', type: 'bar', data: dis, barWidth: barWidth, barCategoryGap: categoryGap, label: { show: true, position: 'top', fontWeight: 'bold', fontSize: 13, color: '#222', formatter: params => params.value == null ? '' : Math.round(params.value / 1000) } }
+    ]
+  });
+  
+  // --- Charge/Discharge Line ---
+  // Group data by date and aggregate charge/discharge energy across all selected sites
+  const dateGroups = {};
+  filteredByDate.forEach(row => {
+    if (!dateGroups[row.date]) {
+      dateGroups[row.date] = {
+        charge_energy: 0,
+        discharge_energy: 0
+      };
+    }
+    // Aggregate charge energy
+    const chargeValue = (row.charge_energy_kwh !== null && row.charge_energy_kwh !== undefined) ? 
+                       Number(row.charge_energy_kwh) : (Number(row.charge_energy) || 0);
+    dateGroups[row.date].charge_energy += chargeValue;
+    
+    // Aggregate discharge energy
+    const dischargeValue = (row.discharge_energy_kwh !== null && row.discharge_energy_kwh !== undefined) ? 
+                          Number(row.discharge_energy_kwh) : (Number(row.discharge_energy) || 0);
+    dateGroups[row.date].discharge_energy += dischargeValue;
+  });
+  
+  // Sort dates and create chart data
+  const sortedDates = Object.keys(dateGroups).sort((a, b) => new Date(a) - new Date(b));
+  const chargeData = sortedDates.map(date => Math.round(dateGroups[date].charge_energy));
+  const dischargeData = sortedDates.map(date => Math.round(dateGroups[date].discharge_energy));
+  
+  createOrUpdateChart("chargeDischargeLine", {
+    title: { text: 'Charge Energy Vs Discharge Energy', left: 'center', textStyle: { fontSize: 18, fontWeight: 'bold', color: 'transparent' } },
+    tooltip: { trigger: 'axis', textStyle: { fontSize: 17, fontWeight: 'bold' } },
+    legend: { data: ['Charge Energy', 'Discharge Energy'], textStyle: { fontSize: 16, fontWeight: 'bold' }, bottom: 25, left: 'center' },
+    grid: { left: 80, right: 30, bottom: 80, top: 60 },
+    xAxis: { type: 'category', data: sortedDates, axisLabel: { formatter: '{value}', fontSize: 13, fontWeight: 'bold' } },
+    yAxis: { 
+      type: 'value', 
+      name: 'Energy (MWh)',
+      nameLocation: 'middle',
+      nameGap: 60,
+      nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+      axisLabel: { formatter: '{value}', fontSize: 13, fontWeight: 'bold' } 
+    },
+    series: [
+      { name: 'Charge Energy', type: 'line', data: chargeData, lineStyle: { width: 2.5 } },
+      { name: 'Discharge Energy', type: 'line', data: dischargeData, lineStyle: { width: 2.5 } }
+    ]
+  });
+  
+  // --- SOC & Temp Line ---
+  // Group data by date and calculate min/max values across all selected sites
+  const socTempDateGroups = {};
+  filteredByDate.forEach(row => {
+    if (!socTempDateGroups[row.date]) {
+      socTempDateGroups[row.date] = {
+        min_soc: [],
+        max_soc: [],
+        min_ess_temperature: [],
+        max_ess_temperature: []
+      };
+    }
+    
+    // Collect all values for each metric
+    if (row.min_soc !== null && row.min_soc !== undefined && !isNaN(row.min_soc)) {
+      socTempDateGroups[row.date].min_soc.push(Number(row.min_soc));
+    }
+    if (row.max_soc !== null && row.max_soc !== undefined && !isNaN(row.max_soc)) {
+      socTempDateGroups[row.date].max_soc.push(Number(row.max_soc));
+    }
+    if (row.min_ess_temperature !== null && row.min_ess_temperature !== undefined && !isNaN(row.min_ess_temperature)) {
+      socTempDateGroups[row.date].min_ess_temperature.push(Number(row.min_ess_temperature));
+    }
+    if (row.max_ess_temperature !== null && row.max_ess_temperature !== undefined && !isNaN(row.max_ess_temperature)) {
+      socTempDateGroups[row.date].max_ess_temperature.push(Number(row.max_ess_temperature));
+    }
+  });
+  
+  // Calculate min/max values for each date
+  const socTempSortedDates = Object.keys(socTempDateGroups).sort((a, b) => new Date(a) - new Date(b));
+  const minSocData = socTempSortedDates.map(date => {
+    const values = socTempDateGroups[date].min_soc;
+    return values.length > 0 ? Math.round(Math.min(...values)) : null;
+  });
+  const maxSocData = socTempSortedDates.map(date => {
+    const values = socTempDateGroups[date].max_soc;
+    return values.length > 0 ? Math.round(Math.max(...values)) : null;
+  });
+  const minTempData = socTempSortedDates.map(date => {
+    const values = socTempDateGroups[date].min_ess_temperature;
+    return values.length > 0 ? Math.round(Math.min(...values)) : null;
+  });
+  const maxTempData = socTempSortedDates.map(date => {
+    const values = socTempDateGroups[date].max_ess_temperature;
+    return values.length > 0 ? Math.round(Math.max(...values)) : null;
+  });
+  
+  createOrUpdateChart("socTempLine", {
+    title: { text: 'SOC & Temperature Trend', left: 'center', textStyle: { fontSize: 18, fontWeight: 'bold', color: 'transparent' } },
+    tooltip: { trigger: 'axis', textStyle: { fontSize: 17, fontWeight: 'bold' } },
+    legend: { data: ['Min SOC','Max SOC','Min ESS Temperature','Max ESS Temperature'], textStyle: { fontSize: 16, fontWeight: 'bold' }, bottom: 25, left: 'center' },
+    grid: { left: 80, right: 80, bottom: 80, top: 60 },
+    xAxis: { type: 'category', data: socTempSortedDates, axisLabel: { formatter: '{value}', fontSize: 13, fontWeight: 'bold' } },
+    yAxis: [
+      {
+        type: 'value',
+        name: 'Temperature (°C)',
+        nameLocation: 'middle',
+        nameGap: 60,
+        nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+        axisLabel: { formatter: '{value}', fontSize: 13, fontWeight: 'bold' },
+        position: 'left'
+      },
+      {
+        type: 'value',
+        name: 'SOC (%)',
+        nameLocation: 'middle',
+        nameGap: 60,
+        nameTextStyle: { fontSize: 14, fontWeight: 'bold', color: '#333' },
+        axisLabel: { formatter: '{value}', fontSize: 13, fontWeight: 'bold' },
+        position: 'right'
+      }
+    ],
+    series: [
+      { name: 'Min SOC', type: 'line', data: minSocData, lineStyle: { width: 2.5 }, yAxisIndex: 1 },
+      { name: 'Max SOC', type: 'line', data: maxSocData, lineStyle: { width: 2.5 }, yAxisIndex: 1 },
+      { name: 'Min ESS Temperature', type: 'line', data: minTempData, lineStyle: { width: 2.5 }, yAxisIndex: 0 },
+      { name: 'Max ESS Temperature', type: 'line', data: maxTempData, lineStyle: { width: 2.5 }, yAxisIndex: 0 }
+    ]
+  });
+  
+  // Apply gradient styling to ECharts titles and ensure charts are properly sized
+  setTimeout(() => {
+    const chartContainers = ['bessBarChart', 'chargeDischargeLine', 'socTempLine'];
+    chartContainers.forEach(containerId => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        // Ensure consistent container width
+        container.style.width = 'calc(100% - 32px)';
+        container.style.marginLeft = '16px';
+        container.style.marginRight = '16px';
+        container.style.maxWidth = 'none';
+        
+        const titleElements = container.querySelectorAll('.echarts-title');
+        titleElements.forEach(title => {
+          title.classList.add('echarts-title');
+        });
+        
+        // Resize charts to ensure they render properly in tabs
+        const chartInstance = echarts.getInstanceByDom(container);
+        if (chartInstance) {
+          chartInstance.resize();
+        }
+      }
+    });
+  }, 100);
+}
+// Utility to sum up values using a callback
+function sum(data, fn) { return data.reduce((acc, r) => acc + fn(r), 0); }
+// Reset all filters to 'All' or empty
+document.getElementById('resetFiltersBtn').addEventListener('click', function() {
+  
+  // Reset month picker and filters
+  selectedMonth = null;
+  selectedYear = null;
+  
+  // Reset BestCalendar if available
+  if (bessCalendar && typeof bessCalendar.reset === 'function') {
+    bessCalendar.reset();
+  }
+  
+  // Clear range selections
+  if (window.currentBestCalendar) {
+    window.currentBestCalendar.selectedRange = { start: null, end: null };
+  }
+  
+  // Reset multi-select dropdowns
+  if (countryMultiSelect) countryMultiSelect.clearSelection();
+  if (portfolioMultiSelect) portfolioMultiSelect.clearSelection();
+  if (assetMultiSelect) assetMultiSelect.clearSelection();
+  
+  // Re-populate portfolio and asset filters with all available options
+  const allPortfolios = getUnique(bessData, 'portfolio');
+  const allAssets = getUnique(bessData, 'asset_no');
+  
+
+  
+  populateMultiSelect(portfolioMultiSelect, allPortfolios);
+  populateMultiSelect(assetMultiSelect, allAssets);
+  
+  // Reset month label
+  document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+  
+  // Hide the picker if it's visible
+  const pickerElement = document.getElementById('monthMatrixPicker');
+  if (pickerElement) {
+    pickerElement.classList.remove('show-picker');
+    pickerElement.classList.add('bc-hidden');
+  }
+  
+  updateBessVisuals(bessData);
+});
+// Load and parse the CSV data when the page is ready
+// Load and parse the data when the page is ready
+document.addEventListener('DOMContentLoaded', function() {
+  {% if bess_data_json %}
+    try {
+      const data = {{ bess_data_json|safe }};
+      
+      // Process data like the original CSV parsing
+      
+      bessData = data.map((row, idx) => {
+        const cleaned = {};
+        for (let key in row) {
+          const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, "_");
+          cleaned[normalizedKey] = typeof row[key] === "string" ? row[key].trim() : row[key];
+        }
+        
+        // Map the API field names to the expected field names for charts
+        cleaned.pv_energy = (cleaned["pv_energy_kwh"] || cleaned["pv_energy_(kwh)"] || cleaned["pv_energy"] || cleaned["pv_energy_(kw)"] || 0);
+        cleaned.export_energy = (cleaned["export_energy_kwh"] || cleaned["export_energy_(kwh)"] || cleaned["export_energy"] || 0);
+        cleaned.charge_energy = (cleaned["charge_energy_kwh"] || cleaned["charge_energy_(kwh)"] || cleaned["charge_energy"] || 0);
+        cleaned.discharge_energy = (cleaned["discharge_energy_kwh"] || cleaned["discharge_energy_(kwh)"] || cleaned["discharge_energy"] || 0);
+        
+        // Map other fields
+        if ("battery_capacity_mw" in cleaned) cleaned.battery_capacity = cleaned["battery_capacity_mw"];
+        if ("min_soc" in cleaned) cleaned.min_soc = cleaned["min_soc"];
+        if ("max_soc" in cleaned) cleaned.max_soc = cleaned["max_soc"];
+        if ("min_ess_temperature" in cleaned) cleaned.min_ess_temperature = cleaned["min_ess_temperature"];
+        if ("max_ess_temperature" in cleaned) cleaned.max_ess_temperature = cleaned["max_ess_temperature"];
+        if ("min_ess_humidity" in cleaned) cleaned.min_ess_humidity = cleaned["min_ess_humidity"];
+        if ("max_ess_humidity" in cleaned) cleaned.max_ess_humidity = cleaned["max_ess_humidity"];
+        // Handle asset field mapping - check for different possible field names
+        if ("asset_no" in cleaned) {
+          cleaned.asset_no = cleaned["asset_no"];
+        } else if ("Asset No" in cleaned) {
+          cleaned.asset_no = cleaned["Asset No"];
+        } else if ("assetno" in cleaned) {
+          cleaned.asset_no = cleaned["assetno"];
+        } else if ("asset" in cleaned) {
+          cleaned.asset_no = cleaned["asset"];
+        } else if ("asset_number" in cleaned) {
+          cleaned.asset_no = cleaned["asset_number"];
+        }
+        
+
+        
+        // Handle RTE field
+        if ("rte" in cleaned) {
+          const val = parseFloat(cleaned["rte"]);
+          cleaned.rte_percent = (typeof val === 'number' && !isNaN(val)) ? val : null;
+        }
+        
+        // Calculate RTE if charge and discharge are available
+        const charge = +cleaned.charge_energy;
+        const discharge = +cleaned.discharge_energy;
+        if (charge > 0 && discharge > 0) {
+          const calculatedRTE = (discharge / charge) * 100;
+          cleaned.rte = calculatedRTE;
+          // Also set rte_percent if not already set
+          if (!cleaned.rte_percent) {
+            cleaned.rte_percent = calculatedRTE;
+          }
+        } else {
+          cleaned.rte = null;
+        }
+        
+        return cleaned;
+      });
+      
+
+      
+      // Initialize multi-select components
+      initializeMultiSelects();
+      
+      // Populate initial dropdowns with all available options
+      const allCountries = getUnique(bessData, 'country');
+      const allPortfolios = getUnique(bessData, 'portfolio');
+      const allAssets = getUnique(bessData, 'asset_no');
+      
+
+      
+      populateMultiSelect(countryMultiSelect, allCountries);
+      populateMultiSelect(portfolioMultiSelect, allPortfolios);
+      populateMultiSelect(assetMultiSelect, allAssets);
+      
+      // Debug: Log the multi-select instances to ensure they're properly initialized
+      
+      
+      // Debug: Test the multi-select functionality
+      setTimeout(() => {
+
+        
+        // Force asset filter width after initialization
+        const assetContainer = document.querySelector('.asset-filter-container');
+        const assetDropdown = document.getElementById('filterAssetDropdown');
+        
+        if (assetContainer) {
+          assetContainer.style.minWidth = '225px';
+          assetContainer.style.maxWidth = '400px';
+          assetContainer.style.width = 'auto';
+
+        }
+        
+        if (assetDropdown) {
+          assetDropdown.style.minWidth = '225px';
+          assetDropdown.style.maxWidth = '400px';
+          assetDropdown.style.width = 'auto';
+
+        }
+        
+        // Force reset button positioning
+        const resetContainer = document.querySelector('.reset-button-container');
+        if (resetContainer) {
+          resetContainer.style.marginLeft = '8px';
+          resetContainer.style.marginRight = '0';
+          resetContainer.style.position = 'relative';
+          resetContainer.style.right = 'auto';
+          resetContainer.style.display = 'flex';
+          resetContainer.style.alignItems = 'center';
+
+        }
+      }, 1000);
+      
+      // Initialize BestCalendar
+      function initializeBestCalendar() {
+        if (typeof BestCalendar === 'undefined') {
+          return false;
+        }
+        bessCalendar = new BestCalendar({
+          triggerId: 'monthMatrixTrigger',
+          pickerId: 'monthMatrixPicker',
+          labelId: 'selectedMonthLabel',
+          data: [],
+          options: {
+            range: true, // Enable range selection mode
+            onPeriodChange: function (period) {
+                selectedMonth = period.month;
+                selectedYear = period.year;
+              if (period && period.range) {
+                // Handle range selection
+                const lbl = document.getElementById('selectedMonthLabel');
+                if (lbl) { 
+                  const startDate = formatMonthLabel(period.range.start);
+                  const endDate = formatMonthLabel(period.range.end);
+                  lbl.textContent = `${startDate} - ${endDate}`;
+                }
+                // Store the range for filtering
+                window.currentBestCalendar.selectedRange = period.range;
+              } else if (period && period.month) {
+                const lbl = document.getElementById('selectedMonthLabel');
+                if (lbl) { lbl.textContent = formatMonthLabel(period.month); }
+                // Clear range when single month is selected
+                if (window.currentBestCalendar) {
+                  window.currentBestCalendar.selectedRange = { start: null, end: null };
+                }
+              } else if (period && period.year) {
+                const lbl = document.getElementById('selectedMonthLabel');
+                if (lbl) { lbl.textContent = String(period.year) + ' (Full Year)'; }
+                // Clear range when year is selected
+                if (window.currentBestCalendar) {
+                  window.currentBestCalendar.selectedRange = { start: null, end: null };
+                }
+              }
+              
+              // Hide the picker when a period is selected
+              const pickerElement = document.getElementById('monthMatrixPicker');
+              if (pickerElement) {
+                pickerElement.classList.remove('show-picker');
+                pickerElement.classList.add('bc-hidden');
+              }
+              
+              // Update the charts with filtered data
+              updateBessVisuals(bessData);
+            }
+          }
+        });
+
+        window.currentBestCalendar = bessCalendar;
+        
+        // Initialize selectedRange to prevent null reference errors
+        if (bessCalendar) {
+          if (!bessCalendar.selectedRange) {
+            bessCalendar.selectedRange = { start: null, end: null };
+          }
+          // Ensure selectedRange is always an object with start and end properties
+          if (typeof bessCalendar.selectedRange !== 'object' || bessCalendar.selectedRange === null) {
+            bessCalendar.selectedRange = { start: null, end: null };
+          }
+          if (typeof bessCalendar.selectedRange.start === 'undefined') {
+            bessCalendar.selectedRange.start = null;
+          }
+          if (typeof bessCalendar.selectedRange.end === 'undefined') {
+            bessCalendar.selectedRange.end = null;
+          }
+        }
+
+        const availableMonths = [...new Set(bessData.map(row => row.month).filter(Boolean))];
+        
+        let convertedMonths = [];
+        if (availableMonths.length > 0) {
+          const firstMonth = availableMonths[0];
+          if (firstMonth.includes('-')) {
+            if (/^\d{4}-\d{2}$/.test(firstMonth)) {
+              convertedMonths = availableMonths;
+            } else {
+              convertedMonths = availableMonths.map(monthStr => {
+            const [year, month] = monthStr.split('-');
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = monthNames.indexOf(month);
+                const fullYear = '20' + year;
+                const monthNum = String(monthIndex + 1).padStart(2, '0');
+            return `${fullYear}-${monthNum}`;
+        });
+            }
+          } else {
+            convertedMonths = availableMonths;
+          }
+        }
+        
+        bessCalendar.setData(convertedMonths.map(month => ({ month, value: 1 })));
+        
+        const picker = document.getElementById('monthMatrixPicker');
+        if (picker) { picker.innerHTML = ''; }
+        
+        // Force BestCalendar to render its content
+        if (typeof bessCalendar.renderTabs === 'function') {
+          bessCalendar.renderTabs();
+        }
+        if (typeof bessCalendar.renderPicker === 'function') {
+          bessCalendar.renderPicker();
+        }
+
+        // Ensure months are enabled by selecting the latest available year
+        try {
+          const years = [...new Set(convertedMonths.map(m => m.split('-')[0]))].sort();
+          if (years.length) {
+            bessCalendar.selectedYear = parseInt(years[years.length - 1]);
+            if (typeof bessCalendar.renderPicker === 'function') {
+              bessCalendar.renderPicker();
+            }
+            if (typeof bessCalendar.updateLabel === 'function') {
+              bessCalendar.updateLabel();
+            }
+          }
+        } catch (e) { /* no-op */ }
+
+        // Ensure picker starts hidden
+        const initialPicker = document.getElementById('monthMatrixPicker');
+        if (initialPicker) {
+          initialPicker.classList.add('bc-hidden');
+          initialPicker.classList.remove('show-picker');
+        }
+
+        const trigger = document.getElementById('monthMatrixTrigger');
+        if (trigger) {
+          trigger.removeEventListener('click', trigger._calendarClickHandler);
+          trigger._calendarClickHandler = function () {
+            const pickerElement = document.getElementById('monthMatrixPicker');
+            
+            if (pickerElement) {
+              const isVisible = pickerElement.classList.contains('show-picker');
+              
+              if (isVisible) {
+                // Hide picker
+                pickerElement.classList.remove('show-picker');
+                pickerElement.classList.add('bc-hidden');
+              } else {
+                // Show picker
+                if (typeof bessCalendar.renderPicker === 'function') {
+                  // Ensure content is rendered before showing
+                  bessCalendar.renderTabs();
+                  bessCalendar.renderPicker();
+                  bessCalendar.showPicker();
+                  
+                  // Force picker to be visible
+                  pickerElement.classList.remove('bc-hidden');
+                  pickerElement.classList.add('show-picker');
+                }
+              }
+            }
+          };
+          trigger.addEventListener('click', trigger._calendarClickHandler);
+          
+          // Add click outside handler to hide picker (only once)
+          if (!document._calendarClickOutsideHandler) {
+            document._calendarClickOutsideHandler = function(event) {
+              const outsidePicker = document.getElementById('monthMatrixPicker');
+              const outsideTrigger = document.getElementById('monthMatrixTrigger');
+              
+              if (outsidePicker && outsideTrigger && 
+                  !outsidePicker.contains(event.target) && 
+                  !outsideTrigger.contains(event.target)) {
+                outsidePicker.classList.remove('show-picker');
+                outsidePicker.classList.add('bc-hidden');
+              }
+            };
+            document.addEventListener('click', document._calendarClickOutsideHandler);
+          }
+        }
+        return true;
+      }
+      
+      // Fallback month picker if BestCalendar fails
+      function createFallbackMonthPicker() {
+          const trigger = document.getElementById('monthMatrixTrigger');
+          const picker = document.getElementById('monthMatrixPicker');
+          
+        if (!trigger || !picker) { return; }
+        
+        const availableMonths = [...new Set(bessData.map(row => row.month).filter(Boolean))].sort();
+        
+        if (availableMonths.length === 0) { return; }
+        
+        // Create simple dropdown
+        picker.innerHTML = `
+          <div style="padding: 16px; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+            <h4 style="margin: 0 0 12px 0; color: #0072CE;">Select Month</h4>
+            <select id="fallbackMonthSelect" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+              <option value="">Select a month...</option>
+              ${availableMonths.map(month => `<option value="${month}">${formatMonthLabel(month)}</option>`).join('')}
+            </select>
+            <div style="margin-top: 12px; text-align: right;">
+              <button id="fallbackCancelBtn" style="padding: 6px 12px; margin-right: 8px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 4px; cursor: pointer;">Cancel</button>
+              <button id="fallbackApplyBtn" style="padding: 6px 12px; border: 1px solid #0072CE; background: #0072CE; color: white; border-radius: 4px; cursor: pointer;">Apply</button>
+            </div>
+          </div>
+        `;
+        
+        // Add event listeners
+        document.getElementById('fallbackCancelBtn')?.addEventListener('click', () => {
+                picker.style.display = 'none';
+        });
+        
+        document.getElementById('fallbackApplyBtn')?.addEventListener('click', () => {
+          const monthValue = document.getElementById('fallbackMonthSelect').value;
+          if (monthValue) {
+            selectedMonth = monthValue;
+            selectedYear = monthValue.split('-')[0];
+            document.getElementById('selectedMonthLabel').textContent = formatMonthLabel(monthValue);
+            picker.style.display = 'none';
+            updateBessVisuals(bessData);
+          }
+        });
+        
+        // Show picker when trigger is clicked
+        trigger.onclick = () => {
+          picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+        };
+        
+        // Close picker when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!picker.contains(e.target) && !trigger.contains(e.target)) {
+            picker.style.display = 'none';
+          }
+        });
+      }
+
+      // Init calendar
+      const calendarInitResult = initializeBestCalendar();
+      if (!calendarInitResult) { 
+        createFallbackMonthPicker(); 
+      }
+
+      // Test BestCalendar functionality
+      setTimeout(() => {
+        if (bessCalendar && typeof bessCalendar.showPicker === 'function') {
+          // Test if we can manually show the picker
+          const testTrigger = document.getElementById('monthMatrixTrigger');
+          if (testTrigger) {
+    
+            
+            // Check if picker content was rendered
+            setTimeout(() => {
+              const picker = document.getElementById('monthMatrixPicker');
+              if (!picker?.innerHTML || picker.innerHTML.trim() === '') {
+                // Try to force BestCalendar to render
+                if (bessCalendar && typeof bessCalendar.renderTabs === 'function') {
+                  bessCalendar.renderTabs();
+                  bessCalendar.renderPicker();
+                }
+              }
+            }, 500);
+          }
+        }
+      }, 2000);
+      
+      document.getElementById('loadingSpinner').style.display = 'none';
+      updateBessVisuals(bessData);
+      
+    } catch (error) {
+      console.error('❌ Error processing BESS data:', error);
+      document.getElementById('loadingSpinner').innerHTML = "<div class='text-danger'>Error processing BESS data: " + error.message + "</div>";
+    }
+  {% else %}
+    document.getElementById('loadingSpinner').innerHTML = "<div class='text-danger'>No BESS data available. Please check your permissions.</div>";
+  {% endif %}
+});
+// ========== CHART RESIZE HANDLING ==========
+
+// When window size changes, resize all charts and recalculate bar widths
+function onResizeAll() {
+  // For bar chart, we need to recalculate and update the chart with new bar widths
+  const barChartInstance = echarts.getInstanceByDom(document.getElementById("bessBarChart"));
+  if (barChartInstance) {
+    // Get current filtered data and update the bar chart with new responsive sizing
+    const filtered = getFilteredData();
+    if (filtered && filtered.length > 0) {
+      updateBessVisuals(filtered);
+    } else {
+      barChartInstance.resize();
+    }
+  }
+  
+  // For line charts, just resize
+  ["chargeDischargeLine","socTempLine"].forEach(id => {
+    const inst = echarts.getInstanceByDom(document.getElementById(id));
+    if (inst) inst.resize();
+  });
+}
+
+// Debounced resize handler to prevent excessive recalculations
+const debouncedResize = debounce(onResizeAll, 300);
+
+window.addEventListener('resize', debouncedResize);
+window.addEventListener('load', onResizeAll);
+
+// Function to filter BESS data by date range
+function filterBessDataByRange(startMonth, endMonth) {
+  // Convert range months to comparable format using consistent local timezone
+  const startDate = convertRangeMonthToDate(startMonth);
+  const endDate = convertRangeMonthToDate(endMonth);
+  
+  // Set end date to the last day of the month for proper range inclusion
+  endDate.setMonth(endDate.getMonth() + 1, 0); // Last day of the end month
+  
+  // Filter BESS data that falls within the range
+  const rangeFilteredData = bessData.filter(row => {
+    const rowMonth = row.month; // e.g., "25-Jan"
+    
+    // Convert row month to comparable format
+    const rowDate = convertBessMonthToDate(rowMonth);
+    if (!rowDate) return false;
+    
+    // Check if row date is within range (inclusive)
+    const isInRange = rowDate >= startDate && rowDate <= endDate;
+    
+    return isInRange;
+  });
+  
+  // Update the filtered data and refresh charts
+  window.filteredBessData = rangeFilteredData;
+  updateBessVisuals(rangeFilteredData);
+}
+
+// Helper function to convert BESS month string to Date object
+function convertBessMonthToDate(monthStr) {
+  try {
+    const [year, month] = monthStr.split('-');
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIndex = monthNames.indexOf(month);
+    const fullYear = '20' + year; // Convert "25" to "2025"
+    
+    if (monthIndex !== -1 && fullYear) {
+      const date = new Date(parseInt(fullYear), monthIndex, 1);
+      return date;
+    }
+  } catch (error) {
+    console.error('Error converting BESS month:', monthStr, error);
+  }
+  return null;
+}
+
+// Helper function to convert range month string (e.g., "2025-01") to Date object in local timezone
+function convertRangeMonthToDate(monthStr) {
+  try {
+    const [year, month] = monthStr.split('-');
+    const monthIndex = parseInt(month) - 1; // Convert 1-based month to 0-based index
+    
+    if (monthIndex >= 0 && monthIndex <= 11 && year) {
+      const date = new Date(parseInt(year), monthIndex, 1);
+      return date;
+    }
+  } catch (error) {
+    console.error('Error converting range month:', monthStr, error);
+  }
+  return null;
+}
+// Force uniform container widths
+function forceUniformWidths() {
+  const containers = [
+    '.dashboard-header',
+    '.filters', 
+    '.kpi-cards',
+    '.tab-container',
+    '.tab-content',
+    '.tab-pane',
+    '#bessBarChart',
+    '#chargeDischargeLine', 
+    '#socTempLine'
+  ];
+  
+  containers.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(element => {
+      element.style.width = 'calc(100% - 32px)';
+      element.style.marginLeft = '16px';
+      element.style.marginRight = '16px';
+      element.style.maxWidth = 'none';
+      element.style.position = 'relative';
+      element.style.left = '0';
+      element.style.right = '0';
+      element.style.boxSizing = 'border-box';
+    });
+  });
+}
+
+// Tab interface initialization
+document.addEventListener('DOMContentLoaded', function() {
+  // Force uniform widths on load
+  forceUniformWidths();
+  
+  // Force uniform widths after a short delay to ensure all elements are rendered
+  setTimeout(forceUniformWidths, 100);
+  setTimeout(forceUniformWidths, 500);
+  setTimeout(forceUniformWidths, 1000);
+  
+  // Ensure charts are properly sized when tabs are switched
+  const tabButtons = document.querySelectorAll('.tab-button');
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Force uniform widths after tab switch
+      setTimeout(forceUniformWidths, 50);
+      
+      // Resize charts after tab switch
+      setTimeout(() => {
+        const chartContainers = ['bessBarChart', 'chargeDischargeLine', 'socTempLine'];
+        chartContainers.forEach(containerId => {
+          const container = document.getElementById(containerId);
+          if (container) {
+            const chartInstance = echarts.getInstanceByDom(container);
+            if (chartInstance) {
+              chartInstance.resize();
+            }
+          }
+        });
+      }, 100);
+    });
+  });
+});
+</script>
+</body>
+</html>

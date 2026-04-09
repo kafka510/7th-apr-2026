@@ -1,0 +1,1247 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tickets - Ticketing System{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'ticketing/css/tickets.css' %}">
+<link rel="stylesheet" href="{% static 'ticketing/css/priority_features.css' %}">
+
+<!-- Ultra Compact Layout - Remove ALL side padding and prevent scrolling -->
+<style>
+    /* Prevent body and container overflow */
+    body, .container, .container-fluid, main, #content {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Prevent horizontal overflow on all elements */
+    * {
+        box-sizing: border-box;
+    }
+    
+    .card.shadow-sm.border-0.mb-4,
+    #sticky-filter-bar {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    #ticket-list {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Prevent table wrapper from causing overflow */
+    #ticket-table-wrapper {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        overflow-x: hidden !important;
+    }
+    
+    #ticket-table-wrapper .card-body {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Table responsive - prevent horizontal scroll */
+    .table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+        overflow-y: visible !important;
+    }
+    
+    /* Table itself - fit to container */
+    .ticket-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: fixed !important;
+        margin: 0 !important;
+    }
+    
+    /* Global: Prevent all horizontal scrolling */
+    html {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    
+    body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    
+    /* Ensure filter bar doesn't overflow */
+    #sticky-filter-bar {
+        box-sizing: border-box !important;
+    }
+    
+    /* Ensure all filter items respect container width */
+    .filter-item {
+        box-sizing: border-box !important;
+    }
+    
+    /* Prevent table from causing horizontal scroll */
+    .ticket-table th,
+    .ticket-table td {
+        box-sizing: border-box !important;
+    }
+    
+    /* Override any inline width styles */
+    .ticket-table th[style*="width"],
+    .ticket-table td[style*="width"],
+    .ticket-table th[style*="max-width"],
+    .ticket-table td[style*="max-width"] {
+        width: auto !important;
+        max-width: none !important;
+    }
+    
+    /* Remove space above filter container */
+    #sticky-filter-bar {
+        margin-top: 0 !important;
+        margin-bottom: 0.75rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+    
+    /* Optimize filter form to fit in single row */
+    #ticket-filter-form {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Filter items - base styling */
+    .filter-item {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Dropdown filters - fixed compact width */
+    .filter-item:has(.multi-select-container) {
+        width: 160px;
+        min-width: 160px;
+        max-width: 160px;
+    }
+    
+    /* Site dropdown specifically - wider for longer names */
+    .filter-item:has(#siteFilterTrigger) {
+        width: 180px;
+        min-width: 180px;
+        max-width: 180px;
+    }
+    
+    /* Search input - flexible but constrained */
+    .filter-item.filter-search {
+        flex: 1 1 auto;
+        min-width: 160px;
+        max-width: 220px;
+    }
+    
+    .filter-item.filter-search input {
+        width: 100%;
+    }
+    
+    /* Buttons - auto size, no wrap */
+    .filter-item.filter-button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+    
+    .filter-item.filter-button .btn {
+        white-space: nowrap;
+    }
+    
+    /* Make Create New Ticket button more compact */
+    .filter-item.filter-button:has(a[href*="ticket_create"]) .btn {
+        font-size: 0.875rem;
+        padding: 0.25rem 0.6rem;
+    }
+    
+    /* Responsive adjustments for very small screens */
+    @media (max-width: 1200px) {
+        .filter-item:has(.multi-select-container) {
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
+        }
+        
+        .filter-item:has(#siteFilterTrigger) {
+            width: 170px;
+            min-width: 170px;
+            max-width: 170px;
+        }
+        
+        .filter-item.filter-search {
+            min-width: 140px;
+            max-width: 180px;
+        }
+        
+        .filter-item.filter-button:has(a[href*="ticket_create"]) .btn {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .filter-item.filter-button:has(a[href*="ticket_create"]) .btn .me-1 {
+            margin-right: 0.2rem !important;
+        }
+        
+        #siteFilterDropdown {
+            min-width: 260px !important;
+        }
+    }
+    
+    /* Ensure multi-select triggers are compact */
+    .filter-item .multi-select-trigger {
+        font-size: 0.875rem;
+        padding: 4px 8px;
+        height: 32px;
+    }
+    
+    .filter-item .multi-select-trigger span {
+        font-size: 0.875rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Remove any padding/margin from container-fluid wrapper */
+    .container-fluid,
+    .container {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+        padding-bottom: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Remove unnecessary vertical spacing */
+    .container.mt-4 {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    /* Ensure no element causes vertical overflow */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+    
+    /* Specifically target the container from base.html that wraps content */
+    .container.mt-4 {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    /* Remove spacing from content block wrapper if exists */
+    #content, 
+    main,
+    .content-wrapper,
+    [class*="content"] {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+    
+    
+    /* Target any element that might wrap the content */
+    body > *:first-child,
+    body > div:first-child,
+    body > main:first-child {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Multi-select dropdown styling with checkboxes */
+    .multi-select-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        z-index: 9999;
+    }
+    
+    .multi-select-trigger {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 10px;
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #333;
+        transition: border-color 0.2s;
+        height: 38px;
+    }
+    
+    .multi-select-trigger:hover {
+        border-color: #0d6efd;
+    }
+    
+    .multi-select-trigger.active {
+        border-color: #0d6efd;
+    }
+    
+    .multi-select-arrow {
+        font-size: 12px;
+        color: #0d6efd;
+        transition: transform 0.2s;
+    }
+    
+    .multi-select-trigger.active .multi-select-arrow {
+        transform: rotate(180deg);
+    }
+    
+    .multi-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: none;
+        padding: 4px 0;
+        scrollbar-width: thin;
+        scrollbar-color: #0072CE #f1f1f1;
+        min-width: 200px;
+        width: auto;
+    }
+    
+    /* Site dropdown - wider for longer site names, ensure it's wider than trigger */
+    #siteFilterDropdown {
+        min-width: 280px !important;
+        width: auto;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb {
+        background: #0072CE;
+        border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb:hover {
+        background: #0056b3;
+    }
+    
+    .multi-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #333;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        min-height: 20px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Ensure checkbox text doesn't wrap */
+    .multi-select-option .checkbox-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .multi-select-option .checkbox-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .multi-select-option:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .multi-select-option.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.disabled:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.select-all-option {
+        border-bottom: 1px solid #e0e0e0;
+        font-weight: 600;
+        color: #0d6efd;
+    }
+    
+    .multi-select-separator {
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 4px 0;
+    }
+    
+    /* Checkbox styling */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+        display: none;
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        width: 100%;
+        font-size: 14px;
+        color: #333;
+    }
+    
+    .checkbox-custom {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ccc;
+        border-radius: 3px;
+        margin-right: 8px;
+        position: relative;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+        content: '✓';
+        position: absolute;
+        top: -2px;
+        left: 1px;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom::after {
+        content: '−';
+        position: absolute;
+        top: -2px;
+        left: 3px;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .checkbox-text {
+        flex: 1;
+    }
+    
+    .selected-items {
+        display: none; /* Hide selected items tags - only show count in placeholder */
+    }
+    
+    /* Apply percentage-based column widths to all screen sizes for consistent fit */
+    .ticket-table {
+        table-layout: fixed !important;
+    }
+    
+    .ticket-table th:first-child,
+    .ticket-table td:first-child {
+        width: 4% !important;
+    }
+    
+    .ticket-table th:nth-child(2),
+    .ticket-table td:nth-child(2) {
+        width: 12% !important;
+    }
+    
+    .ticket-table th:nth-child(3),
+    .ticket-table td:nth-child(3) {
+        width: 11% !important;
+    }
+    
+    .ticket-table th:nth-child(4),
+    .ticket-table td:nth-child(4) {
+        width: 9% !important;
+    }
+    
+    .ticket-table th:nth-child(5),
+    .ticket-table td:nth-child(5) {
+        width: 8% !important;
+    }
+    
+    .ticket-table th:nth-child(6),
+    .ticket-table td:nth-child(6) {
+        width: 8% !important;
+    }
+    
+    .ticket-table th:nth-child(7),
+    .ticket-table td:nth-child(7) {
+        width: 8% !important;
+    }
+    
+    .ticket-table th:nth-child(8),
+    .ticket-table td:nth-child(8) {
+        width: 8% !important;
+    }
+    
+    .ticket-table th:nth-child(9),
+    .ticket-table td:nth-child(9) {
+        width: 9% !important;
+    }
+    
+    .ticket-table th:nth-child(10),
+    .ticket-table td:nth-child(10) {
+        width: 19% !important;
+    }
+    
+    .ticket-table th:last-child,
+    .ticket-table td:last-child {
+        width: 5% !important;
+    }
+    
+    /* Ensure text doesn't cause overflow */
+    .ticket-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .ticket-table td:nth-child(10) {
+        white-space: normal !important;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        max-height: 3em;
+        line-height: 1.4;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    
+    /* Optimize for 1220px laptop screens - maintain readability while fitting content */
+    @media (min-width: 1200px) and (max-width: 1400px) {
+        /* Filter bar optimizations */
+        .filter-item:has(.multi-select-container) {
+            width: 150px;
+            min-width: 150px;
+            max-width: 150px;
+        }
+        
+        .filter-item:has(#siteFilterTrigger) {
+            width: 170px;
+            min-width: 170px;
+            max-width: 170px;
+        }
+        
+        .filter-item.filter-search {
+            min-width: 150px;
+            max-width: 200px;
+        }
+        
+        /* Table optimizations - maintain font sizes but optimize spacing */
+        #ticket-table-wrapper {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        #ticket-table-wrapper .card-body {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        
+        #ticket-table-wrapper .table-responsive {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        #ticket-table-wrapper .ticket-table {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* Optimize table column widths for 1220px - maintain existing font sizes */
+        .ticket-table th,
+        .ticket-table td {
+            padding: 8px 10px !important; /* Slightly reduced padding to fit better */
+        }
+        
+        /* Keep existing font sizes from tickets.css */
+        .ticket-table th {
+            font-size: 0.85rem !important; /* Maintain existing */
+            font-weight: 600;
+        }
+        
+        .ticket-table td {
+            font-size: 0.9rem !important; /* Maintain existing */
+        }
+        
+        
+        /* Badge sizing - maintain existing visibility */
+        .ticket-table .badge {
+            font-size: 0.75rem !important; /* Keep existing size */
+            padding: 4px 8px;
+        }
+        
+        /* Links remain readable - maintain existing size */
+        .ticket-table a {
+            font-size: 0.9rem !important; /* Keep existing size */
+        }
+        
+        /* Description text - maintain existing readability */
+        .ticket-table td.text-muted.small {
+            font-size: 0.85rem !important; /* Keep existing size */
+        }
+        
+        /* Prevent horizontal scroll - table must fit viewport */
+        .table-responsive {
+            overflow-x: hidden !important;
+            overflow-y: visible !important;
+        }
+    }
+    
+    /* Ensure table uses 100% width on screens wider than 1400px */
+    @media (min-width: 1401px) {
+        #ticket-table-wrapper {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+        }
+        
+        #ticket-table-wrapper .card-body {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+        
+        #ticket-table-wrapper .table-responsive {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        #ticket-table-wrapper .ticket-table {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
+    
+</style>
+
+<!-- =============================
+     COMPACT STICKY FILTERS (Laptop-Friendly)
+============================== -->
+<div id="sticky-filter-bar" class="mb-3 p-2 shadow-sm border bg-white rounded">
+    <form method="get" class="filter-form" id="ticket-filter-form">
+        
+        <div class="filter-item">
+            <div class="multi-select-container">
+                <div id="statusFilterTrigger" class="multi-select-trigger">
+                    <span id="statusFilterPlaceholder" data-default="All Statuses" class="text-muted">All Statuses</span>
+                    <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="statusFilterDropdown" class="multi-select-dropdown"></div>
+                <div id="statusSelectedItems" class="selected-items"></div>
+            </div>
+            <!-- Hidden inputs for form submission -->
+            <div id="statusHiddenInputs"></div>
+        </div>
+
+        <div class="filter-item">
+            <div class="multi-select-container">
+                <div id="priorityFilterTrigger" class="multi-select-trigger">
+                    <span id="priorityFilterPlaceholder" data-default="All Priorities" class="text-muted">All Priorities</span>
+                    <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="priorityFilterDropdown" class="multi-select-dropdown"></div>
+                <div id="prioritySelectedItems" class="selected-items"></div>
+            </div>
+            <!-- Hidden inputs for form submission -->
+            <div id="priorityHiddenInputs"></div>
+        </div>
+
+        <div class="filter-item">
+            <div class="multi-select-container">
+                <div id="categoryFilterTrigger" class="multi-select-trigger">
+                    <span id="categoryFilterPlaceholder" data-default="All Categories" class="text-muted">All Categories</span>
+                    <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="categoryFilterDropdown" class="multi-select-dropdown"></div>
+                <div id="categorySelectedItems" class="selected-items"></div>
+            </div>
+            <!-- Hidden inputs for form submission -->
+            <div id="categoryHiddenInputs"></div>
+        </div>
+
+        <div class="filter-item">
+            <div class="multi-select-container">
+                <div id="siteFilterTrigger" class="multi-select-trigger">
+                    <span id="siteFilterPlaceholder" data-default="All Sites" class="text-muted">All Sites</span>
+                    <span class="multi-select-arrow">▼</span>
+                </div>
+                <div id="siteFilterDropdown" class="multi-select-dropdown"></div>
+                <div id="siteSelectedItems" class="selected-items"></div>
+            </div>
+            <!-- Hidden inputs for form submission -->
+            <div id="siteHiddenInputs"></div>
+        </div>
+
+        <div class="filter-item filter-search">
+            <input type="text" name="search" class="form-control form-control-sm"
+                placeholder="Ticket ID / Title / Description"
+                value="{{ request.GET.search }}">
+        </div>
+
+        <div class="filter-item filter-button">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fas fa-search"></i> Filter
+            </button>
+        </div>
+        
+        <div class="filter-item filter-button">
+            <a href="?export=1" id="export-link" class="btn btn-success btn-sm">
+                <i class="fas fa-file-csv"></i>
+            </a>
+        </div>
+        
+        <div class="filter-item filter-button">
+            <a href="{% url 'ticketing:ticket_create' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Create New Ticket
+            </a>
+        </div>
+
+    </form>
+</div>
+
+<!-- ============================
+     TICKET LIST – TABLE VIEW
+============================= -->
+{% if current_sort or request.GET.status or request.GET.priority or request.GET.category or request.GET.asset_code or request.GET.search %}
+<div class="mb-2 d-flex justify-content-end">
+    <a href="{% url 'ticketing:ticket_list' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-redo"></i> Reset All
+    </a>
+</div>
+{% endif %}
+
+<div id="ticket-table-wrapper" class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-sticky align-middle mb-0 ticket-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>S.No</th>
+                        
+                        <!-- Sortable: Ticket ID -->
+                        <th style="white-space: nowrap;">
+                            <a href="?sort=ticket&order={% if current_sort == 'ticket' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="text-decoration-none text-dark">
+                                Ticket ID
+                                {% if current_sort == 'ticket' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        
+                        <!-- Sortable: Site -->
+                        <th>
+                            <a href="?sort=site&order={% if current_sort == 'site' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="text-decoration-none text-dark">
+                                Site
+                                {% if current_sort == 'site' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        
+                        <!-- Sortable: Created At -->
+                        <th>
+                            <a href="?sort=created&order={% if current_sort == 'created' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="text-decoration-none text-dark">
+                                Created At
+                                {% if current_sort == 'created' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        
+                        <!-- Created By -->
+                        <th>Created By</th>
+                        
+                        <!-- Sortable: Status -->
+                        <th>
+                            <a href="?sort=status&order={% if current_sort == 'status' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="text-decoration-none text-dark">
+                                Status
+                                {% if current_sort == 'status' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        
+                        <!-- Sortable: Priority -->
+                        <th>
+                            <a href="?sort=priority&order={% if current_sort == 'priority' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="text-decoration-none text-dark">
+                                Priority
+                                {% if current_sort == 'priority' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        
+                        <!-- Sortable: Assigned To -->
+                        <th>
+                            <a href="?sort=assigned&order={% if current_sort == 'assigned' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="text-decoration-none text-dark">
+                                Assigned To
+                                {% if current_sort == 'assigned' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        
+                        <!-- Sortable: Closed At -->
+                        <th>
+                            <a href="?sort=closed&order={% if current_sort == 'closed' and current_order == 'asc' %}desc{% else %}asc{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="text-decoration-none text-dark">
+                                Closed At
+                                {% if current_sort == 'closed' %}
+                                    {% if current_order == 'asc' %}<i class="fas fa-sort-up"></i>{% else %}<i class="fas fa-sort-down"></i>{% endif %}
+                                {% else %}
+                                    <i class="fas fa-sort text-muted opacity-50"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% if tickets %}
+                        {% for ticket in tickets %}
+                        <tr onclick="openQuickView('{{ ticket.pk }}')" class="{% if ticket.priority == 'critical' or ticket.priority == 'high' %}priority-high-row{% elif ticket.priority == 'medium' %}priority-medium-row{% elif ticket.priority == 'low' %}priority-low-row{% endif %}">
+                            <td>{% if is_paginated %}{% widthratio page_obj.number|add:"-1" 1 page_obj.paginator.per_page as page_offset %}{{ page_offset|add:forloop.counter }}{% else %}{{ forloop.counter }}{% endif %}</td>
+
+                            <td>
+                                <a href="{% url 'ticketing:ticket_detail' ticket.pk %}"
+                                   class="text-primary fw-bold">
+                                    {{ ticket.ticket_number }}
+                                </a>
+                            </td>
+
+                            <td>{{ ticket.asset_code.asset_name }}</td>
+
+                            <td>{{ ticket.created_at|date:"M d, Y" }}</td>
+
+                            <td>
+                                {% if ticket.created_by %}
+                                    {{ ticket.created_by.username }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="badge status-{{ ticket.status }}">
+                                    {{ ticket.get_status_display }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="badge priority-{{ ticket.priority }}">
+                                    {{ ticket.get_priority_display }}
+                                </span>
+                            </td>
+
+                            <td>
+                                {% if ticket.assigned_to %}
+                                    {{ ticket.assigned_to.username }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if ticket.closed_at %}
+                                    {{ ticket.closed_at|date:"M d, Y" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+
+                            <td class="text-muted small">
+                                {{ ticket.description|truncatewords:15 }}
+                            </td>
+
+                            <td class="table-actions">
+                                <a href="{% url 'ticketing:ticket_detail' ticket.pk %}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="View Details">
+                                   <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center py-4 text-muted">
+                                No tickets found.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ============================
+     MODERN PAGINATION
+============================= -->
+{% if is_paginated %}
+<nav aria-label="Page navigation" class="mt-3">
+    <ul class="pagination pagination-modern justify-content-center">
+        
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" data-skip-iframe-nav="true" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">« First</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" data-skip-iframe-nav="true" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">‹ Prev</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+            <span class="page-link">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+        </li>
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" data-skip-iframe-nav="true" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next ›</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" data-skip-iframe-nav="true" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.priority %}&priority={{ request.GET.priority }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.asset_code %}&asset_code={{ request.GET.asset_code }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last »</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Quick View Drawer -->
+<div id="quickview-overlay"></div>
+
+<div id="quickview-drawer">
+    <!-- Header -->
+    <div class="drawer-header">
+        <h5 id="drawer-title">Ticket Quick View</h5>
+        <button class="btn-close" id="drawer-close" aria-label="Close"></button>
+    </div>
+
+    <!-- Content -->
+    <div id="drawer-content">
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+            <p class="mt-2 text-muted">Loading ticket...</p>
+        </div>
+    </div>
+</div>
+
+
+<!-- Quick View Drawer JavaScript -->
+<script>
+// Quick View Function
+function openQuickView(ticketId) {
+    event.stopPropagation(); // Prevent row click from bubbling
+    
+    document.body.classList.add("drawer-open");
+    const drawerContent = document.getElementById("drawer-content");
+    const drawerTitle = document.getElementById("drawer-title");
+    
+    // Show loading
+    drawerContent.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+            <p class="mt-2 text-muted">Loading ticket...</p>
+        </div>
+    `;
+    
+    // Fetch ticket details
+    fetch(`/tickets/${ticketId}/?quickview=1`)
+        .then(res => res.text())
+        .then(html => {
+            drawerContent.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            drawerContent.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Error loading ticket details.
+                </div>
+            `;
+        });
+}
+
+// Close Drawer Function
+function closeDrawer() {
+    document.body.classList.remove("drawer-open");
+}
+
+// Setup drawer close handlers
+document.addEventListener("DOMContentLoaded", function() {
+    const overlay = document.getElementById("quickview-overlay");
+    const closeBtn = document.getElementById("drawer-close");
+    
+    if (overlay) overlay.addEventListener("click", closeDrawer);
+    if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
+    
+    // Close on Escape key
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape" && document.body.classList.contains("drawer-open")) {
+            closeDrawer();
+        }
+    });
+});
+</script>
+
+<!-- Multi-Select JavaScript -->
+<script src="{% static 'js/multi-select.js' %}"></script>
+
+
+<!-- Filter Form and Multi-Select Initialization -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const filterBar = document.getElementById("sticky-filter-bar");
+    
+    if (filterBar) {
+        function checkSticky() {
+            if (window.scrollY > 100) {
+                filterBar.classList.add("sticky-shadow");
+            } else {
+                filterBar.classList.remove("sticky-shadow");
+            }
+        }
+        
+        window.addEventListener("scroll", checkSticky);
+    }
+    
+    // Initialize multi-select components
+    let statusMultiSelect = null;
+    let priorityMultiSelect = null;
+    let categoryMultiSelect = null;
+    let siteMultiSelect = null;
+    
+    // Status options
+    const statusOptions = [
+        {% for value, label in filter_form.status.field.choices %}
+        {% if value %}{ value: '{{ value }}', label: '{{ label }}' },{% endif %}
+        {% endfor %}
+    ];
+    
+    // Priority options
+    const priorityOptions = [
+        {% for value, label in filter_form.priority.field.choices %}
+        {% if value %}{ value: '{{ value }}', label: '{{ label }}' },{% endif %}
+        {% endfor %}
+    ];
+    
+    // Category options
+    const categoryOptions = [
+        {% for category in filter_form.category.field.queryset %}
+        { value: '{{ category.pk }}', label: '{{ category.name }}' },
+        {% endfor %}
+    ];
+    
+    // Site options
+    const siteOptions = [
+        {% for site in filter_form.asset_code.field.queryset %}
+        { value: '{{ site.pk }}', label: '{{ site.asset_name }}' },
+        {% endfor %}
+    ];
+    
+    // Function to update hidden inputs for form submission
+    function updateHiddenInputs(containerId, selectedValues, paramName) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        selectedValues.forEach(value => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = paramName;
+            input.value = value;
+            container.appendChild(input);
+        });
+    }
+    
+    // Get URL parameters once
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Function to update export link
+    function updateExportLink() {
+        const form = document.getElementById('ticket-filter-form');
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+        
+        // Add all form parameters
+        for (const [key, value] of formData.entries()) {
+            params.append(key, value);
+        }
+        
+        const exportLink = document.getElementById('export-link');
+        exportLink.href = '?export=1&' + params.toString();
+    }
+    
+    // Initialize status multi-select
+    if (typeof MultiSelect !== 'undefined' && statusOptions.length > 0) {
+        statusMultiSelect = new MultiSelect(
+            'statusFilterTrigger',
+            'statusFilterDropdown',
+            'statusFilterPlaceholder',
+            'statusSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('statusHiddenInputs', selectedValues, 'status');
+                updateExportLink();
+            }
+        );
+        statusMultiSelect.setOptions(statusOptions);
+        
+        // Set initial selected values from URL
+        const statusParams = urlParams.getAll('status');
+        if (statusParams.length > 0) {
+            statusMultiSelect.setSelectedValues(statusParams);
+        }
+    }
+    
+    // Initialize priority multi-select
+    if (typeof MultiSelect !== 'undefined' && priorityOptions.length > 0) {
+        priorityMultiSelect = new MultiSelect(
+            'priorityFilterTrigger',
+            'priorityFilterDropdown',
+            'priorityFilterPlaceholder',
+            'prioritySelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('priorityHiddenInputs', selectedValues, 'priority');
+                updateExportLink();
+            }
+        );
+        priorityMultiSelect.setOptions(priorityOptions);
+        
+        // Set initial selected values from URL
+        const priorityParams = urlParams.getAll('priority');
+        if (priorityParams.length > 0) {
+            priorityMultiSelect.setSelectedValues(priorityParams);
+        }
+    }
+    
+    // Initialize category multi-select
+    if (typeof MultiSelect !== 'undefined' && categoryOptions.length > 0) {
+        categoryMultiSelect = new MultiSelect(
+            'categoryFilterTrigger',
+            'categoryFilterDropdown',
+            'categoryFilterPlaceholder',
+            'categorySelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('categoryHiddenInputs', selectedValues, 'category');
+                updateExportLink();
+            }
+        );
+        categoryMultiSelect.setOptions(categoryOptions);
+        
+        // Set initial selected values from URL
+        const categoryParams = urlParams.getAll('category');
+        if (categoryParams.length > 0) {
+            categoryMultiSelect.setSelectedValues(categoryParams);
+        }
+    }
+    
+    // Initialize site multi-select
+    if (typeof MultiSelect !== 'undefined' && siteOptions.length > 0) {
+        siteMultiSelect = new MultiSelect(
+            'siteFilterTrigger',
+            'siteFilterDropdown',
+            'siteFilterPlaceholder',
+            'siteSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('siteHiddenInputs', selectedValues, 'asset_code');
+                updateExportLink();
+            }
+        );
+        siteMultiSelect.setOptions(siteOptions);
+        
+        // Set initial selected values from URL
+        const siteParams = urlParams.getAll('asset_code');
+        if (siteParams.length > 0) {
+            siteMultiSelect.setSelectedValues(siteParams);
+        }
+    }
+    
+    // Update export link on page load
+    updateExportLink();
+});
+</script>
+
+<!-- Send title update to parent if in iframe -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're in an iframe
+    if (window.parent !== window.self) {
+        // Send title update to parent
+        const pageTitle = document.title || 'Tickets - Ticketing System';
+        window.parent.postMessage({
+            type: 'update_title',
+            title: pageTitle
+        }, '*');
+    }
+});
+</script>
+{% endblock %}
+

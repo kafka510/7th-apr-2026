@@ -1,0 +1,35 @@
+{
+  "_leaflet-src-CAd3dvxb.js": {
+    "file": "assets/leaflet-src-CAd3dvxb.js",
+    "name": "leaflet-src",
+    "isDynamicEntry": true,
+    "imports": [
+      "_react-vendor-BYFhxl3f.js"
+    ]
+  },
+  "_react-vendor-BYFhxl3f.js": {
+    "file": "assets/react-vendor-BYFhxl3f.js",
+    "name": "react-vendor"
+  },
+  "src/main.tsx": {
+    "file": "assets/main-ClD-OfEU.js",
+    "name": "main",
+    "src": "src/main.tsx",
+    "isEntry": true,
+    "imports": [
+      "_react-vendor-BYFhxl3f.js"
+    ],
+    "dynamicImports": [
+      "_leaflet-src-CAd3dvxb.js"
+    ],
+    "css": [
+      "assets/main-D_IfGLYr.css"
+    ]
+  },
+  "src/settings-dropdown.tsx": {
+    "file": "assets/settings-dropdown-CtIbBSbC.js",
+    "name": "settings-dropdown",
+    "src": "src/settings-dropdown.tsx",
+    "isEntry": true
+  }
+}

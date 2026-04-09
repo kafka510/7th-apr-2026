@@ -1,0 +1,92 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Debug Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Data Debug Test</h1>
+    
+    <div class="section">
+        <h2>User Information:</h2>
+        <p><strong>Username:</strong> {{ request.user.username }}</p>
+        <p><strong>Role:</strong> {{ user_role|default:"No role assigned" }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>Accessible Sites:</h2>
+        <p><strong>Count:</strong> {{ accessible_site_count }}</p>
+        <p><strong>Sites:</strong> {{ accessible_site_numbers|join:", " }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>Data Counts:</h2>
+        <p><strong>Total YieldData:</strong> {{ total_yield }}</p>
+        <p><strong>Total BESSData:</strong> {{ total_bess }}</p>
+        <p><strong>Total AOCData:</strong> {{ total_aoc }}</p>
+        <p><strong>Total MapData:</strong> {{ total_map }}</p>
+        <p><strong>Total AssetList:</strong> {{ total_assets }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>Filtered Data Counts:</h2>
+        <p><strong>Filtered YieldData:</strong> {{ filtered_yield }}</p>
+        <p><strong>Filtered BESSData:</strong> {{ filtered_bess }}</p>
+        <p><strong>Filtered AOCData:</strong> {{ filtered_aoc }}</p>
+        <p><strong>Filtered MapData:</strong> {{ filtered_map }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>Field Name Mapping:</h2>
+        <p><strong>YieldData assetno:</strong> {{ yield_sample_assetno }}</p>
+        <p><strong>BESSData asset_no:</strong> {{ bess_sample_asset_no }}</p>
+        <p><strong>AOCData asset_no:</strong> {{ aoc_sample_asset_no }}</p>
+        <p><strong>MapData asset_no:</strong> {{ map_sample_asset_no }}</p>
+        <p><strong>AssetList asset_number:</strong> {{ asset_sample_number }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>Asset Code Samples:</h2>
+        <p><strong>AssetList asset_number:</strong> {{ asset_list_codes|join:", " }}</p>
+        <p><strong>YieldData assetno:</strong> {{ yield_data_codes|join:", " }}</p>
+        <p><strong>BESSData asset_no:</strong> {{ bess_data_codes|join:", " }}</p>
+        <p><strong>AOCData asset_no:</strong> {{ aoc_data_codes|join:", " }}</p>
+        <p><strong>MapData asset_no:</strong> {{ map_data_codes|join:", " }}</p>
+    </div>
+    
+    <div class="section">
+        <h2>Analysis:</h2>
+        {% if accessible_site_count == 0 %}
+            <p class="error">❌ No accessible sites found - this is why no data is showing!</p>
+        {% else %}
+            <p class="success">✅ User has {{ accessible_site_count }} accessible sites</p>
+        {% endif %}
+        
+        {% if filtered_yield == 0 and total_yield > 0 %}
+            <p class="warning">⚠️ YieldData filtering issue - field name mismatch?</p>
+        {% endif %}
+        
+        {% if filtered_bess == 0 and total_bess > 0 %}
+            <p class="warning">⚠️ BESSData filtering issue - field name mismatch?</p>
+        {% endif %}
+        
+        {% if filtered_aoc == 0 and total_aoc > 0 %}
+            <p class="warning">⚠️ AOCData filtering issue - field name mismatch?</p>
+        {% endif %}
+        
+        {% if filtered_map == 0 and total_map > 0 %}
+            <p class="warning">⚠️ MapData filtering issue - field name mismatch?</p>
+        {% endif %}
+    </div>
+</body>
+</html> 

@@ -1,0 +1,2350 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ticket {{ ticket.ticket_number }} - Ticketing System{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'ticketing/css/tickets.css' %}">
+<script src="{% static 'ticketing/js/image_paste.js' %}"></script>
+<!-- Flatpickr CSS and JS for datetime picker -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<!-- Multi-select with checkbox styling -->
+<style>
+    /* Multi-select dropdown styling with checkboxes */
+    .multi-select-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        z-index: 1;
+    }
+    
+    /* When dropdown is open, increase container z-index */
+    .multi-select-container:has(.multi-select-dropdown[style*="display: block"]) {
+        z-index: 99999 !important;
+    }
+    
+    .multi-select-trigger {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 12px;
+        background: white !important;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: border-color 0.2s;
+        height: 38px;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .multi-select-trigger:hover {
+        border-color: #0d6efd;
+        background: white !important;
+    }
+    
+    .multi-select-trigger.active {
+        border-color: #0d6efd;
+        background: white !important;
+    }
+    
+    .multi-select-arrow {
+        font-size: 12px;
+        color: #0d6efd;
+        transition: transform 0.2s;
+    }
+    
+    .multi-select-trigger.active .multi-select-arrow {
+        transform: rotate(180deg);
+    }
+    
+    .multi-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white !important;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+        z-index: 99999 !important;
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: none;
+        padding: 4px 0;
+        scrollbar-width: thin;
+        scrollbar-color: #0072CE #f1f1f1;
+        min-width: 100%;
+        margin-top: 2px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb {
+        background: #0072CE;
+        border-radius: 3px;
+    }
+    
+    .multi-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        min-height: 20px;
+        background: white !important;
+    }
+    
+    .multi-select-option:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    /* Checkbox styling */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        position: relative;
+        z-index: 2;
+        pointer-events: auto;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+        display: none;
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        width: 100%;
+        font-size: 14px;
+        color: #333;
+        pointer-events: auto;
+    }
+    
+    .checkbox-custom {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ccc;
+        border-radius: 3px;
+        margin-right: 8px;
+        position: relative;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+        content: '✓';
+        position: absolute;
+        top: -2px;
+        left: 1px;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .checkbox-text {
+        flex: 1;
+    }
+    
+    .selected-items {
+        display: none;
+    }
+    
+    /* Ensure card containers don't interfere with dropdowns */
+    .card-modern {
+        position: relative;
+        overflow: visible !important;
+        z-index: 1;
+    }
+    
+    .card-modern .card-header {
+        overflow: visible !important;
+    }
+    
+    .card-modern .card-body {
+        position: relative;
+        overflow: visible !important;
+        z-index: 1;
+    }
+    
+    /* When dropdown is open, ensure it's above everything */
+    .multi-select-dropdown[style*="display: block"] {
+        z-index: 99999 !important;
+        background: white !important;
+        opacity: 1 !important;
+    }
+    
+    /* Ensure action cards don't create stacking context issues */
+    .action-card {
+        position: relative;
+        z-index: 1;
+        overflow: visible !important;
+    }
+    
+    /* When a dropdown is open in an action card, increase its z-index */
+    .action-card:has(.multi-select-dropdown[style*="display: block"]) {
+        z-index: 99998 !important;
+        overflow: visible !important;
+    }
+    
+    /* Ensure form elements don't interfere */
+    .action-card form {
+        position: relative;
+        z-index: 1;
+        overflow: visible !important;
+    }
+    
+    /* Make sure other multi-select containers have lower z-index when not active */
+    .multi-select-container:not(:has(.multi-select-dropdown[style*="display: block"])) {
+        z-index: 1;
+    }
+    
+    /* Ensure row and col containers don't clip dropdowns */
+    .row {
+        overflow: visible !important;
+    }
+    
+    .col-xl-4, .col-xl-8, .col-lg-5, .col-lg-7 {
+        overflow: visible !important;
+    }
+    
+    /* Ensure all parent containers allow overflow */
+    .ticket-detail-container {
+        overflow: visible !important;
+    }
+    
+    /* Flatpickr datetime picker styling */
+    .datetime-picker {
+        cursor: pointer;
+    }
+    
+    .flatpickr-calendar {
+        font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        border: 1px solid #e0e0e0;
+    }
+    
+    .flatpickr-time {
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .flatpickr-day.selected:hover,
+    .flatpickr-day.startRange:hover,
+    .flatpickr-day.endRange:hover {
+        background: #0b5ed7;
+        border-color: #0b5ed7;
+    }
+    
+    .flatpickr-day.today {
+        border-color: #0d6efd;
+    }
+    
+    .flatpickr-day.today:hover {
+        background: #e6f1fc;
+    }
+    
+    .flatpickr-time input:hover,
+    .flatpickr-time .flatpickr-am-pm:hover {
+        background: #f8f9fa;
+    }
+    
+    /* Override card-modern overflow when it contains an open dropdown */
+    .card-modern:has(.multi-select-dropdown[style*="display: block"]) {
+        overflow: visible !important;
+    }
+    
+    /* Specific fix for Update Watchers dropdown */
+    #watchersFilterDropdown {
+        z-index: 99999 !important;
+    }
+    
+    /* When watchers dropdown is open, ensure parent card and column allow overflow */
+    .card-modern:has(#watchersFilterDropdown[style*="display: block"]) {
+        overflow: visible !important;
+        z-index: 99998 !important;
+    }
+    
+    /* Ensure left column allows overflow for watchers dropdown */
+    .col-xl-4:has(#watchersFilterDropdown),
+    .col-lg-5:has(#watchersFilterDropdown) {
+        overflow: visible !important;
+    }
+</style>
+
+<style>
+/* ---------- Variables (use your primary / neutral colors) ---------- */
+:root{
+    --primary: #0d6efd; /* keep your blue */
+    --muted: #6c757d;
+    --bg: #f5f7fa;
+    --panel-bg: #ffffff;
+    --sep: #e9ecef;
+    --card-radius: 8px;
+    --gap: 16px;
+}
+
+/* ---------- Page base ---------- */
+body {
+    background: var(--bg) !important;
+}
+
+/* overall container */
+.ticket-detail-wrap {
+    max-width: 1400px;
+    margin: 4px auto 0;
+    padding: 0 8px 24px;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    line-height: 1;
+}
+
+/* Remove all spacing between header, nav, and grid */
+.ticket-detail-wrap > .object-header {
+    margin-bottom: 0 !important;
+}
+
+.ticket-detail-wrap > .object-header + .anchor-nav {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.ticket-detail-wrap > .anchor-nav + .page-grid {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Remove default nav margins */
+nav.anchor-nav {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.ticket-detail-container {
+    margin-top: -10px;
+}
+    
+    /* --- HEADER --- */
+    .detail-header {
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 12px 18px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    
+    .ticket-id {
+        font-size: 1.2rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    
+    .ticket-title {
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 6px;
+    }
+    
+    .ticket-description {
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.5;
+        margin-bottom: 8px;
+    }
+    
+    /* Status + Priority Badges */
+    .status-badge,
+    .priority-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-block;
+        margin-right: 6px;
+    }
+    
+    .header-actions-container {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .status-open { background: #e0f2fe; color: #0369a1; }
+    .status-in_progress { background: #fef9c3; color: #854d0e; }
+    .status-closed { background: #dcfce7; color: #166534; }
+    .priority-high { background: #fee2e2; color: #991b1b; }
+    .priority-medium { background: #fef3c7; color: #92400e; }
+    .priority-low { background: #e0f2fe; color: #075985; }
+    
+    /* --- MODERN CARDS --- */
+    .card-modern {
+        background: white;
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 2px 6px rgba(0,0,0,c.04);
+        margin-bottom: 1rem;
+        overflow: visible !important;
+    }
+    
+    .card-modern .card-header {
+        background: #fafafa;
+        padding: 10px 16px;
+        border-bottom: 1px solid #ececec;
+    }
+    
+    .card-modern .card-header h5 {
+        font-size: 1rem;
+        margin: 0;
+        font-weight: 600;
+        color: #444;
+    }
+    
+    .card-modern .card-body {
+        padding: 14px 18px;
+        font-size: 0.92rem;
+    }
+    
+    /* --- INFO ROWS --- */
+    .info-row {
+        margin-bottom: 10px;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #444;
+        font-size: 0.85rem;
+    }
+    
+    .info-value {
+        font-size: 0.88rem;
+        color: #333;
+    }
+    
+    /* --- ACTION CARD SPACING --- */
+    .action-card {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .action-card:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    /* --- COLLAPSIBLE SECTIONS --- */
+    .collapsible-header {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .collapsible-header:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .collapsible-icon {
+        transition: transform 0.3s ease;
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .collapsible-header.collapsed .collapsible-icon {
+        transform: rotate(-90deg);
+    }
+    
+    .collapsible-content {
+        max-height: 5000px;
+        overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+        opacity: 1;
+        display: block;
+    }
+    
+    .collapsible-content.collapsed {
+        max-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        opacity: 0;
+        overflow: hidden !important;
+        border: none !important;
+        visibility: hidden;
+    }
+    
+    /* Compact info grid layout */
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+        font-size: 0.85rem;
+    }
+    
+    @media (max-width: 1200px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .info-grid .info-label {
+        font-size: 0.8rem;
+        margin-bottom: 2px;
+        font-weight: 600;
+    }
+    
+    .info-grid .info-value {
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+    
+    /* Compact card spacing */
+    .card-modern {
+        margin-bottom: 0.75rem;
+    }
+    
+    .card-modern .card-body {
+        padding: 12px 16px;
+    }
+    
+    .card-modern .card-header {
+        padding: 8px 16px;
+    }
+    
+    /* Reduce action card spacing */
+    .action-card {
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+    
+    /* Compact form spacing */
+    .action-card form {
+        margin-bottom: 0;
+    }
+    
+    .action-card label {
+        margin-bottom: 4px;
+    }
+    
+    /* --- INPUTS --- */
+    .form-control-sm,
+    .form-select-sm {
+        border-radius: 6px;
+    }
+    
+    /* --- COMMENTS --- */
+    .comment-bubble {
+        background: #f9fafb;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .comment-bubble.internal {
+        background: #fff7ed;
+        border-color: #fed7aa;
+    }
+    
+    .comment-header {
+        font-size: 0.8rem;
+        margin-bottom: 5px;
+        color: #555;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .comment-author {
+        font-weight: 600;
+    }
+    
+    .comment-time {
+        color: #777;
+    }
+    
+    .comment-text {
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+    
+    /* --- ACTIVITY TIMELINE --- */
+    .activity-item {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .activity-dot {
+        width: 10px;
+        height: 10px;
+        background: #2563eb;
+        border-radius: 50%;
+        margin-top: 4px;
+        flex-shrink: 0;
+    }
+    
+    .activity-content {
+        flex: 1;
+    }
+    
+    .activity-text {
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+    }
+    
+    .activity-user {
+        font-weight: 600;
+    }
+    
+    .activity-time {
+        font-size: 0.75rem;
+        color: #777;
+    }
+    
+    /* --- ATTACHMENTS --- */
+    .attachment-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .attachment-item:last-child {
+        border-bottom: none;
+    }
+    
+    .attachment-name {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .attachment-size {
+        color: #777;
+        font-size: 0.8rem;
+    }
+    
+    /* --- EMPTY STATES --- */
+    .empty-state {
+        text-align: center;
+        padding: 2rem 0;
+        color: #777;
+    }
+    
+    .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    /* --- WATCHER BADGES --- */
+    .watcher-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-right: 4px;
+        margin-bottom: 4px;
+    }
+
+/* ---------- Compact object header (Option 2 style) ---------- */
+.object-header {
+    background: var(--panel-bg);
+    border-radius: var(--card-radius);
+    padding: 8px 14px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    box-shadow: 0 1px 0 rgba(16,24,40,0.03);
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    border: 1px solid var(--sep);
+    line-height: 1;
+}
+
+.object-header .left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+
+.ticket-meta {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+}
+
+.ticket-id {
+    font-weight:700;
+    font-size:1.25rem;
+    color:#0b2545;
+    letter-spacing: -0.2px;
+}
+
+.ticket-sub {
+    color:var(--muted);
+    font-size:0.92rem;
+}
+
+/* Legacy status/priority classes - now handled by unified system */
+.status-badge { 
+    background: #eef5ff !important; 
+    color: #0d63c4 !important; 
+    border: 1px solid #cfe2ff !important;
+}
+.priority-badge { 
+    background: #fff1f0 !important; 
+    color: #b02a37 !important; 
+    border: 1px solid #f8d7da !important;
+}
+
+/* right toolbar (compact) */
+.object-actions {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+/* ===========================================
+   UNIFIED BUTTON STYLING SYSTEM
+   For: Back, Edit, Close, Delete, Status
+   =========================================== */
+
+/* Base style for ALL pill-type buttons */
+.btn-pill,
+.status-chip,
+.priority-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    height: 24px;
+    border-radius: 999px;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    box-shadow: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* Adjust icon size */
+.btn-pill i,
+.status-chip i,
+.priority-chip i {
+    font-size: 0.70rem;
+    margin-top: 1px;
+}
+
+/* Back button (outline style) */
+.btn-back {
+    border: 1px solid #d0d5dd !important;
+    background: #ffffff !important;
+    color: #344054 !important;
+}
+
+/* Edit button */
+.btn-edit {
+    background: #0d6efd !important;
+    color: #ffffff !important;
+    border: 1px solid #0d6efd !important;
+}
+
+/* Close (success) */
+.btn-close-action {
+    background: #198754 !important;
+    color: #ffffff !important;
+    border: 1px solid #198754 !important;
+}
+
+/* Delete (danger) */
+.btn-delete {
+    background: #dc3545 !important;
+    color: #ffffff !important;
+    border: 1px solid #dc3545 !important;
+}
+
+/* Status tags ("Raised") */
+.status-chip {
+    background: #eef5ff !important;
+    color: #0d63c4 !important;
+    border: 1px solid #cfe2ff !important;
+    cursor: default !important;
+}
+
+/* Status-specific colors (if needed) */
+.status-chip.status-open { 
+    background: #e0f2fe !important; 
+    color: #0369a1 !important; 
+    border-color: #bae6fd !important; 
+}
+.status-chip.status-in_progress { 
+    background: #fef9c3 !important; 
+    color: #854d0e !important; 
+    border-color: #fde047 !important; 
+}
+.status-chip.status-closed { 
+    background: #dcfce7 !important; 
+    color: #166534 !important; 
+    border-color: #86efac !important; 
+}
+
+/* Priority tags ("CRITICAL") */
+.priority-chip {
+    background: #fff1f0 !important;
+    color: #b02a37 !important;
+    border: 1px solid #f8d7da !important;
+    cursor: default !important;
+}
+
+/* Priority-specific colors (if needed) */
+.priority-chip.priority-high { 
+    background: #fee2e2 !important; 
+    color: #991b1b !important; 
+    border-color: #fecaca !important; 
+}
+.priority-chip.priority-medium { 
+    background: #fef3c7 !important; 
+    color: #92400e !important; 
+    border-color: #fde68a !important; 
+}
+.priority-chip.priority-low { 
+    background: #e0f2fe !important; 
+    color: #075985 !important; 
+    border-color: #bae6fd !important; 
+}
+
+/* Hover states */
+.btn-back:hover { 
+    background: #f9fafb !important; 
+    border-color: #d0d5dd !important;
+}
+
+.btn-edit:hover { 
+    background: #0b5ed7 !important; 
+    border-color: #0b5ed7 !important;
+}
+
+.btn-close-action:hover { 
+    background: #157347 !important; 
+    border-color: #157347 !important;
+}
+
+.btn-delete:hover { 
+    background: #bb2d3b !important; 
+    border-color: #bb2d3b !important;
+}
+
+.status-chip:hover { 
+    background: #e2edff !important; 
+    border-color: #cfe2ff !important;
+}
+
+.priority-chip:hover { 
+    background: #ffe5e3 !important; 
+    border-color: #f8d7da !important;
+}
+
+/* sticky toolbar when page scrolls */
+.sticky-actions {
+    position: sticky;
+    top: 12px;
+    z-index: 40;
+}
+
+/* ---------- Anchor nav (quick jump) ---------- */
+.anchor-nav {
+    display:flex;
+    gap:8px;
+    background: transparent;
+    padding: 0 !important;
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    align-items: center;
+    flex-wrap:wrap;
+    line-height: 1;
+}
+
+.anchor-nav a {
+    color: var(--muted);
+    font-size: 0.9rem;
+    text-decoration: none;
+    padding: 4px 8px;
+    border-radius:6px;
+    margin: 0;
+}
+
+.anchor-nav a.active, .anchor-nav a:hover {
+    background: rgba(13,110,253,0.08);
+    color: var(--primary);
+    text-decoration:none;
+}
+
+/* ---------- Layout grid ---------- */
+.page-grid {
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    gap: 12px;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* responsive - tablet */
+@media (max-width: 1024px) {
+    .page-grid { grid-template-columns: 1fr; }
+    .object-header { flex-direction: column; align-items: flex-start; }
+}
+
+/* ---------- Panel card style ---------- */
+.panel {
+    background: var(--panel-bg);
+    border-radius: var(--card-radius);
+    border: 1px solid var(--sep);
+    box-shadow: 0 1px 0 rgba(16,24,40,0.02);
+    overflow: hidden;
+}
+
+.panel .panel-head {
+    padding: 10px 12px;
+    font-weight: 700;
+    color: #243b53;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid var(--sep);
+    font-size: 0.95rem;
+}
+
+.panel .panel-body {
+    padding: 10px 12px;
+    font-size: 0.94rem;
+    color:#223;
+}
+
+/* collapsible caret */
+.caret {
+    transition: transform .12s ease;
+}
+
+/* small helper for muted text */
+.muted { color: var(--muted); font-size: 0.88rem; }
+
+/* ---------- Summary grid (left panel) ---------- */
+.summary-grid {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:6px 12px;
+    align-items:start;
+}
+
+.summary-item { margin-bottom:6px; }
+
+.summary-item .label {
+    color:var(--muted);
+    font-weight:700;
+    font-size:0.8rem;
+}
+
+.summary-item .value {
+    font-size:0.92rem;
+    color:#122;
+    margin-top:4px;
+}
+
+/* watchers badges */
+.watcher-badges { display:flex; gap:6px; flex-wrap:wrap; }
+.badge-soft {
+    background: rgba(13,110,253,0.06);
+    color: var(--primary);
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-weight:600;
+    font-size:0.82rem;
+}
+
+/* ---------- Actions forms on left ---------- */
+.form-compact .form-control,
+.form-compact .form-select {
+    border-radius:6px;
+    padding:8px 10px;
+    font-size:0.92rem;
+}
+
+/* pill wide buttons */
+.btn-wide {
+    width:100%;
+    border-radius:8px;
+    padding:10px 12px;
+    font-weight:700;
+}
+
+/* small section separators for stacked actions */
+.section-sep { margin:8px 0; border-top:1px dashed var(--sep); padding-top:8px; }
+
+/* ---------- Right column main panels ---------- */
+.description p { margin:0; color:#1a2b3b; line-height:1.5; font-size:0.95rem; }
+
+.activity-list { display:flex; flex-direction:column; gap:8px; }
+.activity {
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+}
+.activity .dot {
+    width:12px; height:12px; border-radius:50%; background:var(--primary); margin-top:6px;
+}
+.activity .meta { font-size:0.86rem; color:var(--muted); }
+
+/* timeline scroll area */
+.scroll-area {
+    max-height:260px; overflow:auto; padding-right:6px;
+}
+
+/* comments */
+.comment {
+    border-radius:8px; background:#fbfdff; padding:10px; border:1px solid #eef6ff;
+}
+.comment.internal { background:#fff9f0; border-color:#fde6c8; }
+
+/* attachments layout */
+.attach-grid { display:flex; flex-direction:column; gap:6px; }
+.attachment-row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+
+/* small file button */
+.upload-area {
+    border-radius:6px;
+    border:1px dashed var(--sep);
+    background:#fafafa;
+    padding:8px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-direction:column;
+}
+
+/* ---------- Footer sticky area for actions on small screens ---------- */
+.footer-actions {
+    display:none;
+}
+
+/* ===========================================
+   MOBILE RESPONSIVE STYLES
+   =========================================== */
+
+/* 1. Mobile stacking - Layout Grid */
+@media (max-width: 768px) {
+    .page-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+}
+
+/* 2. Button Auto-Resize + Wrap on Mobile */
+@media (max-width: 768px) {
+    .object-actions {
+        flex-wrap: wrap !important;
+        width: 100% !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+    }
+    
+    .btn-pill {
+        height: 34px !important;
+        font-size: 0.85rem !important;
+        padding: 4px 10px !important;
+    }
+}
+
+/* 3. Large "Touch Targets" for better mobile usability */
+@media (max-width: 768px) {
+    .btn-pill i {
+        font-size: 1rem !important;
+    }
+    
+    .chip, .status-chip, .priority-chip {
+        height: 30px !important;
+        padding: 4px 10px !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* 4. Collapsible Panels Auto-Compact for Mobile */
+@media (max-width: 768px) {
+    .panel .panel-body {
+        padding: 10px 12px !important;
+    }
+    
+    .panel .panel-head {
+        padding: 10px 12px !important;
+        font-size: 0.92rem !important;
+    }
+}
+
+/* 5. Summary Grid Converts to Single Column */
+@media (max-width: 768px) {
+    .summary-grid {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+    }
+}
+
+/* 6. Objects Header Auto-Adjust */
+@media (max-width: 768px) {
+    .object-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        padding: 12px 14px !important;
+    }
+    
+    .ticket-id {
+        font-size: 1.15rem !important;
+    }
+    
+    .ticket-sub {
+        font-size: 0.85rem !important;
+    }
+}
+
+/* 7. Sticky Bottom Mobile Action Bar (Important) */
+@media (max-width: 640px) {
+    .footer-actions {
+        display: flex !important;
+        position: fixed !important;
+        bottom: 12px;
+        left: 12px;
+        right: 12px;
+        gap: 8px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.90);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 100;
+    }
+    
+    .footer-actions .btn,
+    .footer-actions button,
+    .footer-actions a {
+        flex: 1;
+        padding: 10px 0 !important;
+        font-size: 0.92rem !important;
+        font-weight: 600;
+        border-radius: 10px;
+        text-align: center;
+    }
+    
+    .footer-actions form {
+        flex: 1;
+        display: flex;
+        margin: 0;
+    }
+    
+    .footer-actions form button {
+        width: 100%;
+    }
+    
+    /* Add bottom padding to page content to prevent overlap with sticky footer */
+    .ticket-detail-wrap {
+        padding-bottom: 80px !important;
+    }
+}
+</style>
+
+<div class="ticket-detail-wrap">
+
+    <!-- OBJECT HEADER (Compact Toolbar variant) -->
+    <div class="object-header" role="region" aria-label="Ticket header">
+        <div class="left">
+            <div class="ticket-meta">
+                <div>
+                    <div class="ticket-id">{{ ticket.ticket_number }}</div>
+                    <div class="ticket-sub">
+                        {{ ticket.title }} • <span class="muted">PM: {% if ticket.category %}{{ ticket.category.name }}{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="object-actions sticky-actions" role="toolbar" aria-label="Ticket actions">
+            <a href="{% url 'ticketing:ticket_list' %}" class="btn-pill btn-back" title="Back">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+
+            {% if can_edit %}
+            <a href="{% url 'ticketing:ticket_edit' ticket.pk %}" class="btn-pill btn-edit" title="Edit">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            {% endif %}
+
+            {% if ticket.status != 'closed' and can_close %}
+            <form method="post" action="{% url 'ticketing:ticket_close' ticket.pk %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn-pill btn-close-action" title="Close Ticket">
+                    <i class="fas fa-check"></i> Close
+                </button>
+            </form>
+            {% endif %}
+
+            {% if request.user.is_superuser %}
+            <a href="{% url 'ticketing:ticket_delete' ticket.pk %}" class="btn-pill btn-delete" title="Delete">
+                <i class="fas fa-trash-alt"></i> Delete
+            </a>
+            {% endif %}
+
+            <span class="status-chip status-{{ ticket.status }}">{{ ticket.get_status_display }}</span>
+            <span class="priority-chip priority-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span>
+        </div>
+    </div>
+    <!-- Anchor Navigation -->
+    <nav class="anchor-nav" aria-label="Quick navigation">
+        <a href="#summary" class="anchor-link">Summary</a>
+        <a href="#description" class="anchor-link">Description</a>
+        <a href="#activity" class="anchor-link">Activity Timeline</a>
+        <a href="#comments" class="anchor-link">Comments</a>
+        <a href="#attachments" class="anchor-link">Attachments</a>
+    </nav>
+    <!-- Two-column grid -->
+    <div class="page-grid">
+
+        <!-- LEFT column -->
+        <div>
+
+            <!-- SUMMARY panel -->
+            <section id="summary" class="panel" aria-labelledby="summary-title">
+                <div class="panel-head">
+                    <span id="summary-title"><i class="fas fa-info-circle me-2"></i> Ticket Summary</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#summary-body" aria-expanded="true" aria-controls="summary-body">
+                        <i class="fas fa-chevron-down caret"></i>
+                    </button>
+                </div>
+
+                <div id="summary-body" class="panel-body">
+                    <div class="summary-grid" role="list">
+                        <div class="summary-item" role="listitem">
+                            <div class="label">Category</div>
+                            <div class="value">{{ ticket.category.name }}</div>
+                        </div>
+
+                        <div class="summary-item" role="listitem">
+                            <div class="label">Site</div>
+                            <div class="value">{{ ticket.asset_code.asset_name }} <div class="muted">({{ ticket.asset_code.asset_code }})</div></div>
+                        </div>
+
+                        {% if ticket.device_id %}
+                        <div class="summary-item">
+                            <div class="label">Device</div>
+                            <div class="value">{{ ticket.device_id.device_name }} <div class="muted">{{ ticket.device_id.device_code }}</div></div>
+                        </div>
+                        {% endif %}
+
+                        <div class="summary-item">
+                            <div class="label">Assigned To</div>
+                            <div class="value">
+                                {% if ticket.assigned_to %} {{ ticket.assigned_to.username }} {% else %} <span class="muted">Unassigned</span> {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="summary-item">
+                            <div class="label">Created</div>
+                            <div class="value">{{ ticket.created_at|date:"M d, Y H:i" }} <div class="muted">by {{ ticket.created_by.username }}</div></div>
+                        </div>
+
+                        <div class="summary-item">
+                            <div class="label">Last Updated</div>
+                            <div class="value">{{ ticket.updated_at|date:"M d, Y H:i" }}</div>
+                        </div>
+
+                        {% if ticket.loss_category %}
+                        <div class="summary-item">
+                            <div class="label">Loss Category</div>
+                            <div class="value">{{ ticket.loss_category.name }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if ticket.loss_value %}
+                        <div class="summary-item">
+                            <div class="label">Loss Value</div>
+                            <div class="value">{{ ticket.loss_value }}</div>
+                        </div>
+                        {% endif %}
+
+                        {% if ticket.closed_at %}
+                        <div class="summary-item">
+                            <div class="label">Closed</div>
+                            <div class="value">{{ ticket.closed_at|date:"M d, Y H:i" }} <div class="muted">by {{ ticket.closed_by.username }}</div></div>
+                        </div>
+                        {% if ticket.time_to_close %}
+                        <div class="summary-item">
+                            <div class="label">Time to Close</div>
+                            <div class="value">{{ ticket.time_to_close.days }} days, {{ ticket.time_to_close.seconds|floatformat:0|slice:":2" }} hours</div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+
+                        <div class="summary-item" style="grid-column: 1 / -1;">
+                            <div class="label">Watchers</div>
+                            <div class="value watcher-badges">
+                                {% with ticket.watchers.all as watcher_list %}
+                                    {% if watcher_list|length %}
+                                        {% for watcher in watcher_list %}
+                                            <span class="badge-soft">{{ watcher.username }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="muted">None</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- ADVANCED LOSS & ANALYTICS panel -->
+            <section class="panel" aria-labelledby="analytics-title" style="margin-top:8px;">
+                <div class="panel-head">
+                    <span id="analytics-title"><i class="fas fa-chart-line me-2"></i> Breakdown & Analytics Details</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#analytics-body" aria-expanded="false" aria-controls="analytics-body">
+                        <i class="fas fa-chevron-right caret"></i>
+                    </button>
+                </div>
+
+                <div id="analytics-body" class="panel-body" style="display: none;">
+                    <form method="post" action="{% url 'ticketing:ticket_update_analytics' ticket.pk %}" id="analytics-form">
+                        {% csrf_token %}
+                        <div class="form-compact">
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Breakdown Start Time
+                                    </label>
+                                    <input type="datetime-local" name="breakdown_start" id="breakdown_start" class="form-control form-control-sm" 
+                                           value="{% if ticket.metadata.breakdown_start %}{{ ticket.metadata.breakdown_start|date:'Y-m-d\TH:i' }}{% endif %}">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Breakdown End Time
+                                    </label>
+                                    <input type="datetime-local" name="breakdown_end" id="breakdown_end" class="form-control form-control-sm"
+                                           value="{% if ticket.metadata.breakdown_end %}{{ ticket.metadata.breakdown_end|date:'Y-m-d\TH:i' }}{% endif %}">
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-12">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Downtime (Hours)
+                                    </label>
+                                    <input type="text" name="downtime_hours" id="downtime_hours" class="form-control form-control-sm" readonly
+                                           value="{% if ticket.metadata.downtime_hours %}{{ ticket.metadata.downtime_hours }}{% endif %}">
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Root Cause Category
+                                    </label>
+                                    <select name="root_cause" id="root_cause" class="form-select form-select-sm">
+                                        <option value="">Select</option>
+                                        <option value="Electrical Fault" {% if ticket.metadata.root_cause == 'Electrical Fault' %}selected{% endif %}>Electrical Fault</option>
+                                        <option value="Grid Curtailment" {% if ticket.metadata.root_cause == 'Grid Curtailment' %}selected{% endif %}>Grid Curtailment</option>
+                                        <option value="Weather Impact" {% if ticket.metadata.root_cause == 'Weather Impact' %}selected{% endif %}>Weather Impact</option>
+                                        <option value="Battery Cell Imbalance" {% if ticket.metadata.root_cause == 'Battery Cell Imbalance' %}selected{% endif %}>Battery Cell Imbalance</option>
+                                        <option value="Inverter / PCS Trip" {% if ticket.metadata.root_cause == 'Inverter / PCS Trip' %}selected{% endif %}>Inverter / PCS Trip</option>
+                                        <option value="Communication Failure" {% if ticket.metadata.root_cause == 'Communication Failure' %}selected{% endif %}>Communication Failure</option>
+                                        <option value="Human Error" {% if ticket.metadata.root_cause == 'Human Error' %}selected{% endif %}>Human Error</option>
+                                        <option value="OEM Issue" {% if ticket.metadata.root_cause == 'OEM Issue' %}selected{% endif %}>OEM Issue</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Sub Cause
+                                    </label>
+                                    <select name="sub_cause" id="sub_cause" class="form-select form-select-sm">
+                                        <option value="">Select Root Cause First</option>
+                                        {% if ticket.metadata.sub_cause %}
+                                        <option value="{{ ticket.metadata.sub_cause }}" selected>{{ ticket.metadata.sub_cause }}</option>
+                                        {% endif %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Severity Level
+                                    </label>
+                                    <select name="severity" class="form-select form-select-sm">
+                                        <option value="">Select</option>
+                                        <option value="Critical" {% if ticket.metadata.severity == 'Critical' %}selected{% endif %}>Critical</option>
+                                        <option value="High" {% if ticket.metadata.severity == 'High' %}selected{% endif %}>High</option>
+                                        <option value="Medium" {% if ticket.metadata.severity == 'Medium' %}selected{% endif %}>Medium</option>
+                                        <option value="Low" {% if ticket.metadata.severity == 'Low' %}selected{% endif %}>Low</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Asset Criticality
+                                    </label>
+                                    <select name="criticality" class="form-select form-select-sm">
+                                        <option value="">Select</option>
+                                        <option value="Critical" {% if ticket.metadata.criticality == 'Critical' %}selected{% endif %}>Critical</option>
+                                        <option value="Important" {% if ticket.metadata.criticality == 'Important' %}selected{% endif %}>Important</option>
+                                        <option value="Normal" {% if ticket.metadata.criticality == 'Normal' %}selected{% endif %}>Normal</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Estimated MWh Loss
+                                    </label>
+                                    <input type="number" step="0.01" name="loss_mwh" class="form-control form-control-sm"
+                                           value="{% if ticket.metadata.loss_mwh %}{{ ticket.metadata.loss_mwh }}{% endif %}">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Revenue Loss (₹)
+                                    </label>
+                                    <input type="number" step="0.01" name="revenue_loss" class="form-control form-control-sm"
+                                           value="{% if ticket.metadata.revenue_loss %}{{ ticket.metadata.revenue_loss }}{% endif %}">
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Material Cost (₹)
+                                    </label>
+                                    <input type="number" step="0.01" name="material_cost" class="form-control form-control-sm"
+                                           value="{% if ticket.metadata.material_cost %}{{ ticket.metadata.material_cost }}{% endif %}">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Labour Cost (₹)
+                                    </label>
+                                    <input type="number" step="0.01" name="labour_cost" class="form-control form-control-sm"
+                                           value="{% if ticket.metadata.labour_cost %}{{ ticket.metadata.labour_cost }}{% endif %}">
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                        Warranty Status
+                                    </label>
+                                    <select name="warranty_status" class="form-select form-select-sm">
+                                        <option value="">Select</option>
+                                        <option value="Under Warranty" {% if ticket.metadata.warranty_status == 'Under Warranty' %}selected{% endif %}>Under Warranty</option>
+                                        <option value="Out of Warranty" {% if ticket.metadata.warranty_status == 'Out of Warranty' %}selected{% endif %}>Out of Warranty</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                    Upload Logs / Attachments (Optional)
+                                </label>
+                                <input type="file" name="attachment" class="form-control form-control-sm" multiple>
+                            </div>
+
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-primary btn-sm btn-wide">
+                                    <i class="fas fa-save me-1"></i> Save Analytics Details
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ACTIONS panel -->
+            <section class="panel" aria-labelledby="actions-title" style="margin-top:8px;">
+                <div class="panel-head">
+                    <span id="actions-title"><i class="fas fa-cogs me-2"></i> Actions</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#actions-body" aria-expanded="false" aria-controls="actions-body">
+                        <i class="fas fa-chevron-right caret"></i>
+                    </button>
+                </div>
+
+                <div id="actions-body" class="panel-body" style="display: none;">
+                    <div class="form-compact">
+                        <!-- Update Watchers -->
+                        {% if watcher_form %}
+                        <div class="mb-2">
+                            <label class="muted">Update Watchers</label>
+                            <div>
+                                <form method="post" action="{% url 'ticketing:ticket_update_watchers' ticket.pk %}">
+                                    {% csrf_token %}
+                                    <div class="multi-select-container">
+                                        <div id="watchersFilterTrigger" class="multi-select-trigger">
+                                            <span id="watchersFilterPlaceholder" data-default="Select watchers" class="text-muted">Select watchers</span>
+                                            <span class="multi-select-arrow">▼</span>
+                                        </div>
+                                        <div id="watchersFilterDropdown" class="multi-select-dropdown"></div>
+                                        <div id="watchersSelectedItems" class="selected-items"></div>
+                                    </div>
+                                    <select name="watchers" id="watchersHiddenSelect" class="d-none" multiple>
+                                        {% for user in watcher_form.watchers.field.queryset %}
+                                            <option value="{{ user.id }}" {% if user in ticket.watchers.all %}selected{% endif %}>
+                                                {{ user.username }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div id="watchersHiddenInputs"></div>
+                                    <div style="margin-top:8px;">
+                                        <button class="btn btn-primary btn-wide" type="submit"><i class="fas fa-save"></i> Save Watchers</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="section-sep"></div>
+                        {% endif %}
+
+                        <!-- Change Status -->
+                        {% if can_change_status %}
+                        <div class="mb-2">
+                            <label class="muted">Change Status</label>
+                            <form method="post" action="{% url 'ticketing:ticket_status_change' ticket.pk %}">
+                                {% csrf_token %}
+                                <div class="multi-select-container mb-2">
+                                    <div id="statusFilterTrigger" class="multi-select-trigger">
+                                        <span id="statusFilterPlaceholder" data-default="Select Status" class="text-muted">Select Status</span>
+                                        <span class="multi-select-arrow">▼</span>
+                                    </div>
+                                    <div id="statusFilterDropdown" class="multi-select-dropdown"></div>
+                                    <div id="statusSelectedItems" class="selected-items"></div>
+                                </div>
+                                <input type="hidden" name="status" id="statusSingleInput" value="{% if ticket.status %}{{ ticket.status }}{% endif %}">
+                                <div class="mb-2"><textarea name="notes" class="form-control" placeholder="Optional notes" rows="2"></textarea></div>
+                                <div>
+                                    <button class="btn btn-primary btn-wide" type="submit"><i class="fas fa-sync"></i> Update</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="section-sep"></div>
+                        {% endif %}
+
+                        <!-- Assign -->
+                        {% if can_assign or is_assigned_user %}
+                        <div class="mb-2">
+                            <label class="muted">Assign To</label>
+                            <form method="post" action="{% url 'ticketing:ticket_assign' ticket.pk %}">
+                                {% csrf_token %}
+                                <div class="multi-select-container mb-2">
+                                    <div id="assignToFilterTrigger" class="multi-select-trigger">
+                                        <span id="assignToFilterPlaceholder" data-default="Select User" class="text-muted">Select User</span>
+                                        <span class="multi-select-arrow">▼</span>
+                                    </div>
+                                    <div id="assignToFilterDropdown" class="multi-select-dropdown"></div>
+                                    <div id="assignToSelectedItems" class="selected-items"></div>
+                                </div>
+                                <input type="hidden" name="assigned_to" id="assignToSingleInput" value="{% if ticket.assigned_to %}{{ ticket.assigned_to.id }}{% endif %}">
+                                <div class="mb-2"><textarea name="notes" class="form-control" placeholder="Optional notes" rows="2"></textarea></div>
+                                <div>
+                                    <button class="btn btn-primary btn-wide" type="submit"><i class="fas fa-user-plus"></i> Assign</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="section-sep"></div>
+                        {% endif %}
+
+                        <!-- Close -->
+                        {% if ticket.status != 'closed' and can_close %}
+                        <div class="mb-2">
+                            <label class="muted">Close Ticket</label>
+                            <form method="post" action="{% url 'ticketing:ticket_close' ticket.pk %}">
+                                {% csrf_token %}
+                                <div class="mb-2"><textarea name="resolution_notes" class="form-control" rows="3" placeholder="Resolution notes"></textarea></div>
+                                <div>
+                                    <button class="btn btn-success btn-wide" type="submit"><i class="fas fa-check"></i> Close Ticket</button>
+                                </div>
+                            </form>
+                        </div>
+                        {% endif %}
+
+                        <!-- Reopen -->
+                        {% if ticket.status == 'closed' %}
+                        <div class="mb-2">
+                            <form method="post" action="{% url 'ticketing:ticket_reopen' ticket.pk %}">
+                                {% csrf_token %}
+                                <button class="btn btn-warning btn-wide" type="submit"><i class="fas fa-redo"></i> Reopen Ticket</button>
+                            </form>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- RIGHT column -->
+        <div>
+
+            <!-- DESCRIPTION -->
+            <section id="description" class="panel">
+                <div class="panel-head">
+                    <span><i class="fas fa-align-left me-2"></i> Description</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#description-body" aria-expanded="true"><i class="fas fa-chevron-down caret"></i></button>
+                </div>
+                <div id="description-body" class="panel-body description">
+                    {% if ticket.description %}
+                        <p>{{ ticket.description|linebreaks }}</p>
+                    {% else %}
+                        <p class="muted">No description provided.</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            {% if ticket.resolution_notes %}
+            <section class="panel" style="margin-top:8px;">
+                <div class="panel-head">
+                    <span><i class="fas fa-check-circle me-2"></i> Resolution Notes</span>
+                </div>
+                <div class="panel-body">
+                    {{ ticket.resolution_notes|linebreaks }}
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- SCHEDULED TIMES -->
+            <section id="scheduled-times" class="panel" style="margin-top:8px;">
+                <div class="panel-head">
+                    <span><i class="fas fa-calendar-alt me-2"></i> Scheduled Times</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#scheduled-times-body" aria-expanded="false" aria-controls="scheduled-times-body"><i class="fas fa-chevron-right caret"></i></button>
+                </div>
+                <div id="scheduled-times-body" class="panel-body" style="display: none;">
+                    <form method="post" action="{% url 'ticketing:ticket_update_scheduled_times' ticket.pk %}" id="scheduled-times-form">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="scheduled_start_time" class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                    <i class="fas fa-clock me-1"></i> Scheduled Start Time
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="scheduled_start_time" 
+                                    name="scheduled_start_time" 
+                                    class="form-control form-control-sm datetime-picker" 
+                                    placeholder="Select start date and time"
+                                    value="{% if ticket.metadata.scheduled_start_time %}{{ ticket.metadata.scheduled_start_time }}{% endif %}"
+                                    autocomplete="off"
+                                >
+                            </div>
+                            <div class="col-md-6">
+                                <label for="scheduled_end_time" class="form-label muted" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
+                                    <i class="fas fa-clock me-1"></i> Scheduled End Time
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="scheduled_end_time" 
+                                    name="scheduled_end_time" 
+                                    class="form-control form-control-sm datetime-picker" 
+                                    placeholder="Select end date and time"
+                                    value="{% if ticket.metadata.scheduled_end_time %}{{ ticket.metadata.scheduled_end_time }}{% endif %}"
+                                    autocomplete="off"
+                                >
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-save me-1"></i> Save Scheduled Times
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm ms-2" id="clear-scheduled-times">
+                                <i class="fas fa-times me-1"></i> Clear
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ACTIVITY TIMELINE -->
+            <section id="activity" class="panel" style="margin-top:12px;">
+                <div class="panel-head">
+                    <span><i class="fas fa-history me-2"></i> Activity Timeline</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#activity-body" aria-expanded="true"><i class="fas fa-chevron-down caret"></i></button>
+                </div>
+                <div id="activity-body" class="panel-body scroll-area">
+                    {% if activities %}
+                    <div class="activity-list" role="list">
+                        {% for activity in activities %}
+                        <div class="activity" role="listitem">
+                            <div class="dot" aria-hidden="true"></div>
+                            <div>
+                                <div style="font-weight:700;">{{ activity.user.username }} <span class="muted">• {{ activity.get_action_type_display }}</span>{% if activity.field_changed %} → {{ activity.field_changed }}{% endif %}</div>
+                                {% if activity.notes %}
+                                <div style="margin-top:6px;">{{ activity.notes }}</div>
+                                {% endif %}
+                                <div class="meta">{{ activity.timestamp|date:"M d, Y H:i" }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="muted">No activity recorded.</div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- COMMENTS -->
+            <section id="comments" class="panel" style="margin-top:12px;">
+                <div class="panel-head">
+                    <span><i class="fas fa-comments me-2"></i> Comments</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#comments-body" aria-expanded="false" aria-controls="comments-body"><i class="fas fa-chevron-right caret"></i></button>
+                </div>
+                <div id="comments-body" class="panel-body" style="display: none;">
+                    {% if can_comment or is_assigned_user %}
+                    <form method="post" action="{% url 'ticketing:ticket_comment' ticket.pk %}" class="mb-3">
+                        {% csrf_token %}
+                        {{ comment_form.comment }}
+                        <div class="form-check mt-2 mb-2">
+                            {{ comment_form.is_internal }}
+                            <label class="form-check-label muted" for="{{ comment_form.is_internal.id_for_label }}">Internal note</label>
+                        </div>
+                        <div>
+                            <button class="btn btn-primary btn-wide" type="submit"><i class="fas fa-comment"></i> Add Comment</button>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    <div class="scroll-area">
+                        {% if comments %}
+                            {% for comment in comments %}
+                                <div class="comment {% if comment.is_internal %}internal{% endif %}" style="margin-bottom:8px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <div style="font-weight:700;">{{ comment.user.username }}</div>
+                                        <div class="muted small">{{ comment.created_at|date:"M d, Y H:i" }}</div>
+                                    </div>
+                                    <div>{{ comment.comment|linebreaks }}</div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="muted">No comments yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- ATTACHMENTS -->
+            <section id="attachments" class="panel" style="margin-top:12px;">
+                <div class="panel-head">
+                    <span><i class="fas fa-paperclip me-2"></i> Attachments</span>
+                    <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#attachments-body" aria-expanded="false" aria-controls="attachments-body"><i class="fas fa-chevron-right caret"></i></button>
+                </div>
+                <div id="attachments-body" class="panel-body" style="display: none;">
+                    {% if attachments %}
+                        <div class="attach-grid">
+                            {% for attachment in attachments %}
+                            <div class="attachment-row">
+                                <div style="display:flex;gap:10px;align-items:center;">
+                                    <i class="fas fa-file" style="color:var(--muted)"></i>
+                                    <div>
+                                        <div style="font-weight:700;">{{ attachment.file_name }}</div>
+                                        <div class="muted small">{{ attachment.file_size|filesizeformat }}</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:8px;">
+                                    <a href="{{ attachment.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-download"></i></a>
+                                    {% if can_edit or attachment.uploaded_by == request.user %}
+                                    <form method="post" action="{% url 'ticketing:ticket_attachment_delete' ticket.pk attachment.id %}" onsubmit="return confirm('Delete this file?');">
+                                        {% csrf_token %}
+                                        <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="muted">No attachments</div>
+                    {% endif %}
+
+                    {% if can_edit or is_assigned_user %}
+                    <div style="margin-top:8px;">
+                        <form method="post" action="{% url 'ticketing:ticket_attachment_upload' ticket.pk %}" enctype="multipart/form-data" id="attachment-upload-form">
+                            {% csrf_token %}
+                            <div class="upload-area" style="padding:8px;">
+                                <input type="file" name="file" class="form-control" accept="image/*,application/pdf,.doc,.docx">
+                                <small class="muted">Max: 10MB</small>
+                                <div class="paste-image-area border border-dashed p-2 text-center mb-1" style="cursor: pointer; background-color: #f8f9fa; margin-top:8px;">
+                                    <i class="fas fa-image"></i> <small>Paste image (Ctrl+V)</small>
+                                    <div class="paste-preview mt-1"></div>
+                                </div>
+                                <input type="hidden" name="pasted_image" id="pasted-image-input">
+                                <div style="margin-top:8px;">
+                                    <button type="submit" class="btn btn-primary btn-wide"><i class="fas fa-upload"></i> Upload File</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+    <!-- mobile footer actions -->
+    <div class="footer-actions">
+        {% if can_edit %}
+        <a href="{% url 'ticketing:ticket_edit' ticket.pk %}" class="btn btn-primary"><i class="fas fa-edit"></i> Edit</a>
+        {% endif %}
+        {% if ticket.status != 'closed' and can_close %}
+        <form method="post" action="{% url 'ticketing:ticket_close' ticket.pk %}">
+            {% csrf_token %}
+            <button class="btn btn-success" type="submit"><i class="fas fa-check"></i> Close</button>
+        </form>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Multi-Select JavaScript -->
+<script src="{% static 'js/multi-select.js' %}"></script>
+
+<!-- ---------- Small JS for anchors, collapse icons, and sticky active nav ---------- -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // smooth anchor scrolling and active state
+    const links = document.querySelectorAll('.anchor-link');
+    function setActiveLink() {
+        let fromTop = window.scrollY + 90; // offset for header
+        links.forEach(link => {
+            const section = document.querySelector(link.getAttribute('href'));
+            if (!section) return;
+            if (section.offsetTop <= fromTop && section.offsetTop + section.offsetHeight > fromTop) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+    }
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
+            }
+        });
+    });
+    window.addEventListener('scroll', setActiveLink);
+    setActiveLink();
+
+    // collapse toggles (simple)
+    document.querySelectorAll('[data-toggle="collapse"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const target = document.querySelector(this.getAttribute('data-target'));
+            if (!target) return;
+            const isHidden = target.style.display === 'none' || window.getComputedStyle(target).display === 'none';
+            target.style.display = isHidden ? 'block' : 'none';
+            // rotate caret icon - check if target is now visible
+            const caret = this.querySelector('.caret');
+            if (caret) {
+                const willBeVisible = isHidden; // target will be visible if it was hidden
+                if (willBeVisible) {
+                    // Expand: rotate chevron-right 90deg to point down
+                    caret.style.transform = 'rotate(90deg)';
+                } else {
+                    // Collapse: rotate back to 0deg to point right
+                    caret.style.transform = 'rotate(0deg)';
+                }
+                // Update aria-expanded
+                this.setAttribute('aria-expanded', willBeVisible ? 'true' : 'false');
+            }
+        });
+    });
+
+    // set initial collapsed bodies if any: keep all expanded by default
+});
+</script>
+
+<!-- Initialize Multi-Select for All Fields -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Function to manage z-index and overflow for dropdowns to prevent overlap and clipping
+    function manageDropdownZIndex() {
+        const dropdowns = document.querySelectorAll('.multi-select-dropdown');
+        const containers = document.querySelectorAll('.multi-select-container');
+        
+        // Reset all containers to default z-index and ensure overflow is visible
+        containers.forEach(container => {
+            container.style.zIndex = '1';
+        });
+        
+        // Reset all parent containers overflow and margin
+        document.querySelectorAll('.card-modern').forEach(card => {
+            const hasOpenDropdown = card.querySelector('.multi-select-dropdown[style*="display: block"]');
+            if (!hasOpenDropdown) {
+                // Reset margin for watchers card if dropdown is closed
+                if (card.querySelector('#watchersFilterDropdown')) {
+                    card.style.marginBottom = '';
+                }
+            }
+        });
+        
+        // Find open dropdown and set its container to highest z-index
+        dropdowns.forEach(dropdown => {
+            const isOpen = dropdown.style.display === 'block' || window.getComputedStyle(dropdown).display === 'block';
+            if (isOpen) {
+                const container = dropdown.closest('.multi-select-container');
+                if (container) {
+                    container.style.zIndex = '99999';
+                    dropdown.style.zIndex = '99999';
+                    
+                    // Ensure all parent containers have overflow visible
+                    let parent = container.parentElement;
+                    while (parent && parent !== document.body) {
+                        if (parent.classList.contains('card-modern') || 
+                            parent.classList.contains('card-body') || 
+                            parent.classList.contains('action-card') ||
+                            parent.classList.contains('row') ||
+                            parent.classList.contains('col-xl-4') ||
+                            parent.classList.contains('col-xl-8') ||
+                            parent.classList.contains('col-lg-5') ||
+                            parent.classList.contains('col-lg-7')) {
+                            parent.style.overflow = 'visible';
+                            parent.style.zIndex = parent.classList.contains('action-card') ? '99998' : '1';
+                            
+                            // Special handling for watchers dropdown - add extra margin to card when open
+                            if (dropdown.id === 'watchersFilterDropdown' && parent.classList.contains('card-modern')) {
+                                if (isOpen) {
+                                    parent.style.marginBottom = '350px';
+                                    parent.style.zIndex = '99998';
+                                } else {
+                                    parent.style.marginBottom = '';
+                                }
+                            }
+                        }
+                        parent = parent.parentElement;
+                    }
+                    
+                    // Also increase z-index of parent action-card if exists
+                    const actionCard = container.closest('.action-card');
+                    if (actionCard) {
+                        actionCard.style.zIndex = '99998';
+                        actionCard.style.overflow = 'visible';
+                    }
+                }
+            }
+        });
+    }
+    
+    // Use MutationObserver to watch for dropdown display changes
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                manageDropdownZIndex();
+            }
+        });
+    });
+    
+    // Observe all dropdowns
+    document.querySelectorAll('.multi-select-dropdown').forEach(dropdown => {
+        observer.observe(dropdown, {
+            attributes: true,
+            attributeFilter: ['style']
+        });
+    });
+    
+    // Also check periodically (fallback)
+    setInterval(manageDropdownZIndex, 100);
+    
+    // Close other dropdowns when one opens
+    document.querySelectorAll('.multi-select-trigger').forEach(trigger => {
+        trigger.addEventListener('click', function(e) {
+            // Small delay to let the clicked dropdown open first
+            setTimeout(() => {
+                const currentContainer = this.closest('.multi-select-container');
+                const allDropdowns = document.querySelectorAll('.multi-select-dropdown');
+                
+                allDropdowns.forEach(dropdown => {
+                    const dropdownContainer = dropdown.closest('.multi-select-container');
+                    if (dropdownContainer !== currentContainer) {
+                        dropdown.style.display = 'none';
+                        const trigger = dropdownContainer.querySelector('.multi-select-trigger');
+                        if (trigger) {
+                            trigger.classList.remove('active');
+                        }
+                    }
+                });
+                
+                manageDropdownZIndex();
+            }, 10);
+        });
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.multi-select-container')) {
+            document.querySelectorAll('.multi-select-dropdown').forEach(dropdown => {
+                dropdown.style.display = 'none';
+            });
+            document.querySelectorAll('.multi-select-trigger').forEach(trigger => {
+                trigger.classList.remove('active');
+            });
+            
+            // Reset margin-bottom for watchers card when dropdown closes
+            document.querySelectorAll('.card-modern').forEach(card => {
+                if (card.querySelector('#watchersFilterDropdown')) {
+                    card.style.marginBottom = '';
+                }
+            });
+            
+            manageDropdownZIndex();
+        }
+    });
+    
+    // Initial call
+    manageDropdownZIndex();
+    
+    // Helper function to update hidden inputs for form submission
+    function updateHiddenInputs(containerId, selectedValues, fieldName, isMultiple, singleInputId) {
+        if (isMultiple || fieldName === 'watchers') {
+            // For multiple selection (watchers)
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            selectedValues.forEach(value => {
+                if (value) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = fieldName;
+                    input.value = value;
+                    container.appendChild(input);
+                }
+            });
+        } else {
+            // For single selection (status, assigned_to) - update single input
+            const singleInput = document.getElementById(singleInputId);
+            if (singleInput && selectedValues.length > 0 && selectedValues[0]) {
+                singleInput.value = selectedValues[0];
+            } else if (singleInput) {
+                singleInput.value = '';
+            }
+        }
+    }
+    
+    // Initialize Status multi-select
+    {% if status_form %}
+    const statusOptions = [
+        {% for status_value, status_label in status_form.status.field.choices %}
+            {% if status_value != '' %}
+                {% if status_value == 'closed' and not can_close %}
+                {% else %}
+                { value: '{{ status_value }}', label: '{{ status_label|escapejs }}' },
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    ];
+    
+    let statusMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && statusOptions.length > 0) {
+        statusMultiSelect = new MultiSelect(
+            'statusFilterTrigger',
+            'statusFilterDropdown',
+            'statusFilterPlaceholder',
+            'statusSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('statusHiddenInputs', selectedValues, 'status', false, 'statusSingleInput');
+            }
+        );
+        statusMultiSelect.setOptions(statusOptions);
+        {% if ticket.status %}
+        statusMultiSelect.setSelectedValues(['{{ ticket.status }}']);
+        {% endif %}
+    }
+    {% endif %}
+    
+    // Initialize Assign To multi-select
+    {% if assign_form %}
+    const assignToOptions = [
+        { value: '', label: 'Select User' },
+        {% if assign_form.assigned_to.field.queryset %}
+            {% for user in assign_form.assigned_to.field.queryset %}
+            { value: '{{ user.id }}', label: '{{ user.username|escapejs }}' },
+            {% endfor %}
+        {% endif %}
+    ];
+    
+    let assignToMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && assignToOptions.length > 1) {
+        assignToMultiSelect = new MultiSelect(
+            'assignToFilterTrigger',
+            'assignToFilterDropdown',
+            'assignToFilterPlaceholder',
+            'assignToSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('assignToHiddenInputs', selectedValues, 'assigned_to', false, 'assignToSingleInput');
+            }
+        );
+        assignToMultiSelect.setOptions(assignToOptions);
+        {% if ticket.assigned_to %}
+        assignToMultiSelect.setSelectedValues(['{{ ticket.assigned_to.id }}']);
+        {% endif %}
+    }
+    {% endif %}
+    
+    // Initialize Watchers multi-select
+    {% if watcher_form %}
+    const watchersOptions = [
+        {% if watcher_form.watchers.field.queryset %}
+            {% for user in watcher_form.watchers.field.queryset %}
+            { value: '{{ user.id }}', label: '{{ user.username|escapejs }}' },
+            {% endfor %}
+        {% endif %}
+    ];
+    
+    let watchersMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && watchersOptions.length > 0) {
+        watchersMultiSelect = new MultiSelect(
+            'watchersFilterTrigger',
+            'watchersFilterDropdown',
+            'watchersFilterPlaceholder',
+            'watchersSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('watchersHiddenInputs', selectedValues, 'watchers', true);
+            }
+        );
+        watchersMultiSelect.setOptions(watchersOptions);
+        {% if ticket.watchers.exists %}
+        const initialWatcherValues = [
+            {% for watcher in ticket.watchers.all %}
+            '{{ watcher.id }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        if (initialWatcherValues.length > 0) {
+            watchersMultiSelect.setSelectedValues(initialWatcherValues);
+        }
+        {% endif %}
+    }
+    {% endif %}
+    
+    // Initialize Flatpickr for Scheduled Times
+    if (typeof flatpickr !== 'undefined') {
+        // Configure Flatpickr options
+        const flatpickrOptions = {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            time_24hr: true,
+            allowInput: true,
+            clickOpens: true,
+            minuteIncrement: 15,
+            locale: {
+                firstDayOfWeek: 1
+            },
+            // Ensure calendar appears above other elements
+            static: false,
+            appendTo: document.body,
+            onReady: function(selectedDates, dateStr, instance) {
+                // Ensure calendar is above other elements
+                const calendar = instance.calendarContainer;
+                if (calendar) {
+                    calendar.style.zIndex = '99999';
+                }
+            }
+        };
+        
+        // Initialize start time picker
+        const startTimePicker = flatpickr("#scheduled_start_time", {
+            ...flatpickrOptions,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Validate that end time is after start time
+                const endPicker = flatpickr("#scheduled_end_time");
+                if (endPicker && selectedDates.length > 0) {
+                    endPicker.set('minDate', selectedDates[0]);
+                }
+            }
+        });
+        
+        // Initialize end time picker
+        const endTimePicker = flatpickr("#scheduled_end_time", {
+            ...flatpickrOptions,
+            onChange: function(selectedDates, dateStr, instance) {
+                // Validate that start time is before end time
+                const startPicker = flatpickr("#scheduled_start_time");
+                if (startPicker && selectedDates.length > 0) {
+                    startPicker.set('maxDate', selectedDates[0]);
+                }
+            }
+        });
+        
+        // Set initial min/max dates if values exist
+        const startInput = document.getElementById('scheduled_start_time');
+        const endInput = document.getElementById('scheduled_end_time');
+        
+        if (startInput && startInput.value && endTimePicker) {
+            const startDate = new Date(startInput.value);
+            if (!isNaN(startDate.getTime())) {
+                endTimePicker.set('minDate', startDate);
+            }
+        }
+        
+        if (endInput && endInput.value && startTimePicker) {
+            const endDate = new Date(endInput.value);
+            if (!isNaN(endDate.getTime())) {
+                startTimePicker.set('maxDate', endDate);
+            }
+        }
+        
+        // Clear button functionality
+        const clearBtn = document.getElementById('clear-scheduled-times');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to clear the scheduled times?')) {
+                    startTimePicker.clear();
+                    endTimePicker.clear();
+                    startTimePicker.set('minDate', null);
+                    startTimePicker.set('maxDate', null);
+                    endTimePicker.set('minDate', null);
+                    endTimePicker.set('maxDate', null);
+                }
+            });
+        }
+    }
+});
+
+// Advanced Loss & Analytics JavaScript
+document.addEventListener("DOMContentLoaded", function () {
+    // Auto-calc Downtime
+    function calcDowntime() {
+        const start = document.getElementById("breakdown_start");
+        const end = document.getElementById("breakdown_end");
+        
+        if (start && end) {
+            const startValue = start.value;
+            const endValue = end.value;
+
+            if (startValue && endValue) {
+                const startTime = new Date(startValue);
+                const endTime = new Date(endValue);
+
+                let diff = (endTime - startTime) / 1000 / 3600;
+                if (diff < 0) diff = 0;
+
+                const downtimeField = document.getElementById("downtime_hours");
+                if (downtimeField) {
+                    downtimeField.value = diff.toFixed(2);
+                }
+            }
+        }
+    }
+
+    const breakdownStart = document.getElementById("breakdown_start");
+    const breakdownEnd = document.getElementById("breakdown_end");
+    
+    if (breakdownStart) {
+        breakdownStart.addEventListener("change", calcDowntime);
+    }
+    if (breakdownEnd) {
+        breakdownEnd.addEventListener("change", calcDowntime);
+    }
+
+    // Sub Cause Auto Population
+    const subCauseMap = {
+        "Inverter / PCS Trip": [
+            "Over Temperature", "Over Voltage", "Fan Failure", "DC Surge"
+        ],
+        "Battery Cell Imbalance": [
+            "Cell Over Voltage", "Cell Under Voltage", "Thermal Drift"
+        ],
+        "Weather Impact": [
+            "Low Irradiance", "Heavy Rain", "High Temperature"
+        ],
+        "Communication Failure": [
+            "Fiber Cut", "Modem Failure", "Network Drop"
+        ],
+        "Electrical Fault": [
+            "Breaker Trip", "Fuse Failure", "Ground Fault"
+        ]
+    };
+
+    const rootCauseSelect = document.getElementById("root_cause");
+    if (rootCauseSelect) {
+        // Initialize sub cause if root cause is already selected
+        const currentRootCause = rootCauseSelect.value;
+        const currentSubCause = "{% if ticket.metadata.sub_cause %}{{ ticket.metadata.sub_cause|escapejs }}{% endif %}";
+        
+        if (currentRootCause && subCauseMap[currentRootCause]) {
+            const sub = document.getElementById("sub_cause");
+            if (sub) {
+                sub.innerHTML = "<option value=''>Select</option>";
+                subCauseMap[currentRootCause].forEach(item => {
+                    const selected = (currentSubCause && item === currentSubCause) ? 'selected' : '';
+                    sub.innerHTML += `<option value="${item}" ${selected}>${item}</option>`;
+                });
+            }
+        }
+
+        rootCauseSelect.addEventListener("change", function () {
+            const sub = document.getElementById("sub_cause");
+            if (sub) {
+                const selected = this.value;
+
+                sub.innerHTML = "<option value=''>Select</option>";
+
+                if (subCauseMap[selected]) {
+                    subCauseMap[selected].forEach(item => {
+                        sub.innerHTML += `<option value="${item}">${item}</option>`;
+                    });
+                } else {
+                    sub.innerHTML = "<option value=''>Select Root Cause First</option>";
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

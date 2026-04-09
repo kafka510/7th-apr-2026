@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load django_vite %}
+{% load permission_tags %}
+
+{% block title %}Data Upload & Management{% endblock %}
+
+{% block extra_head %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% if DJANGO_VITE_DEV_MODE %}
+    {% vite_hmr_client %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div id="react-root" 
+     data-app="data-upload" 
+     class="js-react-data-upload"
+     {% if user.is_superuser %}data-is-superuser="true"{% endif %}
+     {% if user|has_capability:"data_upload.manage" %}data-has-data-upload-manage="true"{% endif %}>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {% vite_asset 'src/main.tsx' %}
+{% endblock %}
+
+
+
+
+

@@ -1,0 +1,2862 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KPI ANALYTICS – Modern Style</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS for styles -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <!-- ECharts for bar chart -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <!-- AOS for animations -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <!-- PapaParse for CSV parsing if needed -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <!-- BestCalendar Component -->
+  <script src="/components/bestcalendar.js"></script>
+
+  <style>
+    /* Modern styling inspired by Realtimemonitoring.html */
+    :root {
+      --bg-color: #f5f7fa;
+      --card-bg: #ffffff;
+      --accent: #4e89ae;
+      --accent-light: #a8dadc;
+      --text-color: #333;
+      --border-color: #e0e0e0;
+      --primary-blue: #2563eb;
+      --primary-green: #16a34a;
+      --kpi-accent: #0072CE;
+    }
+
+    /* --- bfz macro: font size consistency for all axis, data, and cards --- */
+    :root {
+      --bfz-font-xs: 0.97rem;   /* For filter labels, card labels, axis labels */
+      --bfz-font-sm: 1.1rem;    /* For card values, small chart data */
+      --bfz-font-md: 1.25rem;   /* For chart axis/data on medium screens */
+      --bfz-font-lg: 1.5rem;    /* For chart axis/data on large screens */
+    }
+    
+    .bfz-label, .gauge-title, .filter-label-font, select.filter-select, #kpiRow span {
+      font-size: var(--bfz-font-xs) !important;
+    }
+    .bfz-value, .gauge-value, .kpi-card span.font-extrabold {
+      font-size: var(--bfz-font-sm) !important;
+    }
+    @media (min-width: 700px) {
+      .bfz-value, .gauge-value, .kpi-card span.font-extrabold {
+        font-size: var(--bfz-font-md) !important;
+      }
+      .bfz-label, .gauge-title, .filter-label-font, select.filter-select, #kpiRow span {
+        font-size: var(--bfz-font-xs) !important;
+      }
+    }
+    @media (min-width: 1200px) {
+      .bfz-value, .gauge-value, .kpi-card span.font-extrabold {
+        font-size: var(--bfz-font-lg) !important;
+      }
+      .bfz-label, .gauge-title, .filter-label-font, select.filter-select, #kpiRow span {
+        font-size: var(--bfz-font-xs) !important;
+      }
+    }
+    /* End bfz macro font size section */
+
+    /* --- Modern body and layout styling --- */
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+      background: var(--bg-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-color);
+      overflow-x: hidden;
+      margin: 0;
+    }
+    
+    body {
+      overflow-y: auto !important;
+      overflow-x: hidden;
+    }
+    
+    .main-content {
+      width: 100vw;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: clamp(10px, 2vw, 20px);
+      box-sizing: border-box;
+    }
+
+    /* Modern glass effect */
+    .glass {
+      background: var(--card-bg);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* --- Modern typography for filters/cards --- */
+    .gauge-title {
+      color: var(--accent);
+      font-size: clamp(14px, 1.5vw, 18px);
+      font-weight: 600;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .gauge-value {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: clamp(12px, 1.5vw, 14px);
+      font-weight: bold;
+      color: var(--accent);
+    }
+
+    /* Style filter dropdown content color */
+    select.filter-select, select.filter-select option {
+      color: var(--kpi-accent) !important;
+    }
+
+    /* Multi-select dropdown styles - Modern from Realtimemonitoring.html */
+    .multi-select-container {
+      position: relative;
+      min-width: 140px;
+    }
+
+    .multi-select-trigger {
+      padding: 8px 10px;
+      font-size: clamp(12px, 1.5vw, 14px);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-color);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-width: 140px;
+      transition: border-color 0.2s;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .multi-select-trigger:hover {
+      border-color: var(--accent);
+    }
+
+    .multi-select-trigger.active {
+      border-color: var(--accent);
+    }
+
+    .multi-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .multi-select-dropdown.show {
+      display: block;
+    }
+
+    .multi-select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color 0.2s;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .multi-select-option:hover {
+      background-color: #f8f9fa;
+    }
+
+    .multi-select-option input[type="checkbox"] {
+      margin: 0;
+    }
+
+    .multi-select-option.selected {
+      background-color: #e3f2fd;
+    }
+
+    .selected-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .selected-item {
+      background: var(--accent);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .selected-item .remove {
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .selected-item .remove:hover {
+      opacity: 0.8;
+    }
+
+    .multi-select-placeholder {
+      color: #6c757d;
+    }
+
+    .multi-select-arrow {
+      transition: transform 0.2s;
+    }
+
+    .multi-select-arrow.rotated {
+      transform: rotate(180deg);
+    }
+    
+    /* Modern button and form element styling from Realtimemonitoring.html */
+    .month-trigger-btn {
+      padding: 8px 10px;
+      font-size: clamp(12px, 1.5vw, 14px);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--accent);
+      cursor: pointer;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-width: 140px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .month-trigger-btn:hover {
+      border-color: var(--accent);
+    }
+
+    /* BestCalendar styles - using the same approach as Realtimemonitoring.html */
+    .month-matrix-picker {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      z-index: 1000;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      max-width: clamp(180px, 25vw, 250px);
+      max-height: clamp(250px, 40vh, 350px);
+      overflow: auto;
+      font-size: clamp(12px, 1.5vw, 14px);
+    }
+
+    /* Ensure calendar doesn't overflow screen */
+    .filter-pill {
+      position: relative;
+    }
+
+    /* Adjust calendar position if it would overflow */
+    .month-matrix-picker {
+      right: auto;
+      left: 0;
+    }
+
+    .action-btn {
+      padding: 8px 16px;
+      font-size: clamp(12px, 1.5vw, 14px);
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-color);
+      cursor: pointer;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      outline: none;
+      transition: all 0.2s;
+      min-width: 80px;
+    }
+
+    .update-btn {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    .update-btn:hover {
+      background: #3d7a9e;
+      border-color: #3d7a9e;
+    }
+
+    .reset-btn {
+      background: #f8f9fa;
+      color: #6c757d;
+      border-color: #dee2e6;
+    }
+
+    .reset-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+    }
+    /* Modern KPI card and chart styling from Realtimemonitoring.html */
+    .kpi-card {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: clamp(8px, 1vw, 15px) !important;
+      min-height: 32px !important;
+      height: 38px !important;
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    
+    .kpi-inline {
+      font-size: clamp(12px, 1.5vw, 14px);
+      color: var(--accent);
+      font-weight: bold;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.3em;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    .kpi-inline .label {
+      font-weight: 600;
+      margin-right: 0.2em;
+    }
+    
+    .kpi-inline .value {
+      font-weight: 800;
+    }
+    
+    @media (max-width: 700px) {
+      .kpi-card { 
+        min-height: 28px !important; 
+        height: 32px !important; 
+        padding: clamp(6px, 0.8vw, 12px) !important;
+      }
+      .kpi-inline { font-size: clamp(11px, 1.3vw, 13px); }
+    }
+    
+    /*--- Optimized gauge grid for single page visibility ---*/
+    .gauge-grid { 
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: clamp(8px, 1vw, 16px);
+    }
+    
+    @media (max-width: 1200px) {
+      .gauge-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .gauge-title { font-size: clamp(12px, 1.3vw, 15px) !important;}
+    }
+    
+    @media (max-width: 700px) {
+      .gauge-grid { grid-template-columns: 1fr !important; }
+      .gauge-title { font-size: clamp(11px, 1.2vw, 14px) !important;}
+      .gauge-value { font-size: clamp(10px, 1.1vw, 13px) !important;}
+    }
+    
+    /*--- Optimized chart container for 100% width utilization ---*/
+    .chart-container { 
+      min-height: clamp(350px, 45vh, 450px); 
+      height: clamp(350px, 45vh, 450px);
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      padding: clamp(10px, 1.5vw, 20px);
+      width: 100%;
+    }
+    
+    @media (max-width: 900px) {
+      .chart-container { 
+        min-height: clamp(300px, 40vh, 400px); 
+        height: clamp(300px, 40vh, 400px);
+      }
+    }
+    
+    @media (max-width: 700px) {
+      .chart-container { 
+        min-height: clamp(250px, 35vh, 350px); 
+        height: clamp(250px, 35vh, 350px);
+      }
+    }
+    /*--- Modern layout and typography ---*/
+    .main-content { 
+      min-height: 100vh; 
+      width: 100vw; 
+      overflow-x: hidden; 
+      display: flex;
+      flex-direction: column;
+      gap: clamp(10px, 1.5vw, 20px);
+    }
+    
+    /* Modern unified font style for titles and toggles */
+    .kpi-title, .chart-section-title, .toggle-btn, #toggleGauges, #toggleAdvancedBars {
+      font-size: clamp(14px, 1.5vw, 18px) !important;
+      font-weight: 600 !important;
+      color: var(--accent) !important;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    }
+    
+    /* Modern unified font for data labels */
+    .gauge-value {
+      font-size: clamp(12px, 1.5vw, 14px) !important;
+      font-weight: bold !important;
+      color: var(--accent) !important;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    }
+    
+    /* Modern advanced chart section styling */
+    #advancedBarsSection .multi-select-trigger {
+      background: var(--card-bg) !important;
+      color: var(--accent) !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 6px !important;
+      padding: 8px 10px !important;
+      font-size: clamp(12px, 1.5vw, 14px) !important;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      transition: border-color 0.2s !important;
+    }
+    
+    #advancedBarsSection .multi-select-trigger:hover {
+      border-color: var(--accent) !important;
+    }
+    
+    #advancedBarsSection .multi-select-trigger.active {
+      border-color: var(--accent) !important;
+    }
+    
+    #advancedBarsSection .multi-select-dropdown {
+      border: 1px solid var(--border-color) !important;
+      border-radius: 6px !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    }
+    
+    #advancedBarsSection .multi-select-option:hover {
+      background-color: #f8f9fa !important;
+    }
+    
+    #advancedBarsSection .multi-select-option.selected {
+      background-color: #e3f2fd !important;
+    }
+    
+    #advancedBarsSection .selected-item {
+      background: var(--accent) !important;
+      color: white !important;
+      border-radius: 4px !important;
+      font-size: 11px !important;
+    }
+    
+    #advancedBarsSection select {
+      border: 1px solid var(--border-color) !important;
+      border-radius: 6px !important;
+      color: var(--text-color) !important;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+      padding: 8px 10px !important;
+      font-size: clamp(12px, 1.5vw, 14px) !important;
+    }
+    
+    #advancedBarsSection button {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    }
+    
+    #advancedBarsSection label {
+      font-size: clamp(12px, 1.5vw, 14px) !important;
+      font-weight: 500 !important;
+      color: var(--accent) !important;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    }
+    
+    /* Hide selected items display for advanced chart filters */
+    #advancedBarsSection .selected-items {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+
+  <div class="main-content h-screen">
+    <div class="dashboard-main w-[95%] h-full mx-auto flex flex-col gap-0 p-1" data-aos="fade-up" data-aos-delay="300">
+              <!-- Header -->
+        <div class="flex justify-between items-center mb-0 py-1">
+          <!-- Logo on the left -->
+          <div class="flex items-center">
+            <img src="{% static "PEAK LOGO.jpg" %}" alt="Peak Energy Logo" class="h-12 w-auto mr-4">
+          </div>
+          <!-- Title in the center -->
+          <div class="text-center flex-1">
+            <span class="text-xl font-bold tracking-wide text-[#4e89ae] uppercase" data-i18n="dashboard.kpi.title" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">KPI ANALYTICS</span>
+          </div>
+          <!-- Empty div for balance -->
+          <div class="w-32"></div>
+        </div>
+
+                      <!-- KPI Charts - Optimized Layout -->
+        <div class="w-full flex flex-col gap-2 analytics-area h-full">
+          
+          <!-- Gauge Charts Section with Filters -->
+          <div class="bg-white rounded-lg shadow-sm p-2 border border-gray-200">
+            <div class="flex items-center gap-2 mb-2">
+              <h3 class="text-lg font-semibold text-[#4e89ae]" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">KPI Gauges - <span id="gaugeDateDisplay">Loading...</span></h3>
+              <button id="toggleGauges" class="flex items-center text-[#4e89ae] font-semibold focus:outline-none bg-blue-50 px-2 py-1 rounded border-l-2 border-[#4e89ae] transition-all duration-200 hover:bg-blue-100">
+                <svg id="arrowGauges" class="transition-transform" style="width:1rem;height:1rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Gauge Filters -->
+            <div class="mb-2 p-2 bg-gray-50 rounded-lg">
+              <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                <!-- Country Filter for Gauges -->
+                <div class="multi-select-container">
+                  <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Country</label>
+                  <div id="gaugeCountryFilterTrigger" class="multi-select-trigger">
+                    <span id="gaugeCountryFilterPlaceholder" data-default="All Countries">All Countries</span>
+                    <span class="multi-select-arrow">▼</span>
+                  </div>
+                  <div id="gaugeCountryFilterDropdown" class="multi-select-dropdown">
+                    <!-- Options will be populated dynamically -->
+                  </div>
+                  <div id="gaugeCountrySelectedItems" class="selected-items"></div>
+                </div>
+
+                <!-- Portfolio Filter for Gauges -->
+                <div class="multi-select-container">
+                  <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Portfolio</label>
+                  <div id="gaugePortfolioFilterTrigger" class="multi-select-trigger">
+                    <span id="gaugePortfolioFilterPlaceholder" data-default="All Portfolios">All Portfolios</span>
+                    <span class="multi-select-arrow">▼</span>
+                  </div>
+                  <div id="gaugePortfolioFilterDropdown" class="multi-select-dropdown">
+                    <!-- Options will be populated dynamically -->
+                  </div>
+                  <div id="gaugePortfolioSelectedItems" class="selected-items"></div>
+                </div>
+
+                <!-- Asset No Filter for Gauges -->
+                <div>
+                  <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Asset No</label>
+                  <select id="gaugeAssetNoFilter" class="w-full px-3 py-2 text-[0.96rem] bg-white text-[#4e89ae] border border-gray-300 rounded-md">
+                    <option value="">All Assets</option>
+                  </select>
+                </div>
+
+
+
+                <!-- Date Filter for Gauges -->
+                <div>
+                  <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Date</label>
+                  <div class="flex items-center gap-2">
+                    <button id="prevDateBtn" class="px-3 py-2 text-[#4e89ae] border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" title="Previous Date">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                      </svg>
+                    </button>
+                    <input type="date" id="gaugeDateFilter" class="flex-1 px-3 py-2 text-[0.96rem] bg-white text-[#4e89ae] border border-gray-300 rounded-md" value="">
+                    <button id="nextDateBtn" class="px-3 py-2 text-[#4e89ae] border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" title="Next Date">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Gauge Action Buttons -->
+                <div class="flex gap-2">
+                  <button id="gaugeUpdateBtn" type="button" class="action-btn update-btn">
+                    Update
+                  </button>
+                  <button id="gaugeResetBtn" type="button" class="action-btn reset-btn">
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Gauge Charts -->
+            <div id="gaugesSection" class="transition-all duration-500 overflow-hidden max-h-[2000px]">
+              <div class="gauge-grid w-full h-auto">
+                <div class="bg-white rounded-xl shadow-sm flex flex-col items-center justify-center relative p-4 md:p-6 w-full h-[180px] md:h-[220px] border border-gray-200">
+                  <div class="gauge-title mb-6 z-10" data-i18n="kpi.icVsActual">IC Approved Vs Actual (MWh)</div>
+                  <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                    <canvas id="icActualGauge" class="absolute inset-0 w-full h-full"></canvas>
+                  </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm flex flex-col items-center justify-center relative p-4 md:p-6 w-full h-[180px] md:h-[220px] border border-gray-200">
+                  <div class="gauge-title mb-6 z-10" data-i18n="kpi.expectedVsActual">Expected vs Actual (MWh)</div>
+                  <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                    <canvas id="expActualGauge" class="absolute inset-0 w-full h-full"></canvas>
+                  </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm flex flex-col items-center justify-center relative p-4 md:p-6 w-full h-[180px] md:h-[220px] border border-gray-200">
+                  <div class="gauge-title mb-6 z-10" data-i18n="kpi.pr">Budget Vs Actual PR(%)</div>
+                  <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                    <canvas id="prGauge" class="absolute inset-0 w-full h-full"></canvas>
+                  </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm flex flex-col items-center justify-center relative p-4 md:p-6 w-full h-[180px] md:h-[220px] border border-gray-200">
+                  <div class="gauge-title mb-6 z-10" data-i18n="kpi.irradiation">Budget Vs Actual Irradiation (kWh/m²)</div>
+                  <div class="relative w-full h-full flex-1 flex items-center justify-center">
+                    <canvas id="irrGauge" class="absolute inset-0 w-full h-full"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Monthly Generation Data Section with Embedded Filters -->
+          <div class="bg-white rounded-lg shadow-sm p-2 border border-gray-200 flex flex-col flex-1">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-semibold text-[#4e89ae]" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Monthly Generation Data</h3>
+                <button id="toggleAdvancedBars" class="flex items-center text-[#4e89ae] font-semibold focus:outline-none bg-blue-50 px-2 py-1 rounded border-l-2 border-[#4e89ae] transition-all duration-200 hover:bg-blue-100">
+                  <svg id="arrowAdvancedBars" class="transition-transform" style="width:1rem;height:1rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Dynamic Chart Title -->
+              <div class="flex-1 mx-2">
+                <h4 id="dynamicChartTitle" class="text-sm font-semibold text-[#4e89ae] text-center bg-blue-50 px-2 py-1 rounded border-l-2 border-[#4e89ae] truncate" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                  Select parameters to generate chart title
+                </h4>
+              </div>
+            </div>
+            
+            <div id="advancedBarsSection" class="transition-all duration-500 overflow-hidden max-h-[3000px] flex flex-col flex-1">
+              <!-- Embedded Filters Section -->
+              <div class="mb-2 p-2 bg-gray-50 rounded-lg">
+                <div class="flex flex-wrap gap-4 items-end">
+                  <!-- Parameter Filter -->
+                  <div class="multi-select-container flex-1 min-w-[200px]">
+                    <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Parameter</label>
+                    <div id="advancedParameterFilterTrigger" class="multi-select-trigger">
+                      <span id="advancedParameterFilterPlaceholder" data-default="Select Parameter">Select Parameter</span>
+                      <span class="multi-select-arrow">▼</span>
+                    </div>
+                    <div id="advancedParameterFilterDropdown" class="multi-select-dropdown">
+                      <div class="multi-select-option" data-value="ic_approved_budget">
+                        <input type="checkbox" id="adv_param_ic_approved_budget">
+                        <label for="adv_param_ic_approved_budget">IC Approved Budget</label>
+                      </div>
+                      <div class="multi-select-option" data-value="expected_budget">
+                        <input type="checkbox" id="adv_param_expected_budget">
+                        <label for="adv_param_expected_budget">Expected Budget</label>
+                      </div>
+                      <div class="multi-select-option" data-value="weather_loss_or_gain">
+                        <input type="checkbox" id="adv_param_weather_loss_or_gain">
+                        <label for="adv_param_weather_loss_or_gain">Weather Loss/Gain</label>
+                      </div>
+                      <div class="multi-select-option" data-value="operation_budget">
+                        <input type="checkbox" id="adv_param_operation_budget">
+                        <label for="adv_param_operation_budget">Operation Budget</label>
+                      </div>
+                      <div class="multi-select-option" data-value="breakdown_loss">
+                        <input type="checkbox" id="adv_param_breakdown_loss">
+                        <label for="adv_param_breakdown_loss">Breakdown Loss</label>
+                      </div>
+                      <div class="multi-select-option" data-value="actual_generation">
+                        <input type="checkbox" id="adv_param_actual_generation">
+                        <label for="adv_param_actual_generation">Actual Generation</label>
+                      </div>
+                      <div class="multi-select-option" data-value="expected_pr">
+                        <input type="checkbox" id="adv_param_expected_pr">
+                        <label for="adv_param_expected_pr">Expected PR</label>
+                      </div>
+                      <div class="multi-select-option" data-value="actual_pr">
+                        <input type="checkbox" id="adv_param_actual_pr">
+                        <label for="adv_param_actual_pr">Actual PR</label>
+                      </div>
+                      <div class="multi-select-option" data-value="budgeted_irradiation">
+                        <input type="checkbox" id="adv_param_budgeted_irradiation">
+                        <label for="adv_param_budgeted_irradiation">Budgeted Irradiation</label>
+                      </div>
+                      <div class="multi-select-option" data-value="actual_irradiation">
+                        <input type="checkbox" id="adv_param_actual_irradiation">
+                        <label for="adv_param_actual_irradiation">Actual Irradiation</label>
+                      </div>
+                      <div class="multi-select-option" data-value="bess_generation_mwh">
+                        <input type="checkbox" id="adv_param_bess_generation_mwh">
+                        <label for="adv_param_bess_generation_mwh">BESS Generation (MWh)</label>
+                      </div>
+                    </div>
+                    <div id="advancedParameterSelectedItems" class="selected-items"></div>
+                  </div>
+
+                  <!-- Country Filter -->
+                  <div class="multi-select-container flex-1 min-w-[150px]">
+                    <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Country</label>
+                    <div id="advancedCountryFilterTrigger" class="multi-select-trigger">
+                      <span id="advancedCountryFilterPlaceholder" data-default="All Countries">All Countries</span>
+                      <span class="multi-select-arrow">▼</span>
+                    </div>
+                    <div id="advancedCountryFilterDropdown" class="multi-select-dropdown">
+                      <!-- Options will be populated dynamically -->
+                    </div>
+                    <div id="advancedCountrySelectedItems" class="selected-items"></div>
+                  </div>
+
+                  <!-- Portfolio Filter -->
+                  <div class="multi-select-container flex-1 min-w-[150px]">
+                    <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Portfolio</label>
+                    <div id="advancedPortfolioFilterTrigger" class="multi-select-trigger">
+                      <span id="advancedPortfolioFilterPlaceholder" data-default="All Portfolios">All Portfolios</span>
+                      <span class="multi-select-arrow">▼</span>
+                    </div>
+                    <div id="advancedPortfolioFilterDropdown" class="multi-select-dropdown">
+                      <!-- Options will be populated dynamically -->
+                    </div>
+                    <div id="advancedPortfolioSelectedItems" class="selected-items"></div>
+                  </div>
+
+                  <!-- Asset No Filter -->
+                  <div class="flex-1 min-w-[120px]">
+                    <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Asset No</label>
+                    <select id="advancedAssetNoFilter" class="w-full px-3 py-2 text-[0.96rem] bg-white text-[#4e89ae] border border-gray-300 rounded-md">
+                      <option value="">All Assets</option>
+                    </select>
+                  </div>
+
+                  <!-- Period Filter -->
+                  <div class="relative flex-1 min-w-[120px]">
+                    <label class="font-bold text-[#4e89ae] text-[0.96rem] mb-2 block">Period</label>
+                    <button id="advancedMonthMatrixTrigger" type="button" class="w-full px-3 py-2 text-[0.96rem] bg-white text-[#4e89ae] text-left border border-gray-300 rounded-md">
+                      <span id="advancedSelectedMonthLabel">Select Period</span>
+                    </button>
+                    <div id="advancedMonthMatrixPicker" class="month-matrix-picker" style="display:none;"></div>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div class="flex items-end gap-2 flex-shrink-0">
+                    <button id="advancedUpdateBtn" type="button" class="action-btn update-btn px-4 py-2">
+                      Update
+                    </button>
+                    <button id="advancedResetBtn" type="button" class="action-btn reset-btn px-4 py-2">
+                      Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Chart Container -->
+              <div class="chart-container border border-gray-200 rounded-lg p-2 flex-1">
+                <div id="advancedChart2" style="width: 100%; height: 100%; min-height: 400px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+
+  <!-- Chart setup and data script goes here -->
+  <script>
+    AOS.init({ duration: 900, once: true });
+
+    // --- Data and Chart Logic for New Layout ---
+    let realtimeData = []; // For KPI Gauges (realtime.csv - monthly data)
+    let dailyData = {}; // For KPI Gauges (daily CSV files)
+    let yieldData = []; // For Monthly Generation Data (yield.csv)
+    let filteredData = [];
+    let chartInstances = { generation: null, pr: null, irr: null };
+    let gaugeCharts = {};
+    // yearCalendar removed - no longer needed
+    
+    // ECharts variables
+    let chart2 = null; // Removed - no longer needed
+    let monthlyData = {}; // Removed - no longer needed
+    
+    // Advanced chart variables (now the main chart)
+    let advancedChart2;
+    let advancedMonthlyData = {};
+    
+    // Multi-select dropdown instances (for advanced chart only)
+    let advancedParameterMultiSelect, advancedCountryMultiSelect, advancedPortfolioMultiSelect;
+    
+    // Gauge filter multi-select dropdown instances
+    let gaugeCountryMultiSelect, gaugePortfolioMultiSelect;
+
+    // Responsive font size helper for Chart.js
+    function getResponsiveFontSize(small, medium, large) {
+      const width = window.innerWidth;
+      if (width < 768) return small;      // Mobile
+      if (width < 1200) return medium;    // Tablet/Laptop
+      return large;                       // Desktop/Big Monitor
+    }
+
+    // Populate filters based on data (for backward compatibility)
+    function populateFilters(data) {
+      // This function is kept for backward compatibility but no longer needed
+      // since we're using multi-select dropdowns now
+    }
+
+    function applyFilters() {
+      // No year calendar filtering needed since Year filter was removed
+      // Use realtime data for gauge charts
+      filteredData = realtimeData;
+      // Update gauge charts with current filter selections
+      updateGaugeCharts();
+    }
+
+    function animateNumber(el, target, isFloat=false, duration=700, unit='') {
+      const start = +el.textContent.replace(/,/g, '') || 0;
+      const diff = target - start;
+      let startTime = null;
+      function animate(ts) {
+        if (!startTime) startTime = ts;
+        const progress = Math.min((ts - startTime) / duration, 1);
+        const value = start + diff * progress;
+        el.textContent = isFloat
+          ? value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+          : Math.round(value).toLocaleString();
+        if (progress < 1) requestAnimationFrame(animate);
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function formatK(val, decimals = 1) {
+      if (Math.abs(val) >= 1000) {
+        return (val / 1000).toFixed(decimals).replace(/\.0+$/, '') + 'K';
+      }
+      return val;
+    }
+    function renderGaugeChart(canvasId, value, max, label, color, unit = '', bgColor="#e6f1fc") {
+      // Destroy previous instance if exists
+      if (gaugeCharts[canvasId]) gaugeCharts[canvasId].destroy();
+
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      gaugeCharts[canvasId] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          datasets: [{
+            data: [value, Math.max(0, max - value)],
+            backgroundColor: [color, bgColor],
+            borderColor: ['#0072CE', '#0072CE'], // Add outline color
+            borderWidth: 2, // Add outline width
+            circumference: 180,
+            rotation: 270,
+            cutout: '75%', // thicker gauge arc
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+            title: { display: false },
+            annotation: { annotations: [] }
+          },
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { animateRotate: true, duration: 900 },
+          circumference: 180,
+          rotation: 270,
+        }
+      });
+
+      // Show the numeric value in the center (overlay)
+      let el = document.getElementById(canvasId);
+      setTimeout(() => {
+        let parent = el.parentNode;
+        let existing = parent.querySelector('.gauge-value');
+        if (existing) existing.remove();
+        let valueDiv = document.createElement('div');
+        valueDiv.className = 'gauge-value text-lg md:text-xl lg:text-2xl font-bold text-[#0072CE] absolute left-1/2 top-[60%] transform -translate-x-1/2 -translate-y-1/2 drop-shadow-lg';
+        
+        // Format values with appropriate units and K suffix for large numbers
+        const formatValue = (val) => {
+          if (val >= 1000) {
+            return (val / 1000).toFixed(1) + 'K';
+          }
+          return val.toFixed(1);
+        };
+        
+        // Special formatting for PR gauge - show as percentages
+        if (canvasId === 'prGauge') {
+          // Convert decimal values to percentages (e.g., 0.70 -> 70%)
+          const actualPercent = (value * 100).toFixed(1);
+          const expectedPercent = (max * 100).toFixed(1);
+          valueDiv.innerText = `${actualPercent}% / ${expectedPercent}%`;
+        } else {
+          valueDiv.innerText = `${formatValue(value)} / ${formatValue(max)}`;
+        }
+        parent.style.position = 'relative';
+        parent.appendChild(valueDiv);
+        
+        // Add percentage label at the end of the gauge arc
+        let percentageExisting = parent.querySelector('.gauge-percentage');
+        if (percentageExisting) percentageExisting.remove();
+        
+        if (max > 0) {
+          let percentage;
+          // For PR gauge, calculate percentage based on converted values
+          if (canvasId === 'prGauge') {
+            const actualPercent = value * 100;
+            const expectedPercent = max * 100;
+            percentage = (actualPercent / expectedPercent * 100).toFixed(1);
+          } else {
+            percentage = (value / max * 100).toFixed(1);
+          }
+          
+          let percentageDiv = document.createElement('div');
+          percentageDiv.className = 'gauge-percentage text-sm font-bold text-[#0072CE] absolute bg-white px-2 py-1 rounded shadow-lg border border-[#0072CE]';
+          
+          // Position the percentage label at the end of the gauge arc
+          // Since the gauge is rotated 270 degrees and covers 180 degrees, 
+          // the end point is at 0 degrees (right side)
+          percentageDiv.style.left = '85%';
+          percentageDiv.style.top = '50%';
+          percentageDiv.style.transform = 'translate(-50%, -50%)';
+          percentageDiv.style.zIndex = '10';
+          
+          percentageDiv.innerText = `${percentage}%`;
+          parent.appendChild(percentageDiv);
+        }
+      }, 500);
+    }
+
+    function updateGaugeCharts() {
+      // Get gauge filter values
+      const selectedCountries = gaugeCountryMultiSelect ? gaugeCountryMultiSelect.getSelectedValues() : [];
+      const selectedPortfolios = gaugePortfolioMultiSelect ? gaugePortfolioMultiSelect.getSelectedValues() : [];
+      const selectedAsset = document.getElementById('gaugeAssetNoFilter').value;
+      const selectedDate = document.getElementById('gaugeDateFilter').value;
+      
+
+      
+      let gaugeValues = {
+        icBudget: 0,
+        expectedBudget: 0,
+        actualGeneration: 0,
+        budgetIrr: 0,
+        actualIrr: 0,
+        expectedPR: 0,
+        actualPR: 0
+      };
+      
+      // If a specific date is selected, use daily data
+      if (selectedDate && dailyData && dailyData.length > 0) {
+        gaugeValues = calculateDailyGaugeValues(selectedDate, selectedAsset);
+      } else {
+        // Use monthly data (realtime.csv) as fallback
+        gaugeValues = calculateMonthlyGaugeValues(selectedCountries, selectedPortfolios, selectedAsset, selectedDate);
+      }
+      
+      // Render gauge charts with calculated values using Blue Wagen macro colors
+      // Always show actual/budget consistently (actual as the value, budget as the max)
+      renderGaugeChart('icActualGauge', gaugeValues.actualGeneration, gaugeValues.icBudget, "IC Approved vs Actual", "#0072CE", 'MWh');
+      renderGaugeChart('expActualGauge', gaugeValues.actualGeneration, gaugeValues.expectedBudget, "Expected vs Actual", "#0072CE", 'MWh');
+      renderGaugeChart('prGauge', gaugeValues.actualPR, gaugeValues.expectedPR, "Budget vs Actual PR", "#0072CE", '%');
+      renderGaugeChart('irrGauge', gaugeValues.actualIrr, gaugeValues.budgetIrr, "Budget vs Actual Irradiation", "#0072CE", 'kWh/m²');
+    }
+    
+    // Calculate gauge values from daily data using correct CSV structure
+    function calculateDailyGaugeValues(selectedDate, selectedAsset) {
+      const dateObj = new Date(selectedDate);
+      const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
+      
+      let values = {
+        icBudget: 0,
+        expectedBudget: 0,
+        actualGeneration: 0,
+        budgetIrr: 0,
+        actualIrr: 0,
+        expectedPR: 0,
+        actualPR: 0
+      };
+      
+      // Get filter selections
+      const selectedCountries = gaugeCountryMultiSelect ? gaugeCountryMultiSelect.getSelectedValues() : [];
+      const selectedPortfolios = gaugePortfolioMultiSelect ? gaugePortfolioMultiSelect.getSelectedValues() : [];
+      
+      // Filter data based on selections
+      let filteredData = dailyData;
+      
+      // Filter by date
+      filteredData = filteredData.filter(row => {
+        if (!row.date) return false;
+        try {
+          const rowDate = new Date(row.date);
+          const targetDate = new Date(formattedDate);
+          return rowDate.toDateString() === targetDate.toDateString();
+        } catch (e) {
+          return false;
+        }
+      });
+      
+      // Filter by country if selected
+      if (selectedCountries.length > 0) {
+        filteredData = filteredData.filter(row => selectedCountries.includes(row.country));
+      }
+      
+      // Filter by portfolio if selected
+      if (selectedPortfolios.length > 0) {
+        filteredData = filteredData.filter(row => selectedPortfolios.includes(row.portfolio));
+      }
+      
+      // Filter by asset if selected
+      if (selectedAsset) {
+        filteredData = filteredData.filter(row => row.assetno === selectedAsset);
+      }
+      
+      // Aggregate values from filtered data
+      if (filteredData.length > 0) {
+        values.actualGeneration = filteredData.reduce((sum, row) => sum + (+row.daily_generation_mwh || 0), 0);
+        values.actualIrr = filteredData.reduce((sum, row) => sum + (+row.daily_irradiation_mwh || 0), 0);
+        values.icBudget = filteredData.reduce((sum, row) => sum + (+row.daily_ic_mwh || 0), 0);
+        values.expectedBudget = filteredData.reduce((sum, row) => sum + (+row.daily_expected_mwh || 0), 0);
+        values.budgetIrr = filteredData.reduce((sum, row) => sum + (+row.daily_budget_irradiation_mwh || 0), 0);
+        
+        // Calculate average PR values
+        const totalExpectedPR = filteredData.reduce((sum, row) => sum + (+row.expect_pr || 0), 0);
+        const totalActualPR = filteredData.reduce((sum, row) => sum + (+row.actual_pr || 0), 0);
+        values.expectedPR = filteredData.length > 0 ? totalExpectedPR / filteredData.length : 0;
+        values.actualPR = filteredData.length > 0 ? totalActualPR / filteredData.length : 0;
+      }
+      
+      return values;
+    }
+    
+    // Calculate gauge values from monthly data (fallback)
+    function calculateMonthlyGaugeValues(selectedCountries, selectedPortfolios, selectedAsset, selectedDate) {
+      // Filter realtime data based on gauge selections
+      let gaugeFilteredData = realtimeData;
+      
+      if (selectedCountries.length > 0) {
+        gaugeFilteredData = gaugeFilteredData.filter(row => selectedCountries.includes(row.country));
+      }
+      
+      if (selectedPortfolios.length > 0) {
+        gaugeFilteredData = gaugeFilteredData.filter(row => selectedPortfolios.includes(row.portfolio));
+      }
+      
+      if (selectedAsset) {
+        gaugeFilteredData = gaugeFilteredData.filter(row => {
+          const rowAsset = row.assetno;
+          return rowAsset === selectedAsset;
+        });
+      }
+      
+      // Filter by date (if date is selected, filter by month containing that date)
+      if (selectedDate) {
+        const dateObj = new Date(selectedDate);
+        const year = dateObj.getFullYear();
+        const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+        const selectedMonthFromDate = `${year}-${month}`;
+        
+        gaugeFilteredData = gaugeFilteredData.filter(row => {
+          const rowMonth = row.month;
+          return rowMonth === selectedMonthFromDate;
+        });
+      }
+      
+      // Calculate gauge values from filtered realtime data
+      const budgetIrr = gaugeFilteredData.reduce((sum, r) => sum + (+r.budgeted_irradiation || 0), 0);
+      const actualIrr = gaugeFilteredData.reduce((sum, r) => sum + (+r.actual_irradiation || 0), 0);
+      const icBudget = gaugeFilteredData.reduce((sum, r) => sum + (+r.ic_approved_budget || 0), 0);
+      const expectedBudget = gaugeFilteredData.reduce((sum, r) => sum + (+r.expected_budget || 0), 0);
+      const actualGeneration = gaugeFilteredData.reduce((sum, r) => sum + (+r.actual_generation || 0), 0);
+      
+      // Calculate average PR values (PR values are already in decimal format in realtime.csv)
+      const expectedPR = gaugeFilteredData.reduce((sum, r) => sum + (+r.expected_pr || 0), 0) / (gaugeFilteredData.length || 1) * 100;
+      const actualPR = gaugeFilteredData.reduce((sum, r) => sum + (+r.actual_pr || 0), 0) / (gaugeFilteredData.length || 1) * 100;
+      
+      return {
+        icBudget,
+        expectedBudget,
+        actualGeneration,
+        budgetIrr,
+        actualIrr,
+        expectedPR,
+        actualPR
+      };
+    }
+
+    function resetFilters() {
+      // Reset advanced multi-select filters
+      if (advancedParameterMultiSelect) advancedParameterMultiSelect.clearSelection();
+      if (advancedCountryMultiSelect) advancedCountryMultiSelect.clearSelection();
+      if (advancedPortfolioMultiSelect) advancedPortfolioMultiSelect.clearSelection();
+      
+      // Reset gauge multi-select filters
+      if (gaugeCountryMultiSelect) gaugeCountryMultiSelect.clearSelection();
+      if (gaugePortfolioMultiSelect) gaugePortfolioMultiSelect.clearSelection();
+      
+      // Clear advanced ECharts
+      if (advancedChart2) {
+        const option = advancedChart2.getOption();
+        option.series = [];
+        option.legend.data = [];
+        option.xAxis[0].data = [];
+        advancedChart2.setOption(option, true);
+      }
+      
+      // Reset advanced monthly data
+      advancedMonthlyData = {};
+      
+      // Reload asset options to reset cascading
+      loadAssetOptions();
+      
+      // Update gauge charts
+      applyFilters();
+    }
+
+    function parseRows(rows) {
+      const headers = rows[0].map(h => h.trim().replace(/\s/g, '_').toLowerCase());
+      return rows.slice(1).map(r => {
+        let obj = {};
+        headers.forEach((h, i) => obj[h] = r[i]);
+        return obj;
+      });
+    }
+    
+    // Parse the correct daily CSV structure
+    function parseCorrectDailyRows(rows) {
+      if (!rows || rows.length < 2) return [];
+      
+      const headers = rows[0].map(h => h.trim().replace(/\s/g, '_').toLowerCase());
+      return rows.slice(1).map(r => {
+        let obj = {};
+        headers.forEach((h, i) => obj[h] = r[i]);
+        return obj;
+      }).filter(r => r.date && r.date.trim() !== ''); // Filter out empty rows
+    }
+
+    // Load data from Django view instead of CSV files
+    function loadCSV() {
+      {% if error_message %}
+        console.error('Error loading KPI data:', '{{ error_message }}');
+        // Handle error gracefully
+        dailyData = [];
+        yieldData = [];
+        // Initialize empty filter data
+        window.realtimeFilterData = {countries: [], portfolios: []};
+        window.yielddataFilterData = {countries: [], portfolios: []};
+        initializeDataProcessing();
+      {% elif kpi_data_json %}
+        // Load KPI data from database
+        const data = {{ kpi_data_json|safe }};
+        
+        // Process data to match expected format for both daily and yield data
+        yieldData = data.filter(r => r.portfolio);
+        
+        // Create mock daily data structure from the same data source for gauges
+        // Convert monthly data to daily-like structure for gauges
+        dailyData = [];
+        yieldData.forEach(record => {
+          if (record.month && record.assetno) {
+            // Create a daily-like record for gauges from monthly data
+            dailyData.push({
+              date: record.month + '-01', // Use first day of month as proxy
+              asset_no: record.assetno,
+              country: record.country,
+              portfolio: record.portfolio,
+              daily_generation_mwh: record.actual_generation || 0,
+              daily_irradiation_mwh: record.actual_irradiation || 0,
+              daily_ic_mwh: record.ic_approved_budget || 0,
+              daily_expected_mwh: record.expected_budget || 0,
+              daily_budget_irradiation_mwh: record.budgeted_irradiation || 0,
+              expect_pr: record.expected_pr ? record.expected_pr * 100 : 0,
+              actual_pr: record.actual_pr ? record.actual_pr * 100 : 0,
+              dc_capacity_mw: record.dc_capacity_mw || 0
+            });
+          }
+        });
+        
+        // Load filter data from Django view
+        {% if realtime_filter_data %}
+          window.realtimeFilterData = {{ realtime_filter_data|safe }};
+        {% else %}
+          window.realtimeFilterData = {countries: [], portfolios: []};
+        {% endif %}
+        
+        {% if yielddata_filter_data %}
+          window.yielddataFilterData = {{ yielddata_filter_data|safe }};
+        {% else %}
+          window.yielddataFilterData = {countries: [], portfolios: []};
+        {% endif %}
+        
+        initializeDataProcessing();
+        console.log('Data loaded from database:', yieldData.length, 'yield records,', dailyData.length, 'daily records');
+        console.log('Real-time filter data:', window.realtimeFilterData);
+        console.log('Yield data filter data:', window.yielddataFilterData);
+      {% else %}
+        console.error('No KPI data available');
+        dailyData = [];
+        yieldData = [];
+        // Initialize empty filter data
+        window.realtimeFilterData = {countries: [], portfolios: []};
+        window.yielddataFilterData = {countries: [], portfolios: []};
+        initializeDataProcessing();
+      {% endif %}
+    }
+    
+    // Initialize and populate filters with data from Django view
+    function initializeAndPopulateFilters() {
+      // Ensure multi-select dropdowns are initialized
+      if (!advancedParameterMultiSelect || !advancedCountryMultiSelect || !advancedPortfolioMultiSelect) {
+        initializeAdvancedMultiSelectDropdowns();
+      }
+      
+      if (!gaugeCountryMultiSelect || !gaugePortfolioMultiSelect) {
+        initializeGaugeMultiSelectDropdowns();
+      }
+      
+      // Wait a bit for dropdowns to be fully initialized
+      setTimeout(() => {
+        // Update gauge filters with real_time_kpi data
+        if (window.realtimeFilterData) {
+          if (gaugeCountryMultiSelect && typeof gaugeCountryMultiSelect.setOptions === 'function') {
+            const uniqueCountries = [...new Set(window.realtimeFilterData.countries)];
+            const countryOptions = uniqueCountries.map(country => ({ value: country, label: country }));
+            gaugeCountryMultiSelect.setOptions(countryOptions);
+          }
+          if (gaugePortfolioMultiSelect && typeof gaugePortfolioMultiSelect.setOptions === 'function') {
+            const uniquePortfolios = [...new Set(window.realtimeFilterData.portfolios)];
+            const portfolioOptions = uniquePortfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+            gaugePortfolioMultiSelect.setOptions(portfolioOptions);
+          }
+        }
+        
+        // Update advanced chart filters with main_yielddata data
+        if (window.yielddataFilterData) {
+          if (advancedCountryMultiSelect && typeof advancedCountryMultiSelect.setOptions === 'function') {
+            const uniqueCountries = [...new Set(window.yielddataFilterData.countries)];
+            const countryOptions = uniqueCountries.map(country => ({ value: country, label: country }));
+            advancedCountryMultiSelect.setOptions(countryOptions);
+          }
+          if (advancedPortfolioMultiSelect && typeof advancedPortfolioMultiSelect.setOptions === 'function') {
+            const uniquePortfolios = [...new Set(window.yielddataFilterData.portfolios)];
+            const portfolioOptions = uniquePortfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+            advancedPortfolioMultiSelect.setOptions(portfolioOptions);
+          }
+        }
+        
+        // Update asset number dropdowns
+        const assetNumbers = [...new Set(yieldData.map(row => row.assetno).filter(Boolean))];
+        
+        // Update advanced asset dropdown
+        const advancedAssetNoFilter = document.getElementById('advancedAssetNoFilter');
+        if (advancedAssetNoFilter) {
+          advancedAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+          assetNumbers.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset;
+            option.textContent = asset;
+            advancedAssetNoFilter.appendChild(option);
+          });
+        }
+        
+        // Update gauge asset dropdown
+        const gaugeAssetNoFilter = document.getElementById('gaugeAssetNoFilter');
+        if (gaugeAssetNoFilter) {
+          gaugeAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+          assetNumbers.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset;
+            option.textContent = asset;
+            gaugeAssetNoFilter.appendChild(option);
+          });
+        }
+        
+        console.log('Filters initialized and populated successfully');
+        console.log('- Gauge countries:', window.realtimeFilterData?.countries?.length || 0);
+        console.log('- Gauge portfolios:', window.realtimeFilterData?.portfolios?.length || 0);
+        console.log('- Chart countries:', window.yielddataFilterData?.countries?.length || 0);
+        console.log('- Chart portfolios:', window.yielddataFilterData?.portfolios?.length || 0);
+        console.log('- Asset numbers:', assetNumbers.length);
+      }, 500);
+    }
+    
+    // Initialize data processing after data is loaded from database
+    function initializeDataProcessing() {
+      // Initialize ECharts and multi-select dropdowns
+      initCharts();
+      initAdvancedComponents();
+      initGaugeComponents();
+      
+      // Initialize and populate dropdowns with the filter data we already have
+      initializeAndPopulateFilters();
+      
+      // Initialize existing components
+      populateFilters(dailyData);
+      populateDropdownsFromRawData(dailyData);
+      applyFilters();
+      
+      // Ensure calendars are properly initialized with data
+      setTimeout(() => {
+        updateCalendarsWithData();
+        // Initial gauge chart update
+        updateGaugeCharts();
+        
+        // Force calendar re-initialization if needed
+        setTimeout(() => {
+          if (!window.advancedCalendar) {
+            initAdvancedComponents();
+            initGaugeComponents();
+            updateCalendarsWithData();
+          }
+        }, 2000);
+      }, 1000); // Increased delay to ensure proper initialization
+      
+      // Initialize dynamic chart title
+      updateDynamicChartTitle();
+      
+      // Set today's date as default for gauge date filter
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      const gaugeDateFilter = document.getElementById('gaugeDateFilter');
+      if (gaugeDateFilter) {
+        gaugeDateFilter.value = todayString;
+        // Update gauge date display in title
+        updateGaugeDateDisplay();
+        // Update gauge charts with today's date
+        setTimeout(() => {
+          updateGaugeCharts();
+        }, 100);
+      }
+    }
+
+    // Old filter event listeners removed - now using multi-select dropdowns
+
+    // Global error handler for BestCalendar
+    window.addEventListener('error', function(event) {
+      if (event.error && event.error.message && event.error.message.includes('selectMonth')) {
+        event.preventDefault();
+        return false;
+      }
+    });
+    
+    // Auto-load on page ready
+    window.addEventListener('DOMContentLoaded', () => {
+      loadCSV();
+      // Initialize gauge date display
+      setTimeout(() => {
+        updateGaugeDateDisplay();
+      }, 500);
+    });
+    window.addEventListener('resize', () => {
+      // Resize ECharts if available
+      if (advancedChart2) {
+        advancedChart2.resize();
+      }
+    });
+
+    // Multi-select dropdown functionality
+    class MultiSelectDropdown {
+      constructor(triggerId, dropdownId, placeholderId, selectedItemsId, options = []) {
+        this.trigger = document.getElementById(triggerId);
+        this.dropdown = document.getElementById(dropdownId);
+        this.placeholder = document.getElementById(placeholderId);
+        this.selectedItemsContainer = document.getElementById(selectedItemsId);
+        this.arrow = this.trigger.querySelector('.multi-select-arrow');
+        this.selectedValues = [];
+        this.options = options;
+        this.debounceTimer = null;
+        
+        this.init();
+      }
+
+      init() {
+        // Toggle dropdown
+        this.trigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleDropdown();
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+          if (!this.trigger.contains(e.target) && !this.dropdown.contains(e.target)) {
+            this.closeDropdown();
+          }
+        });
+
+        // Handle option clicks
+        this.dropdown.addEventListener('click', (e) => {
+          if (e.target.type === 'checkbox') {
+            e.stopPropagation();
+            this.handleOptionClick(e.target);
+          }
+        });
+      }
+
+      toggleDropdown() {
+        const isOpen = this.dropdown.classList.contains('show');
+        if (isOpen) {
+          this.closeDropdown();
+        } else {
+          this.openDropdown();
+        }
+      }
+
+      openDropdown() {
+        this.dropdown.classList.add('show');
+        this.trigger.classList.add('active');
+        this.arrow.classList.add('rotated');
+      }
+
+      closeDropdown() {
+        this.dropdown.classList.remove('show');
+        this.trigger.classList.remove('active');
+        this.arrow.classList.remove('rotated');
+      }
+
+      handleOptionClick(checkbox) {
+        const option = checkbox.closest('.multi-select-option');
+        const value = option.dataset.value;
+        const label = option.querySelector('label').textContent;
+
+        if (checkbox.checked) {
+          this.selectedValues.push({ value, label });
+          option.classList.add('selected');
+        } else {
+          this.selectedValues = this.selectedValues.filter(item => item.value !== value);
+          option.classList.remove('selected');
+        }
+
+        this.updateDisplay();
+        this.triggerChange();
+      }
+
+      updateDisplay() {
+        if (this.selectedValues.length === 0) {
+          this.placeholder.textContent = this.placeholder.dataset.default || 'Select...';
+          this.selectedItemsContainer.innerHTML = '';
+        } else if (this.selectedValues.length === 1) {
+          this.placeholder.textContent = this.selectedValues[0].label;
+          this.selectedItemsContainer.innerHTML = '';
+        } else {
+          this.placeholder.textContent = `${this.selectedValues.length} selected`;
+          this.updateSelectedItems();
+        }
+      }
+
+      updateSelectedItems() {
+        this.selectedItemsContainer.innerHTML = '';
+        this.selectedValues.forEach(item => {
+          const selectedItem = document.createElement('div');
+          selectedItem.className = 'selected-item';
+          selectedItem.innerHTML = 
+            `${item.label}
+            <span class="remove" data-value="${item.value}">×</span>`;
+          
+          selectedItem.querySelector('.remove').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.removeItem(item.value);
+          });
+          
+          this.selectedItemsContainer.appendChild(selectedItem);
+        });
+      }
+
+      removeItem(value) {
+        this.selectedValues = this.selectedValues.filter(item => item.value !== value);
+        const checkbox = this.dropdown.querySelector(input[type="checkbox"][id*="${value}"]);
+        if (checkbox) {
+          checkbox.checked = false;
+          checkbox.closest('.multi-select-option').classList.remove('selected');
+        }
+        this.updateDisplay();
+        this.triggerChange();
+      }
+
+      triggerChange() {
+        // Debounce the change event to prevent excessive API calls
+        if (this.debounceTimer) {
+          clearTimeout(this.debounceTimer);
+        }
+        
+        this.debounceTimer = setTimeout(() => {
+          // Dispatch custom event for filter change
+          const event = new CustomEvent('multiselectChange', {
+            detail: {
+              values: this.selectedValues.map(item => item.value),
+              labels: this.selectedValues.map(item => item.label)
+            }
+          });
+          this.trigger.dispatchEvent(event);
+        }, 300); // 300ms debounce delay
+      }
+
+      getSelectedValues() {
+        return this.selectedValues.map(item => item.value);
+      }
+
+      setOptions(options) {
+        this.options = options;
+        this.dropdown.innerHTML = '';
+        
+        options.forEach(option => {
+          const optionElement = document.createElement('div');
+          optionElement.className = 'multi-select-option';
+          optionElement.dataset.value = option.value;
+          optionElement.innerHTML = 
+            `<input type="checkbox" id="${this.dropdown.id}_${option.value}">
+            <label for="${this.dropdown.id}_${option.value}">${option.label}</label>`;
+          this.dropdown.appendChild(optionElement);
+        });
+      }
+
+      clear() {
+        this.selectedValues = [];
+        this.dropdown.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        this.dropdown.querySelectorAll('.multi-select-option').forEach(option => {
+          option.classList.remove('selected');
+        });
+        this.updateDisplay();
+      }
+
+      clearSelection() {
+        this.clear();
+      }
+    }
+
+    // Function to update gauge date display in title
+    function updateGaugeDateDisplay() {
+      const gaugeDateFilter = document.getElementById('gaugeDateFilter');
+      const gaugeDateDisplay = document.getElementById('gaugeDateDisplay');
+      
+      if (gaugeDateFilter && gaugeDateDisplay) {
+        const selectedDate = gaugeDateFilter.value;
+        if (selectedDate) {
+          const dateObj = new Date(selectedDate);
+          const formattedDate = dateObj.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+          gaugeDateDisplay.textContent = formattedDate;
+        } else {
+          gaugeDateDisplay.textContent = 'No Date Selected';
+        }
+      }
+    }
+
+    // Function to format numbers with K suffix for values over 1000
+    function formatNumber(value) {
+      // Handle undefined, null, or NaN values
+      if (value === undefined || value === null || isNaN(value)) {
+        return '0.00';
+      }
+      
+      if (value >= 1000) {
+        return (value / 1000).toFixed(1) + 'K';
+      }
+      return value.toFixed(2);
+    }
+
+    // Initialize ECharts
+    function initCharts() {
+      // Initialize Advanced ECharts bar chart (now the main chart)
+      var advancedChart2Dom = document.getElementById('advancedChart2');
+      if (!advancedChart2Dom) {
+        return;
+      }
+      
+      // Check if container has dimensions
+      const advancedRect = advancedChart2Dom.getBoundingClientRect();
+      const advancedComputedStyle = window.getComputedStyle(advancedChart2Dom);
+      
+      if (advancedRect.width === 0 || advancedRect.height === 0) {
+        // Wait for layout to complete
+        setTimeout(() => {
+          advancedChart2 = echarts.init(advancedChart2Dom);
+        }, 100);
+      } else {
+        advancedChart2 = echarts.init(advancedChart2Dom);
+      }
+
+      var option2 = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross'
+          },
+          formatter: function(params) {
+            let result = params[0].name + '<br/>';
+            params.forEach(param => {
+              const isPRData = param.seriesName.toLowerCase().includes('expected pr') || param.seriesName.toLowerCase().includes('actual pr');
+              if (isPRData) {
+                // PR values are already in percentage format from API
+                result += '■ ' + param.seriesName + ': ' + param.value.toFixed(0) + '%<br/>';
+              } else {
+                result += '■ ' + param.seriesName + ': ' + formatNumber(param.value) + '<br/>';
+              }
+            });
+            return result;
+          }
+        },
+        legend: {
+          data: [],
+          textStyle: {
+            color: '#0072CE',
+            fontSize: 12
+          },
+          bottom: 10,
+          left: 'center',
+          itemGap: 30,
+          itemWidth: 20,
+          itemHeight: 15,
+          show: true,
+          type: 'plain'
+        },
+        grid: {
+          bottom: 80,
+          left: 60,
+          right: 60
+        },
+        xAxis: {
+          type: 'category',
+          data: [],
+          axisLabel: {
+            color: '#0072CE',
+            fontSize: 12
+          }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            name: 'Energy (MWh)',
+            nameTextStyle: {
+              color: '#0072CE',
+              fontSize: 12
+            },
+            axisLabel: {
+              color: '#0072CE',
+              fontSize: 12,
+              formatter: function(value) {
+                return formatNumber(value);
+              }
+            },
+            splitLine: {
+              show: true,
+              lineStyle: {
+                color: '#e0e0e0',
+                type: 'dashed'
+              }
+            }
+          },
+          {
+            type: 'value',
+            name: 'Performance Ratio (%)',
+            nameTextStyle: {
+              color: '#0072CE',
+              fontSize: 12
+            },
+            axisLabel: {
+              color: '#0072CE',
+              fontSize: 12,
+              formatter: function(value) {
+                return value.toFixed(0) + '%';
+              }
+            },
+            splitLine: {
+              show: false
+            }
+          }
+        ],
+        series: []
+      };
+
+      // Set the option for advanced chart after ensuring chart is initialized
+      if (advancedChart2) {
+        advancedChart2.setOption(option2);
+      }
+    }
+
+    // Load asset options with optional filtering for cascading (for advanced chart only)
+    async function loadAssetOptions(selectedCountries = '', selectedPortfolios = '') {
+      try {
+        // Use the existing asset-options endpoint since yield-data-options doesn't exist
+        const params = new URLSearchParams();
+        if (selectedCountries) params.append('countries', selectedCountries);
+        if (selectedPortfolios) params.append('portfolios', selectedPortfolios);
+        
+        const response = await fetch(`/api/kpi-v1-asset-options?${params}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          // Initialize or update advanced multi-select dropdowns
+          if (!advancedParameterMultiSelect || !advancedCountryMultiSelect || !advancedPortfolioMultiSelect) {
+            initializeAdvancedMultiSelectDropdowns();
+          }
+          
+          // Initialize or update gauge multi-select dropdowns
+          if (!gaugeCountryMultiSelect || !gaugePortfolioMultiSelect) {
+            initializeGaugeMultiSelectDropdowns();
+          }
+          
+          // Update gauge filters with real_time_kpi data
+          if (data.realtimeFilter) {
+            if (gaugeCountryMultiSelect && typeof gaugeCountryMultiSelect.updateOptions === 'function') {
+              gaugeCountryMultiSelect.updateOptions(data.realtimeFilter.countries || []);
+            }
+            if (gaugePortfolioMultiSelect && typeof gaugePortfolioMultiSelect.updateOptions === 'function') {
+              gaugePortfolioMultiSelect.updateOptions(data.realtimeFilter.portfolios || []);
+            }
+          }
+          
+          // Update advanced chart filters with main_yielddata data
+          if (data.yielddataFilter) {
+            if (advancedCountryMultiSelect && typeof advancedCountryMultiSelect.updateOptions === 'function') {
+              advancedCountryMultiSelect.updateOptions(data.yielddataFilter.countries || []);
+            }
+            if (advancedPortfolioMultiSelect && typeof advancedPortfolioMultiSelect.updateOptions === 'function') {
+              advancedPortfolioMultiSelect.updateOptions(data.yielddataFilter.portfolios || []);
+            }
+          }
+          
+          // Update asset number dropdowns
+          if (data.assetNumbers && data.assetNumbers.length > 0) {
+            // Update advanced asset dropdown (uses yield data)
+            const advancedAssetNoFilter = document.getElementById('advancedAssetNoFilter');
+            if (advancedAssetNoFilter) {
+              advancedAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+              data.assetNumbers.forEach(asset => {
+                const option = document.createElement('option');
+                option.value = asset;
+                option.textContent = asset;
+                advancedAssetNoFilter.appendChild(option);
+              });
+            }
+            
+            // Update gauge asset dropdown (uses same asset data)
+            const gaugeAssetNoFilter = document.getElementById('gaugeAssetNoFilter');
+            if (gaugeAssetNoFilter) {
+              gaugeAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+              data.assetNumbers.forEach(asset => {
+                const option = document.createElement('option');
+                option.value = asset;
+                option.textContent = asset;
+                gaugeAssetNoFilter.appendChild(option);
+              });
+            }
+          }
+          
+          console.log('Asset options loaded from API:');
+          console.log('- Gauge filters (real_time_kpi):', data.realtimeFilter);
+          console.log('- Chart filters (main_yielddata):', data.yielddataFilter);
+          console.log('- Asset numbers:', data.assetNumbers?.length || 0, 'assets');
+        } else {
+          // Error loading asset options
+        }
+      } catch (error) {
+        // Fallback to using yield data if API fails
+        if (yieldData && yieldData.length > 0) {
+          populateDropdownsFromRawData(yieldData);
+        }
+      }
+    }
+
+    // Initialize advanced components (second chart from Realtimemonitoring.html)
+    function initAdvancedComponents() {
+      // Initialize advanced multi-select dropdowns
+      initializeAdvancedMultiSelectDropdowns();
+      
+      // Initialize advanced calendar
+      initAdvancedCalendar();
+      
+      // Set up event listeners for advanced components
+      setupAdvancedEventListeners();
+    }
+    
+    // Initialize gauge filter components
+    function initGaugeComponents() {
+      // Initialize gauge multi-select dropdowns
+      initializeGaugeMultiSelectDropdowns();
+      
+      // Initialize gauge calendar
+      
+      
+      // Set up event listeners for gauge components
+      setupGaugeEventListeners();
+    }
+    
+    // Initialize advanced multi-select dropdowns
+    function initializeAdvancedMultiSelectDropdowns() {
+      // Initialize advanced parameter multi-select
+      advancedParameterMultiSelect = new MultiSelectDropdown(
+        'advancedParameterFilterTrigger',
+        'advancedParameterFilterDropdown',
+        'advancedParameterFilterPlaceholder',
+        'advancedParameterSelectedItems'
+      );
+      
+      // Initialize advanced country multi-select (will be populated from data)
+      advancedCountryMultiSelect = new MultiSelectDropdown(
+        'advancedCountryFilterTrigger',
+        'advancedCountryFilterDropdown',
+        'advancedCountryFilterPlaceholder',
+        'advancedCountrySelectedItems'
+      );
+      
+      // Initialize advanced portfolio multi-select (will be populated from data)
+      advancedPortfolioMultiSelect = new MultiSelectDropdown(
+        'advancedPortfolioFilterTrigger',
+        'advancedPortfolioFilterDropdown',
+        'advancedPortfolioFilterPlaceholder',
+        'advancedPortfolioSelectedItems'
+      );
+      
+      // Set up event listeners for cascading
+      if (advancedCountryMultiSelect) {
+        advancedCountryMultiSelect.trigger.addEventListener('multiselectChange', () => {
+          handleAdvancedCountryChange();
+          updateDynamicChartTitle();
+        });
+      }
+      if (advancedPortfolioMultiSelect) {
+        advancedPortfolioMultiSelect.trigger.addEventListener('multiselectChange', () => {
+          handleAdvancedPortfolioChange();
+          updateDynamicChartTitle();
+        });
+      }
+      if (advancedParameterMultiSelect) {
+        advancedParameterMultiSelect.trigger.addEventListener('multiselectChange', () => {
+          fetchAdvancedMonthlyData();
+          updateDynamicChartTitle();
+        });
+      }
+    }
+    
+    // Initialize advanced calendar
+    function initAdvancedCalendar() {
+      try {
+        // Check if required elements exist
+        const trigger = document.getElementById('advancedMonthMatrixTrigger');
+        const picker = document.getElementById('advancedMonthMatrixPicker');
+        const label = document.getElementById('advancedSelectedMonthLabel');
+        
+        if (!trigger || !picker || !label) {
+          return;
+        }
+        
+        // Create the BestCalendar instance
+        window.advancedCalendar = new BestCalendar({
+          triggerId: 'advancedMonthMatrixTrigger',
+          pickerId: 'advancedMonthMatrixPicker',
+          labelId: 'advancedSelectedMonthLabel',
+          onPeriodChange: function(period) {
+            fetchAdvancedMonthlyData();
+            updateDynamicChartTitle();
+          }
+        });
+        
+        // Set the global instance
+        window.currentAdvancedBestCalendar = window.advancedCalendar;
+        
+        // Set data for calendar if available
+        if (yieldData && yieldData.length > 0) {
+          try {
+            window.currentBestCalendar = window.advancedCalendar; // Set global reference
+            window.advancedCalendar.setData(yieldData);
+          } catch (dataError) {
+            // Failed to set data for advanced calendar
+          }
+        }
+      } catch (error) {
+        // Failed to initialize Advanced BestCalendar
+      }
+    }
+    
+
+    
+    // Set up advanced event listeners
+    function setupAdvancedEventListeners() {
+      // Asset filter change
+      const advancedAssetNoFilter = document.getElementById('advancedAssetNoFilter');
+      if (advancedAssetNoFilter) {
+        advancedAssetNoFilter.addEventListener('change', () => {
+          fetchAdvancedMonthlyData();
+          updateDynamicChartTitle();
+        });
+      }
+      
+      // Calendar trigger change - add direct event listener as backup
+      const advancedMonthMatrixTrigger = document.getElementById('advancedMonthMatrixTrigger');
+      if (advancedMonthMatrixTrigger) {
+        advancedMonthMatrixTrigger.addEventListener('click', () => {
+          // Add a small delay to allow calendar to update
+          setTimeout(() => {
+            fetchAdvancedMonthlyData();
+          }, 100);
+        });
+      }
+      
+      // Update button
+      const advancedUpdateBtn = document.getElementById('advancedUpdateBtn');
+      if (advancedUpdateBtn) {
+        advancedUpdateBtn.addEventListener('click', fetchAdvancedMonthlyData);
+      }
+      
+      // Reset button
+      const advancedResetBtn = document.getElementById('advancedResetBtn');
+      if (advancedResetBtn) {
+        advancedResetBtn.addEventListener('click', resetAdvancedFilters);
+      }
+    }
+    
+    // Initialize gauge multi-select dropdowns
+    function initializeGaugeMultiSelectDropdowns() {
+      // Initialize gauge country multi-select (will be populated from data)
+      gaugeCountryMultiSelect = new MultiSelectDropdown(
+        'gaugeCountryFilterTrigger',
+        'gaugeCountryFilterDropdown',
+        'gaugeCountryFilterPlaceholder',
+        'gaugeCountrySelectedItems'
+      );
+      
+      // Initialize gauge portfolio multi-select (will be populated from data)
+      gaugePortfolioMultiSelect = new MultiSelectDropdown(
+        'gaugePortfolioFilterTrigger',
+        'gaugePortfolioFilterDropdown',
+        'gaugePortfolioFilterPlaceholder',
+        'gaugePortfolioSelectedItems'
+      );
+      
+      // Set up event listeners for cascading
+      if (gaugeCountryMultiSelect) {
+        gaugeCountryMultiSelect.trigger.addEventListener('multiselectChange', handleGaugeCountryChange);
+      }
+      if (gaugePortfolioMultiSelect) {
+        gaugePortfolioMultiSelect.trigger.addEventListener('multiselectChange', handleGaugePortfolioChange);
+      }
+      
+      // Add direct update listeners for gauge charts
+      if (gaugeCountryMultiSelect) {
+        gaugeCountryMultiSelect.trigger.addEventListener('multiselectChange', updateGaugeCharts);
+      }
+      if (gaugePortfolioMultiSelect) {
+        gaugePortfolioMultiSelect.trigger.addEventListener('multiselectChange', updateGaugeCharts);
+      }
+    }
+    
+    // Set up gauge event listeners
+    function setupGaugeEventListeners() {
+      // Asset filter change
+      const gaugeAssetNoFilter = document.getElementById('gaugeAssetNoFilter');
+      if (gaugeAssetNoFilter) {
+        gaugeAssetNoFilter.addEventListener('change', updateGaugeCharts);
+      }
+      
+      // Date filter change
+      const gaugeDateFilter = document.getElementById('gaugeDateFilter');
+      if (gaugeDateFilter) {
+        gaugeDateFilter.addEventListener('change', () => {
+          updateGaugeDateDisplay();
+          updateGaugeCharts();
+        });
+      }
+      
+      // Previous date button
+      const prevDateBtn = document.getElementById('prevDateBtn');
+      if (prevDateBtn) {
+        prevDateBtn.addEventListener('click', () => {
+          const currentDate = new Date(gaugeDateFilter.value || new Date());
+          currentDate.setDate(currentDate.getDate() - 1);
+          const newDateString = currentDate.toISOString().split('T')[0];
+          gaugeDateFilter.value = newDateString;
+          updateGaugeDateDisplay();
+          updateGaugeCharts();
+        });
+      }
+      
+      // Next date button
+      const nextDateBtn = document.getElementById('nextDateBtn');
+      if (nextDateBtn) {
+        nextDateBtn.addEventListener('click', () => {
+          const currentDate = new Date(gaugeDateFilter.value || new Date());
+          currentDate.setDate(currentDate.getDate() + 1);
+          const newDateString = currentDate.toISOString().split('T')[0];
+          gaugeDateFilter.value = newDateString;
+          updateGaugeDateDisplay();
+          updateGaugeCharts();
+        });
+      }
+      
+
+      
+      // Update button
+      const gaugeUpdateBtn = document.getElementById('gaugeUpdateBtn');
+      if (gaugeUpdateBtn) {
+        gaugeUpdateBtn.addEventListener('click', updateGaugeCharts);
+      }
+      
+      // Reset button
+      const gaugeResetBtn = document.getElementById('gaugeResetBtn');
+      if (gaugeResetBtn) {
+        gaugeResetBtn.addEventListener('click', resetGaugeFilters);
+      }
+    }
+    
+    // Handle advanced country change for cascading
+    async function handleAdvancedCountryChange() {
+      const selectedCountries = advancedCountryMultiSelect ? advancedCountryMultiSelect.getSelectedValues() : [];
+      
+      // Clear portfolio and asset selections
+      if (advancedPortfolioMultiSelect) {
+        advancedPortfolioMultiSelect.clearSelection();
+      }
+      document.getElementById('advancedAssetNoFilter').value = '';
+      
+      // Load filtered options based on selected countries
+      await loadAdvancedAssetOptions(selectedCountries.join(','));
+      
+      // Fetch data with new filters
+      fetchAdvancedMonthlyData();
+    }
+    
+    // Handle advanced portfolio change for cascading
+    async function handleAdvancedPortfolioChange() {
+      const selectedCountries = advancedCountryMultiSelect ? advancedCountryMultiSelect.getSelectedValues() : [];
+      const selectedPortfolios = advancedPortfolioMultiSelect ? advancedPortfolioMultiSelect.getSelectedValues() : [];
+      
+      // Clear asset selection
+      document.getElementById('advancedAssetNoFilter').value = '';
+      
+      // Load filtered options
+      await loadAdvancedAssetOptions(selectedCountries.join(','), selectedPortfolios.join(','));
+      
+      // Fetch data with new filters
+      fetchAdvancedMonthlyData();
+    }
+    
+    // Handle gauge country change for cascading
+    async function handleGaugeCountryChange() {
+      const selectedCountries = gaugeCountryMultiSelect ? gaugeCountryMultiSelect.getSelectedValues() : [];
+      
+      // Clear portfolio and asset selections
+      if (gaugePortfolioMultiSelect) {
+        gaugePortfolioMultiSelect.clearSelection();
+      }
+      document.getElementById('gaugeAssetNoFilter').value = '';
+      
+      // Load filtered options
+      await loadGaugeAssetOptions(selectedCountries.join(','));
+      
+      // Update gauge charts
+      updateGaugeCharts();
+    }
+    
+    // Handle gauge portfolio change for cascading
+    async function handleGaugePortfolioChange() {
+      const selectedCountries = gaugeCountryMultiSelect ? gaugeCountryMultiSelect.getSelectedValues() : [];
+      const selectedPortfolios = gaugePortfolioMultiSelect ? gaugePortfolioMultiSelect.getSelectedValues() : [];
+      
+      // Clear asset selection
+      document.getElementById('gaugeAssetNoFilter').value = '';
+      
+      // Load filtered options
+      await loadGaugeAssetOptions(selectedCountries.join(','), selectedPortfolios.join(','));
+      
+      // Update gauge charts
+      updateGaugeCharts();
+    }
+    
+    // Load advanced asset options
+    async function loadAdvancedAssetOptions(selectedCountries = '', selectedPortfolios = '') {
+      try {
+        const params = new URLSearchParams();
+        if (selectedCountries) params.append('countries', selectedCountries);
+        if (selectedPortfolios) params.append('portfolios', selectedPortfolios);
+        
+        const response = await fetch(`/api/kpi-v1-asset-options?${params}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          // Update portfolio options based on selected countries (use yielddataFilter for charts)
+          const portfolios = data.yielddataFilter ? data.yielddataFilter.portfolios : (data.portfolios || []);
+          if (portfolios && portfolios.length > 0) {
+            const portfolioOptions = portfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+            if (advancedPortfolioMultiSelect) {
+              advancedPortfolioMultiSelect.setOptions(portfolioOptions);
+              advancedPortfolioMultiSelect.clearSelection();
+            }
+          } else {
+            if (advancedPortfolioMultiSelect) {
+              advancedPortfolioMultiSelect.setOptions([]);
+              advancedPortfolioMultiSelect.clearSelection();
+            }
+          }
+          
+          // Update asset number options
+          const advancedAssetNoFilter = document.getElementById('advancedAssetNoFilter');
+          advancedAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+          if (data.assetNumbers && data.assetNumbers.length > 0) {
+            data.assetNumbers.forEach(asset => {
+              const option = document.createElement('option');
+              option.value = asset;
+              option.textContent = asset;
+              advancedAssetNoFilter.appendChild(option);
+            });
+          }
+        } else {
+          // Error loading advanced asset options
+        }
+      } catch (error) {
+        // Error loading advanced asset options
+      }
+    }
+    
+    // Load gauge asset options
+    async function loadGaugeAssetOptions(selectedCountries = '', selectedPortfolios = '') {
+      try {
+        const params = new URLSearchParams();
+        if (selectedCountries) params.append('countries', selectedCountries);
+        if (selectedPortfolios) params.append('portfolios', selectedPortfolios);
+        
+        const response = await fetch(`/api/kpi-v1-asset-options?${params}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          // Update portfolio options based on selected countries (use realtimeFilter for gauges)
+          const portfolios = data.realtimeFilter ? data.realtimeFilter.portfolios : (data.portfolios || []);
+          if (portfolios && portfolios.length > 0) {
+            const portfolioOptions = portfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+            if (gaugePortfolioMultiSelect) {
+              gaugePortfolioMultiSelect.setOptions(portfolioOptions);
+              gaugePortfolioMultiSelect.clearSelection();
+            }
+          } else {
+            if (gaugePortfolioMultiSelect) {
+              gaugePortfolioMultiSelect.setOptions([]);
+              gaugePortfolioMultiSelect.clearSelection();
+            }
+          }
+          
+          // Update asset number options
+          const gaugeAssetNoFilter = document.getElementById('gaugeAssetNoFilter');
+          gaugeAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+          if (data.assetNumbers && data.assetNumbers.length > 0) {
+            data.assetNumbers.forEach(asset => {
+              const option = document.createElement('option');
+              option.value = asset;
+              option.textContent = asset;
+              gaugeAssetNoFilter.appendChild(option);
+            });
+          }
+        } else {
+          // Error loading gauge asset options
+        }
+      } catch (error) {
+        // Error loading gauge asset options
+      }
+    }
+    
+    // Update advanced multi-select options for cascading
+    function updateAdvancedMultiSelectOptions(data) {
+      // Update portfolio options based on selected countries
+      if (data.portfolios && data.portfolios.length > 0) {
+        const portfolioOptions = data.portfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+        if (advancedPortfolioMultiSelect) {
+          advancedPortfolioMultiSelect.setOptions(portfolioOptions);
+          advancedPortfolioMultiSelect.clearSelection();
+        }
+      } else {
+        // If no portfolios available for selected countries, clear portfolio options
+        if (advancedPortfolioMultiSelect) {
+          advancedPortfolioMultiSelect.setOptions([]);
+          advancedPortfolioMultiSelect.clearSelection();
+        }
+      }
+    }
+    
+    // Update gauge multi-select options for cascading
+    function updateGaugeMultiSelectOptions(data) {
+      // Update portfolio options based on selected countries
+      if (data.portfolios && data.portfolios.length > 0) {
+        const portfolioOptions = data.portfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+        if (gaugePortfolioMultiSelect) {
+          gaugePortfolioMultiSelect.setOptions(portfolioOptions);
+          gaugePortfolioMultiSelect.clearSelection();
+        }
+      } else {
+        // If no portfolios available for selected countries, clear portfolio options
+        if (gaugePortfolioMultiSelect) {
+          gaugePortfolioMultiSelect.setOptions([]);
+          gaugePortfolioMultiSelect.clearSelection();
+        }
+      }
+    }
+    
+    // Populate dropdowns with data from yield.csv for advanced chart and realtime.csv for gauges
+    function populateDropdownsFromData(data) {
+      // Populate country dropdowns
+      if (data.countries && data.countries.length > 0) {
+        const countryOptions = data.countries.map(country => ({ value: country, label: country }));
+        
+        // Update advanced country dropdown (uses yield.csv data)
+        if (advancedCountryMultiSelect) {
+          advancedCountryMultiSelect.setOptions(countryOptions);
+        }
+        
+        // Update gauge country dropdown (uses realtime.csv data)
+        if (gaugeCountryMultiSelect) {
+          gaugeCountryMultiSelect.setOptions(countryOptions);
+        }
+      }
+      
+      // Populate portfolio dropdowns
+      if (data.portfolios && data.portfolios.length > 0) {
+        const portfolioOptions = data.portfolios.map(portfolio => ({ value: portfolio, label: portfolio }));
+        
+        // Update advanced portfolio dropdown (uses yield.csv data)
+        if (advancedPortfolioMultiSelect) {
+          advancedPortfolioMultiSelect.setOptions(portfolioOptions);
+        }
+        
+        // Update gauge portfolio dropdown (uses realtime.csv data)
+        if (gaugePortfolioMultiSelect) {
+          gaugePortfolioMultiSelect.setOptions(portfolioOptions);
+        }
+      }
+      
+      // Populate asset number dropdowns
+      if (data.assetNumbers && data.assetNumbers.length > 0) {
+        // Update advanced asset dropdown (uses yield.csv data)
+        const advancedAssetNoFilter = document.getElementById('advancedAssetNoFilter');
+        if (advancedAssetNoFilter) {
+          advancedAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+          data.assetNumbers.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset;
+            option.textContent = asset;
+            advancedAssetNoFilter.appendChild(option);
+          });
+        }
+        
+        // Update gauge asset dropdown (uses realtime.csv data)
+        const gaugeAssetNoFilter = document.getElementById('gaugeAssetNoFilter');
+        if (gaugeAssetNoFilter) {
+          gaugeAssetNoFilter.innerHTML = '<option value="">All Assets</option>';
+          data.assetNumbers.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset;
+            option.textContent = asset;
+            gaugeAssetNoFilter.appendChild(option);
+          });
+        }
+      }
+      
+      // Update calendars with data after dropdowns are populated
+      updateCalendarsWithData();
+    }
+    
+    // Populate dropdowns using correct filter data sources
+    function populateDropdownsFromRawData(dataSource) {
+      try {
+        // Use specific filter data sources instead of extracting from dataSource
+        // For gauges (first filter set) - use real_time_kpi data
+        const realtimeCountries = window.realtimeFilterData ? window.realtimeFilterData.countries : [];
+        const realtimePortfolios = window.realtimeFilterData ? window.realtimeFilterData.portfolios : [];
+        
+        // For charts (second filter set) - use main_yielddata data
+        const yielddataCountries = window.yielddataFilterData ? window.yielddataFilterData.countries : [];
+        const yielddataPortfolios = window.yielddataFilterData ? window.yielddataFilterData.portfolios : [];
+        
+        // Extract asset numbers from the actual data for asset dropdowns
+        const assetNumbers = [...new Set(dataSource.map(row => row.assetno || row.Asset_No).filter(Boolean))];
+        
+        // Populate gauge-specific dropdowns (uses real_time_kpi data)
+        if (gaugeCountryMultiSelect && typeof gaugeCountryMultiSelect.updateOptions === 'function') {
+          gaugeCountryMultiSelect.updateOptions(realtimeCountries);
+        }
+        if (gaugePortfolioMultiSelect && typeof gaugePortfolioMultiSelect.updateOptions === 'function') {
+          gaugePortfolioMultiSelect.updateOptions(realtimePortfolios);
+        }
+        
+        // Populate gauge asset dropdown
+        const gaugeAssetSelect = document.getElementById('gaugeAssetNoFilter');
+        if (gaugeAssetSelect) {
+          gaugeAssetSelect.innerHTML = '<option value="">All Assets</option>';
+          assetNumbers.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset;
+            option.textContent = asset;
+            gaugeAssetSelect.appendChild(option);
+          });
+        }
+        
+        // Populate advanced/chart-specific dropdowns (uses main_yielddata data)
+        if (advancedCountryMultiSelect && typeof advancedCountryMultiSelect.updateOptions === 'function') {
+          advancedCountryMultiSelect.updateOptions(yielddataCountries);
+        }
+        if (advancedPortfolioMultiSelect && typeof advancedPortfolioMultiSelect.updateOptions === 'function') {
+          advancedPortfolioMultiSelect.updateOptions(yielddataPortfolios);
+        }
+        
+        // Populate advanced asset dropdown
+        const advancedAssetSelect = document.getElementById('advancedAssetNoFilter');
+        if (advancedAssetSelect) {
+          advancedAssetSelect.innerHTML = '<option value="">All Assets</option>';
+          assetNumbers.forEach(asset => {
+            const option = document.createElement('option');
+            option.value = asset;
+            option.textContent = asset;
+            advancedAssetSelect.appendChild(option);
+          });
+        }
+        
+        console.log('Filters populated:');
+        console.log('- Gauge filters (real_time_kpi):', realtimeCountries.length, 'countries,', realtimePortfolios.length, 'portfolios');
+        console.log('- Chart filters (main_yielddata):', yielddataCountries.length, 'countries,', yielddataPortfolios.length, 'portfolios');
+        console.log('- Asset numbers:', assetNumbers.length, 'assets');
+
+      } catch (error) {
+        console.error('Error populating dropdowns:', error);
+      }
+    }
+    
+    // Update calendars with data after dropdowns are populated
+    function updateCalendarsWithData() {
+      if (yieldData && yieldData.length > 0) {
+        // Validate data has required columns for calendar (yield.csv structure for advanced chart)
+        const sampleRow = yieldData[0];
+        const hasMonthColumn = sampleRow && (sampleRow.month || sampleRow.Month);
+        
+        // Ensure calendars are initialized before setting data
+        if (window.advancedCalendar && typeof window.advancedCalendar.setData === 'function') {
+          try {
+            window.currentBestCalendar = window.advancedCalendar; // Set the global reference for advanced calendar
+            window.advancedCalendar.setData(yieldData);
+          } catch (error) {
+            // Failed to update advanced calendar with data
+          }
+        } else {
+          // If advanced calendar is not initialized, try to initialize it
+          setTimeout(() => {
+            if (window.advancedCalendar && typeof window.advancedCalendar.setData === 'function') {
+              window.currentBestCalendar = window.advancedCalendar;
+              window.advancedCalendar.setData(yieldData);
+            }
+          }, 500);
+        }
+        
+
+      }
+    }
+    
+    // Fetch advanced monthly data with debouncing (uses yield.csv data)
+    let fetchAdvancedMonthlyDataTimer;
+    function fetchAdvancedMonthlyData() {
+      if (fetchAdvancedMonthlyDataTimer) {
+        clearTimeout(fetchAdvancedMonthlyDataTimer);
+      }
+      
+      fetchAdvancedMonthlyDataTimer = setTimeout(async () => {
+        try {
+          const selectedParameters = advancedParameterMultiSelect ? advancedParameterMultiSelect.getSelectedValues() : [];
+          const selectedCountries = advancedCountryMultiSelect ? advancedCountryMultiSelect.getSelectedValues() : [];
+          const selectedPortfolios = advancedPortfolioMultiSelect ? advancedPortfolioMultiSelect.getSelectedValues() : [];
+          const assetNo = document.getElementById('advancedAssetNoFilter').value;
+          
+          // Get selected period from advanced calendar
+          const selectedPeriod = window.advancedCalendar ? window.advancedCalendar.getSelectedPeriod() : {};
+          const selectedMonth = selectedPeriod.month || '';
+          const selectedYear = selectedPeriod.year || '';
+          
+
+          
+          // Guard clause: if no parameters selected, clear chart and return
+          if (selectedParameters.length === 0) {
+            if (advancedChart2) {
+              const option = advancedChart2.getOption();
+              option.series = [];
+              option.legend.data = [];
+              option.xAxis[0].data = [];
+              advancedChart2.setOption(option, true);
+            }
+            return;
+          }
+
+          const params = new URLSearchParams();
+          if (selectedParameters.length > 0) params.append('parameters', selectedParameters.join(','));
+          if (selectedCountries.length > 0) params.append('countries', selectedCountries.join(','));
+          if (selectedPortfolios.length > 0) params.append('portfolios', selectedPortfolios.join(','));
+          if (assetNo) params.append('assetNo', assetNo);
+          // Only send month if selected, not year (year selection shows all months)
+          if (selectedMonth) params.append('date', selectedMonth);
+
+          const response = await fetch(`/api/monthly-data?${params}`);
+          const data = await response.json();
+          
+          if (data.success) {
+            advancedMonthlyData = data;
+            updateAdvancedChart2();
+          } else {
+            // API returned error
+          }
+        } catch (error) {
+          // Error fetching advanced monthly data
+        }
+      }, 500); // 500ms debounce delay
+    }
+    
+    // Make function globally accessible
+    window.fetchAdvancedMonthlyData = fetchAdvancedMonthlyData;
+    
+    // Function to generate dynamic chart title based on selected filters
+    function generateDynamicChartTitle() {
+      const selectedParameters = advancedParameterMultiSelect ? advancedParameterMultiSelect.getSelectedValues() : [];
+      const selectedCountries = advancedCountryMultiSelect ? advancedCountryMultiSelect.getSelectedValues() : [];
+      const selectedPortfolios = advancedPortfolioMultiSelect ? advancedPortfolioMultiSelect.getSelectedValues() : [];
+      const selectedAssetNo = document.getElementById('advancedAssetNoFilter').value;
+      const selectedPeriod = window.advancedCalendar ? window.advancedCalendar.getSelectedPeriod() : {};
+      
+      // Build title components
+      let titleParts = [];
+      
+      // Parameters
+      if (selectedParameters.length > 0) {
+        const paramLabels = selectedParameters.map(param => {
+          const paramMap = {
+            'ic_approved_budget': 'IC Budget',
+            'expected_budget': 'Expected Budget',
+            'weather_loss_or_gain': 'Weather Loss/Gain',
+            'operation_budget': 'Operation Budget',
+            'breakdown_loss': 'Breakdown Loss',
+            'actual_generation': 'Actual Generation',
+            'expected_pr': 'Expected PR',
+            'actual_pr': 'Actual PR',
+            'budgeted_irradiation': 'Budgeted Irradiation',
+            'actual_irradiation': 'Actual Irradiation',
+            'bess_generation_mwh': 'BESS Generation'
+          };
+          return paramMap[param] || param;
+        });
+        titleParts.push(paramLabels.join(' Vs '));
+      }
+      
+      // Countries
+      if (selectedCountries.length > 0) {
+        const countryText = selectedCountries.length === 1 ? selectedCountries[0] : 'All Countries';
+        titleParts.push(countryText);
+      }
+      
+      // Portfolios
+      if (selectedPortfolios.length > 0) {
+        const portfolioText = selectedPortfolios.length === 1 ? selectedPortfolios[0] : 'All Portfolios';
+        titleParts.push(portfolioText);
+      }
+      
+      // Asset No
+      if (selectedAssetNo) {
+        titleParts.push(selectedAssetNo);
+      } else {
+        titleParts.push('All Assets');
+      }
+      
+      // Period
+      if (selectedPeriod.month) {
+        titleParts.push(selectedPeriod.month);
+      } else if (selectedPeriod.year) {
+        titleParts.push(selectedPeriod.year);
+      } else {
+        titleParts.push('All Months');
+      }
+      
+      // Generate final title
+      const title = titleParts.join('_');
+      return title || 'Select parameters to generate chart title';
+    }
+    
+    // Function to update dynamic chart title
+    function updateDynamicChartTitle() {
+      const titleElement = document.getElementById('dynamicChartTitle');
+      if (titleElement) {
+        titleElement.textContent = generateDynamicChartTitle();
+      }
+    }
+    
+    
+    
+    // Update advanced ECharts bar chart
+    function updateAdvancedChart2() {
+      if (!advancedChart2) {
+        return;
+      }
+
+      const selectedParameters = advancedParameterMultiSelect ? advancedParameterMultiSelect.getSelectedValues() : [];
+      const months = advancedMonthlyData?.months || [];
+      
+      // Define parameter mapping
+      const paramMap = {
+        'ic_approved_budget': 'IC Budget',
+        'expected_budget': 'Expected Budget',
+        'weather_loss_or_gain': 'Weather Loss/Gain',
+        'operation_budget': 'Operation Budget',
+        'breakdown_loss': 'Breakdown Loss',
+        'actual_generation': 'Actual Generation',
+        'expected_pr': 'Expected PR',
+        'actual_pr': 'Actual PR',
+        'budgeted_irradiation': 'Budgeted Irradiation',
+        'actual_irradiation': 'Actual Irradiation',
+        'bess_generation_mwh': 'BESS Generation'
+      };
+      
+      // Build series array
+      const series = [];
+      const colors = ['#0072CE', '#16a34a', '#dc2626', '#ea580c', '#7c3aed', '#0891b2', '#059669', '#dc2626'];
+      
+      if (selectedParameters.length > 0) {
+        selectedParameters.forEach((parameter, index) => {
+          const parameterData = advancedMonthlyData[parameter] || [];
+          const cleanParameterData = parameterData.map(val => {
+            if (val === undefined || val === null) return 0;
+            // Keep original values for display but use absolute values for bar height
+            return Math.abs(val);
+          });
+          
+          // Store original values for display purposes
+          const originalData = parameterData.map(val => val === undefined || val === null ? 0 : val);
+          
+          const seriesName = paramMap[parameter] || parameter.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const isPRData = parameter === 'expected_pr' || parameter === 'actual_pr';
+          
+          series.push({
+            name: seriesName,
+            type: 'bar',
+            yAxisIndex: isPRData ? 1 : 0,
+            data: cleanParameterData,
+            itemStyle: { color: colors[index % colors.length] },
+            label: {
+              show: true,
+              position: 'top',
+              formatter: function(params) {
+                // Use original value (with negative sign) for display
+                const originalValue = originalData[params.dataIndex];
+                if (isPRData) {
+                  return originalValue.toFixed(0) + '%';
+                } else {
+                  return formatNumber(originalValue);
+                }
+              },
+              color: colors[index % colors.length],
+              fontSize: 11
+            }
+          });
+        });
+      }
+      
+      // Get legend data from series names (exact match)
+      const legendData = series.map(s => s.name);
+      
+      // Create complete option object
+      const option = {
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'cross'
+          },
+          formatter: function(params) {
+            let result = params[0].name + '<br/>';
+            params.forEach(param => {
+              const isPRData = param.seriesName.toLowerCase().includes('expected pr') || param.seriesName.toLowerCase().includes('actual pr');
+              // Find the original value for this parameter and data point
+              const parameterIndex = selectedParameters.indexOf(param.seriesName.replace(/\s+/g, '_').toLowerCase());
+              let originalValue = param.value; // fallback to current value
+              
+              if (parameterIndex !== -1) {
+                const parameterData = advancedMonthlyData[selectedParameters[parameterIndex]] || [];
+                originalValue = parameterData[param.dataIndex] || param.value;
+              }
+              
+              const value = isPRData ? originalValue.toFixed(1) + '%' : formatNumber(originalValue);
+              result += `${param.marker} ${param.seriesName}: ${value}<br/>`;
+            });
+            return result;
+          }
+        },
+        legend: {
+          show: true,
+          data: legendData,
+          bottom: 10,
+          left: 'center',
+          itemGap: 30,
+          itemWidth: 20,
+          itemHeight: 15,
+          textStyle: {
+            color: '#333',
+            fontSize: 12
+          }
+        },
+        grid: {
+          bottom: 80,
+          left: 60,
+          right: 60
+        },
+        xAxis: {
+          type: 'category',
+          data: months,
+          axisLabel: {
+            color: '#0072CE',
+            fontSize: 12
+          }
+        },
+        yAxis: [
+          {
+            type: 'value',
+            name: 'Energy (MWh)',
+            nameTextStyle: {
+              color: '#0072CE',
+              fontSize: 12
+            },
+            axisLabel: {
+              color: '#0072CE',
+              fontSize: 12,
+              formatter: function(value) {
+                return formatNumber(value);
+              }
+            },
+            splitLine: {
+              show: true,
+              lineStyle: {
+                color: '#e0e0e0',
+                type: 'dashed'
+              }
+            }
+          },
+          {
+            type: 'value',
+            name: 'Performance Ratio (%)',
+            nameTextStyle: {
+              color: '#0072CE',
+              fontSize: 12
+            },
+            axisLabel: {
+              color: '#0072CE',
+              fontSize: 12,
+              formatter: function(value) {
+                return value.toFixed(0) + '%';
+              }
+            },
+            splitLine: {
+              show: false
+            }
+          }
+        ],
+        series: series
+      };
+      
+      try {
+        advancedChart2.setOption(option, true); // Force replace all options
+          
+          // Update dynamic chart title
+          updateDynamicChartTitle();
+          
+          // Force a resize to ensure proper rendering
+          setTimeout(() => {
+            if (advancedChart2) {
+              advancedChart2.resize();
+            }
+          }, 100);
+        } catch (error) {
+          // Error updating advancedChart2
+        }
+    }
+    
+    // Reset advanced filters function
+    async function resetAdvancedFilters() {
+      // Clear advanced multi-selects
+      if (advancedParameterMultiSelect) advancedParameterMultiSelect.clearSelection();
+      if (advancedCountryMultiSelect) advancedCountryMultiSelect.clearSelection();
+      if (advancedPortfolioMultiSelect) advancedPortfolioMultiSelect.clearSelection();
+      
+      // Reset advanced calendar
+      if (window.advancedCalendar && typeof window.advancedCalendar.reset === 'function') {
+        window.advancedCalendar.reset();
+      }
+      
+      // Clear advanced chart
+      if (advancedChart2) {
+        const option = advancedChart2.getOption();
+        option.series = [];
+        option.legend.data = [];
+        option.xAxis[0].data = [];
+        advancedChart2.setOption(option, true);
+      }
+      
+      // Reset advanced monthly data
+      advancedMonthlyData = {};
+      
+      // Reset asset filter
+      document.getElementById('advancedAssetNoFilter').value = '';
+      
+      // Reload advanced asset options to reset cascading
+      await loadAdvancedAssetOptions();
+      
+      // Update dynamic title
+      updateDynamicChartTitle();
+    }
+    
+    // Reset gauge filters function
+    async function resetGaugeFilters() {
+      // Clear gauge multi-selects
+      if (gaugeCountryMultiSelect) gaugeCountryMultiSelect.clearSelection();
+      if (gaugePortfolioMultiSelect) gaugePortfolioMultiSelect.clearSelection();
+      
+      // Reset gauge calendar
+      
+      
+      // Reset asset filter
+      document.getElementById('gaugeAssetNoFilter').value = '';
+      
+      // Reset date filter to today's date
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      document.getElementById('gaugeDateFilter').value = todayString;
+      // Update gauge date display in title
+      updateGaugeDateDisplay();
+      
+      // Reload gauge asset options to reset cascading
+      await loadGaugeAssetOptions();
+      
+      // Update gauge charts
+      updateGaugeCharts();
+    }
+    
+    // Reset filters function (now only for advanced chart)
+    async function resetFilters() {
+      // Call the advanced reset function
+      await resetAdvancedFilters();
+    }
+    
+        // Manual calendar initialization function
+    function forceCalendarInit() {
+      
+      if (typeof BestCalendar !== 'undefined') {
+        // Only initialize if not already initialized
+        if (!window.advancedCalendar && document.getElementById('advancedMonthMatrixTrigger')) {
+          window.advancedCalendar = new BestCalendar({
+            triggerId: 'advancedMonthMatrixTrigger',
+            pickerId: 'advancedMonthMatrixPicker',
+            labelId: 'advancedSelectedMonthLabel',
+            onPeriodChange: function(period) {
+              fetchAdvancedMonthlyData();
+            }
+          });
+          
+          if (rawData && rawData.length > 0) {
+            window.advancedCalendar.setData(rawData);
+          }
+        } else {
+          // Advanced calendar already initialized or trigger not found
+        }
+        
+
+      } else {
+        // BestCalendar component not loaded
+      }
+    }
+    
+
+  </script>
+  <script>
+document.getElementById('toggleGauges').onclick = function() {
+  const section = document.getElementById('gaugesSection');
+  const arrow = document.getElementById('arrowGauges');
+  section.classList.toggle('max-h-0');
+  section.classList.toggle('max-h-[2000px]');
+  arrow.classList.toggle('rotate-180');
+};
+document.getElementById('toggleAdvancedBars').onclick = function() {
+  const section = document.getElementById('advancedBarsSection');
+  const arrow = document.getElementById('arrowAdvancedBars');
+  section.classList.toggle('max-h-0');
+  section.classList.toggle('max-h-[3000px]');
+  arrow.classList.toggle('rotate-180');
+};
+</script>
+
+<!-- Translation Client -->
+<script src="{% static "translator-client.js" %}"></script>
+
+<!-- Cross-frame messaging system -->
+<script src="{% static "iframe-messaging.js" %}"></script>
+
+<script>
+  // KPI Dashboard messaging integration
+  document.addEventListener('DOMContentLoaded', function() {
+    // Notify parent when filters change
+    const originalApplyFilters = window.applyFilters;
+    window.applyFilters = function() {
+      originalApplyFilters.call(this);
+      
+      if (window.iframeMessaging) {
+        const filterState = {
+          country: advancedCountryMultiSelect ? advancedCountryMultiSelect.getSelectedValues().join(',') : '',
+          portfolio: advancedPortfolioMultiSelect ? advancedPortfolioMultiSelect.getSelectedValues().join(',') : '',
+          year: window.currentAdvancedBestCalendar ? window.currentAdvancedBestCalendar.getSelectedYear() : null
+        };
+        window.iframeMessaging.notifyFilterChanged(filterState);
+      }
+    };
+    
+    // Notify parent when data is loaded
+    const originalLoadCSV = window.loadCSV;
+    window.loadCSV = function() {
+      originalLoadCSV.call(this);
+      
+      // Add notification after data loads
+      setTimeout(() => {
+        if (window.iframeMessaging && (dailyData || yieldData)) {
+          const totalDataPoints = (dailyData ? dailyData.length : 0) + (yieldData ? yieldData.length : 0);
+          const allPortfolios = new Set();
+          const allCountries = new Set();
+          
+          if (dailyData) {
+            dailyData.forEach(r => {
+              if (r.portfolio) allPortfolios.add(r.portfolio);
+              if (r.country) allCountries.add(r.country);
+            });
+          }
+          if (yieldData) {
+            yieldData.forEach(r => {
+              if (r.portfolio || r.Portfolio) allPortfolios.add(r.portfolio || r.Portfolio);
+              if (r.country || r.Country) allCountries.add(r.country || r.Country);
+            });
+          }
+          
+          window.iframeMessaging.notifyDataUpdated({
+            type: 'kpiDataLoaded',
+            dataPoints: totalDataPoints,
+            portfolios: allPortfolios.size,
+            countries: allCountries.size
+          });
+        }
+      }, 1000);
+    };
+    
+    // Notify parent when charts are updated
+    const originalUpdateCharts = window.updateCharts;
+    window.updateCharts = function() {
+      originalUpdateCharts.call(this);
+      
+      if (window.iframeMessaging) {
+        window.iframeMessaging.notifyStateChanged({
+          type: 'chartsUpdated',
+          timestamp: Date.now()
+        });
+      }
+    };
+  });
+</script>
+</body>
+</html>

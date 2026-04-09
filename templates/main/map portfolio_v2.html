@@ -1,0 +1,1877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PORTFOLIO MAP </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Tailwind CSS for styles -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- AOS for animations -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <style>
+    html, body {
+      height: 100dvh;
+      min-height: 100dvh;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      overflow: auto;
+    }
+    body {
+      background: #ffffff;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      min-height: 100dvh;
+    }
+    .main-dashboard {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0;
+      flex: 1 1 0;
+      min-height: 0;
+      height: auto;
+      max-width: unset !important;
+      margin: 0 !important;
+    }
+    .filters-section,
+    .kpi-cards-section {
+      /* These sections use normal document flow */
+    }
+    .map-section {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 320px;
+      width: 100%;
+      margin-bottom: 0 !important;
+    }
+    #mapid {
+      flex: 1 1 0;
+      width: 100%;
+      height: 100% !important;
+      min-height: 320px;
+      border-radius: 1.25rem;
+      max-height: unset !important;
+      margin-bottom: 0 !important;
+    }
+    .glass {
+      background: rgba(255,255,255,0.10);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+      backdrop-filter: blur(9px);
+      -webkit-backdrop-filter: blur(9px);
+      border-radius: 1.5rem;
+      border: 1.5px solid rgba(255,255,255,0.16);
+    }
+    .filter-select {
+      background: rgba(255,255,255,0.75);
+      color: #222;
+    }
+    .kpi-icon {
+      font-size: 2.2rem;
+      margin-bottom: 0;
+      margin-right: 0.7rem;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+    }
+    /* Custom font size classes for filters and cards */
+    .filter-label-font { font-size: 4rem; } /* Change as needed */
+    .filter-select-font { font-size: 3rem; } /* Change as needed */
+    .card-title-font { font-size: 5rem; } /* Change as needed */
+    .card-value-font { font-size: 5.5rem; } /* Change as needed */
+    @media (max-width: 900px) {
+      #mapid { min-height: 200px; }
+    }
+    @media (max-width: 640px) {
+      #mapid { min-height: 120px; }
+    }
+    /* ==== Compact Dashboard Fix ==== */
+    .filter-label-font { font-size: 1.1rem !important; }
+    .filter-select-font { font-size: 1rem !important; }
+    .card-title-font { font-size: 1.2rem !important; }
+    .card-value-font { font-size: 1.6rem !important; }
+
+    .w-\[100vw\], .w-full { max-width: 1200px !important; margin-left: auto; margin-right: auto; }
+    .min-h-\[240px\] { min-height: 120px !important; }
+    .p-10, .md\:p-16, .p-12 { padding: 1.3rem !important; }
+    .mb-12, .mt-20, .gap-10, .gap-12 { margin-bottom: 1.5rem !important; margin-top: 0.5rem !important; gap: 1.1rem !important; }
+    .rounded-2xl, .rounded-xl, .rounded-3xl { border-radius: 0.7rem !important; }
+    .min-h-screen, .py-8 { min-height: unset !important; padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+    .grid { gap: 1.2rem !important; }
+    select.filter-select { min-height: 2.1rem !important; padding: 0.25rem 0.8rem !important; }
+    button.filter-select-font { font-size: 1.08rem !important; min-height: 2.1rem !important; min-width: 100px !important; padding: 0.45rem 0.8rem !important; }
+    .shadow-lg, .shadow-xl, .shadow-2xl { box-shadow: 0 2px 10px rgba(0,114,206,0.12) !important; }
+    /* Force smaller font in Google Maps InfoWindow content */
+    .gm-style .custom-infowindow,
+    .gm-style .custom-infowindow * {
+      font-size: 12px !important;
+      line-height: 1.1 !important;
+    }
+    /* Compact filter pills, dropdowns, and reset button for desktop */
+    @media (min-width: 1024px) {
+      .filters-section .grid {
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+        gap: 0.5rem !important;
+      }
+      .filters-section label {
+        font-size: 0.92rem !important;
+        margin-bottom: 0.1rem !important;
+      }
+      .filter-select {
+        font-size: 0.92rem !important;
+        padding: 0.18rem 0.7rem !important;
+        min-height: 1.8rem !important;
+        border-radius: 1.1rem !important;
+      }
+      button.filter-select-font, .filters-section button {
+        font-size: 0.92rem !important;
+        min-height: 1.8rem !important;
+        min-width: 80px !important;
+        padding: 0.18rem 0.7rem !important;
+        border-radius: 1.1rem !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-[#f8fbff]">
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/40" style="backdrop-filter: blur(4px);">
+    <div class="flex flex-col items-center">
+      <svg class="animate-spin mb-4" width="64" height="64" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="36" stroke="#ffd43b" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="180" stroke-dashoffset="30"/>
+        <circle cx="50" cy="50" r="36" stroke="#005bea" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="70"/>
+      </svg>
+      <span class="text-2xl font-semibold tracking-wide text-blue-200">Loading dashboard...</span>
+    </div>
+  </div>
+  <!-- Error overlay -->
+  <div id="errorOverlay" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-red-900/10 text-red-300 text-3xl font-bold text-center"></div>
+
+  <div class="main-dashboard">
+    <!-- Compact Filters Row -->
+    <div class="filters-section glass w-full px-2 py-1 mb-2">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+        <div>
+          <div class="relative">
+            <button id="countrySelectBtn" class="filter-select w-full rounded-2xl border-2 border-[#0072CE] px-2 py-1 text-[0.96rem] text-left bg-white hover:bg-gray-50 transition-all flex items-center justify-between">
+              <span class="text-[#0072CE] font-semibold mr-2">Country:</span>
+              <span id="countrySelectText" class="flex-1 truncate">All</span>
+              <svg class="w-4 h-4 transition-transform" id="countrySelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="countrySelectOptions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border-2 border-[#0072CE] rounded-2xl shadow-lg z-[9999] max-h-60 overflow-y-auto">
+              <!-- Options will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="relative">
+            <button id="plantTypeSelectBtn" class="filter-select w-full rounded-2xl border-2 border-[#0072CE] px-2 py-1 text-[0.96rem] text-left bg-white hover:bg-gray-50 transition-all flex items-center justify-between">
+              <span class="text-[#0072CE] font-semibold mr-2">Plant Type:</span>
+              <span id="plantTypeSelectText" class="flex-1 truncate">All</span>
+              <svg class="w-4 h-4 transition-transform" id="plantTypeSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="plantTypeSelectOptions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border-2 border-[#0072CE] rounded-2xl shadow-lg z-[9999] max-h-60 overflow-y-auto">
+              <!-- Options will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="relative">
+            <button id="installationTypeSelectBtn" class="filter-select w-full rounded-2xl border-2 border-[#0072CE] px-2 py-1 text-[0.96rem] text-left bg-white hover:bg-gray-50 transition-all flex items-center justify-between">
+              <span class="text-[#0072CE] font-semibold mr-2">Installation:</span>
+              <span id="installationTypeSelectText" class="flex-1 truncate">All</span>
+              <svg class="w-4 h-4 transition-transform" id="installationTypeSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="installationTypeSelectOptions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border-2 border-[#0072CE] rounded-2xl shadow-lg z-[9999] max-h-60 overflow-y-auto">
+              <!-- Options will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="relative">
+            <button id="portfolioSelectBtn" class="filter-select w-full rounded-2xl border-2 border-[#0072CE] px-2 py-1 text-[0.96rem] text-left bg-white hover:bg-gray-50 transition-all flex items-center justify-between">
+              <span class="text-[#0072CE] font-semibold mr-2">Portfolio:</span>
+              <span id="portfolioSelectText" class="flex-1 truncate">All</span>
+              <svg class="w-4 h-4 transition-transform" id="portfolioSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="portfolioSelectOptions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border-2 border-[#0072CE] rounded-2xl shadow-lg z-[9999] max-h-60 overflow-y-auto">
+              <!-- Options will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="relative">
+            <button id="assetNoSelectBtn" class="filter-select w-full rounded-2xl border-2 border-[#0072CE] px-2 py-1 text-[0.96rem] text-left bg-white hover:bg-gray-50 transition-all flex items-center justify-between">
+              <span class="text-[#0072CE] font-semibold mr-2">Asset No:</span>
+              <span id="assetNoSelectText" class="flex-1 truncate">All</span>
+              <svg class="w-4 h-4 transition-transform" id="assetNoSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="assetNoSelectOptions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border-2 border-[#0072CE] rounded-2xl shadow-lg z-[9999] max-h-60 overflow-y-auto">
+              <!-- Options will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="relative">
+            <button id="offtakerSelectBtn" class="filter-select w-full rounded-2xl border-2 border-[#0072CE] px-2 py-1 text-[0.96rem] text-left bg-white hover:bg-gray-50 transition-all flex items-center justify-between">
+              <span class="text-[#0072CE] font-semibold mr-2">Offtaker:</span>
+              <span id="offtakerSelectText" class="flex-1 truncate">All</span>
+              <svg class="w-4 h-4 transition-transform" id="offtakerSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="offtakerSelectOptions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border-2 border-[#0072CE] rounded-2xl shadow-lg z-[9999] max-h-60 overflow-y-auto">
+              <!-- Options will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="relative">
+            <button id="codSelectBtn" class="filter-select w-full rounded-2xl border-2 border-[#0072CE] px-2 py-1 text-[0.96rem] text-left bg-white hover:bg-gray-50 transition-all flex items-center justify-between">
+              <span class="text-[#0072CE] font-semibold mr-2">COD:</span>
+              <span id="codSelectText" class="flex-1 truncate">All</span>
+              <svg class="w-4 h-4 transition-transform" id="codSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="codSelectOptions" class="hidden absolute top-full left-0 right-0 mt-1 bg-white border-2 border-[#0072CE] rounded-2xl shadow-lg z-[9999] max-h-60 overflow-y-auto">
+              <!-- Options will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div class="flex items-end">
+          <button class="rounded-2xl bg-[#0072CE] px-4 py-1 font-bold text-white shadow hover:bg-white hover:text-[#0072CE] hover:border-[#0072CE] border-2 border-[#0072CE] transition-all w-full text-[0.97rem]"
+              onclick="resetFilters()">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI + Legend row (KPIs 50%, Legend 50%) -->
+    <div class="w-full flex flex-col lg:flex-row gap-2 mb-2">
+      <!-- Compact KPI Cards (50%) -->
+      <div class="kpi-cards-section w-full lg:basis-[70%] lg:max-w-[70%] grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div class="bg-white border-2 border-[#0072CE] kpi-card rounded-2xl shadow">
+          <span class="kpi-icon">📍</span>
+          <span class="kpi-label">Total Sites</span>
+          <span class="kpi-value" id="siteCount">–</span>
+        </div>
+        <div class="bg-white border-2 border-[#0072CE] kpi-card rounded-2xl shadow">
+          <span class="kpi-icon">🔆</span>
+          <span class="kpi-label">PV Capacity (MWp)</span>
+          <span class="kpi-value" id="pvCapacity">–</span>
+        </div>
+        <div class="bg-white border-2 border-[#0072CE] kpi-card rounded-2xl shadow">
+          <span class="kpi-icon">🔋</span>
+          <span class="kpi-label">BESS Capacity (MWh)</span>
+          <span class="kpi-value" id="bessCapacity">–</span>
+        </div>
+      </div>
+
+      <!-- Color Legend (50%) -->
+      <div id="colorLegend" class="w-full lg:basis-[30%] lg:max-w-[30%]">
+        <div class="bg-white border-2 border-[#0072CE] rounded-2xl shadow p-0.5 h-full flex items-center justify-center">
+          <div id="legendContent" class="flex flex-wrap justify-center gap-1 text-xs w-full">
+            <!-- Legend content will be populated by JavaScript -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- MAP (now fills all vertical space left) -->
+    <div class="map-section glass w-full relative">
+      <div id="mapid" class="rounded-2xl w-full"></div>
+      
+      <!-- Custom Zoom Controls -->
+      <div class="absolute top-4 right-4 z-10 flex flex-col gap-2">
+        <button id="zoomInBtn" class="bg-white hover:bg-gray-100 text-gray-700 font-bold py-2 px-3 rounded-lg shadow-lg border border-gray-300 transition-all duration-200 flex items-center justify-center w-10 h-10" title="Zoom In">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+        </button>
+        <button id="zoomOutBtn" class="bg-white hover:bg-gray-100 text-gray-700 font-bold py-2 px-3 rounded-lg shadow-lg border border-gray-300 transition-all duration-200 flex items-center justify-center w-10 h-10" title="Zoom Out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 13H5v-2h14v2z"/>
+          </svg>
+        </button>
+        <button id="resetViewBtn" class="bg-white hover:bg-gray-100 text-gray-700 font-bold py-2 px-3 rounded-lg shadow-lg border border-gray-300 transition-all duration-200 flex items-center justify-center w-10 h-10" title="Reset View">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- Zoom Level Display -->
+      <div class="absolute bottom-4 left-4 z-10 bg-white bg-opacity-90 text-gray-700 font-semibold py-2 px-3 rounded-lg shadow-lg border border-gray-300">
+        Zoom: <span id="zoomLevel">5</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSS for compact selects, labels, and map height -->
+  <style>
+  html, body {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: auto !important;
+  }
+  .main-dashboard {
+    height: 100dvh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .filters-section,
+  .kpi-cards-section {
+    /* These sections are already styled for normal flow */
+  }
+  .map-section {
+    flex: 1 1 0;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    justify-content: stretch;
+  }
+  #mapid {
+    flex: 1 1 0;
+    width: 100%;
+    height: 100% !important;
+    min-height: 320px;
+    border-radius: 1.25rem;
+    max-height: unset !important;
+  }
+  .filter-label-font { font-size: 1.1rem; }
+  .filter-select { width: 100%; min-width: 0; max-width: 100%; font-size: 1rem; padding: 0.5rem 1rem; }
+  .kpi-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    align-items: start;
+    column-gap: 0.4rem;
+    row-gap: 0.05rem;
+    padding: 0.2rem 0.4rem !important;
+    min-height: unset !important;
+  }
+  .kpi-card .kpi-icon {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    font-size: 1rem !important;
+    margin: 0 0.3rem 0 0 !important;
+    align-self: start;
+  }
+  .kpi-card .kpi-label {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 0.85rem !important;
+    font-weight: 600;
+    color: #0072CE;
+    margin: 0;
+    white-space: normal;
+    line-height: 1.1;
+  }
+  .kpi-card .kpi-value {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 0.95rem !important;
+    font-weight: 700;
+    color: #0072CE;
+    margin: 0;
+    white-space: normal;
+  }
+  @media (max-width: 900px) {
+    .kpi-card { min-height: 35px !important; }
+  }
+  select.filter-select, .filter-label-font {
+    font-size: 0.97rem !important;
+    padding-top: 0.1rem !important;
+    padding-bottom: 0.1rem !important;
+  }
+  body, html {
+    overflow: auto !important;
+    height: auto !important;
+  }
+  
+  /* Custom zoom controls styling */
+  #zoomInBtn, #zoomOutBtn, #resetViewBtn {
+    transition: all 0.2s ease;
+  }
+  
+  #zoomInBtn:hover, #zoomOutBtn:hover, #resetViewBtn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  #zoomInBtn:active, #zoomOutBtn:active, #resetViewBtn:active {
+    transform: scale(0.95);
+  }
+  
+      /* Responsive zoom controls */
+    @media (max-width: 768px) {
+      #zoomInBtn, #zoomOutBtn, #resetViewBtn {
+        width: 36px !important;
+        height: 36px !important;
+      }
+      
+      #zoomInBtn svg, #zoomOutBtn svg, #resetViewBtn svg {
+        width: 14px;
+        height: 14px;
+      }
+    }
+    
+    /* Enhanced legend styling */
+    #legendContent {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 12px;
+      padding: 8px 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Legend button styling */
+    .legend-btn {
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .legend-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .legend-btn.active {
+      transform: scale(1.1);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+      border-width: 3px !important;
+    }
+    
+    .legend-btn:active {
+      transform: scale(0.95);
+    }
+    
+    /* Add a subtle glow effect for active buttons */
+    .legend-btn.active::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #ffffff, #f0f0f0);
+      border-radius: 8px;
+      z-index: -1;
+      opacity: 0.8;
+    }
+    
+    #legendContent .w-4 {
+      transition: transform 0.2s ease;
+    }
+    
+    #legendContent .w-4:hover {
+      transform: scale(1.2);
+    }
+    
+    /* Marker hover effects */
+    .gm-style img[src*="data:image/svg+xml"] {
+      transition: transform 0.2s ease, filter 0.2s ease;
+    }
+    
+    .gm-style img[src*="data:image/svg+xml"]:hover {
+      transform: scale(1.1);
+      filter: brightness(1.1) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    }
+    
+    /* Multi-select dropdown styles */
+    .multi-select-option {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .multi-select-option:last-child {
+      border-bottom: none;
+    }
+    
+    .multi-select-option:hover {
+      background-color: #f8fafc;
+    }
+    
+    .multi-select-option.selected {
+      background-color: #e6f1fc;
+      color: #0072CE;
+      font-weight: 600;
+    }
+    
+    .multi-select-checkbox {
+      width: 16px;
+      height: 16px;
+      margin-right: 0.5rem;
+      border: 2px solid #0072CE;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    
+    .multi-select-checkbox.checked {
+      background-color: #0072CE;
+      color: white;
+    }
+    
+    .multi-select-checkbox.checked::after {
+      content: '✓';
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .multi-select-option-text {
+      flex: 1;
+      font-size: 0.9rem;
+    }
+    
+    .multi-select-count {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-left: 0.5rem;
+    }
+    
+    /* Dropdown arrow rotation */
+    .dropdown-open .transition-transform {
+      transform: rotate(180deg);
+    }
+    
+    /* Ensure dropdowns appear above all content */
+    .filters-section .relative {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .filters-section .relative:hover {
+      z-index: 2;
+    }
+    
+    /* Ensure dropdowns are not clipped */
+    .filters-section {
+      overflow: visible !important;
+    }
+    
+    .main-dashboard {
+      overflow: visible !important;
+    }
+    
+    /* Ensure the dropdowns have proper positioning context */
+    .filters-section .relative {
+      position: relative;
+      z-index: 50; /* enough to appear above map */
+    }
+    
+    [id$="SelectOptions"] {
+      z-index: 100; /* dropdown above other UI */
+    }
+    
+    /* Ensure dropdowns always appear above Google Maps */
+    .filters-section [id$="SelectOptions"] {
+        position: absolute !important;
+        z-index: 99999 !important;
+        background-color: white;
+        border: 2px solid #0072CE;
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Make sure parent containers don't clip */
+    .filters-section,
+    .glass,
+    .main-dashboard {
+        overflow: visible !important;
+    }
+    
+    /* Override any potential clipping from parent containers */
+    body, html {
+      overflow-x: visible !important;
+    }
+    
+    /* Force all filter dropdowns to stay above Google Maps & KPIs */
+    .filters-section [id$="SelectOptions"] {
+        position: absolute !important;
+        z-index: 999999 !important;
+        background: #fff;
+        border: 2px solid #0072CE;
+        border-radius: 1rem;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Ensure parent containers never clip dropdowns */
+    .filters-section,
+    .glass,
+    .main-dashboard {
+        overflow: visible !important;
+    }
+
+    /* Force Google Maps underlay */
+    .gm-style {
+        z-index: 1 !important;
+    }
+    
+    /* === Ensure dropdowns are always above KPI cards, legend & map === */
+    .filters-section {
+        position: relative;
+        z-index: 999999 !important;
+        overflow: visible !important;
+    }
+
+    /* Dropdown styling */
+    .filters-section [id$="SelectOptions"] {
+        position: absolute !important;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 9999999 !important; /* Highest priority */
+        background: #fff;
+        border: 2px solid #0072CE;
+        border-radius: 1rem;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Google Maps container must stay at the bottom */
+    .gm-style {
+        z-index: 1 !important;
+    }
+
+    /* KPI cards and legend should not overlap dropdowns */
+    .kpi-cards-section,
+    #colorLegend {
+        position: relative;
+        z-index: 2 !important;
+    }
+
+    /* === Final Z-Index Priority === */
+    .filters-section {
+        position: relative;
+        z-index: 999999 !important;
+    }
+
+    .filters-section [id$="SelectOptions"] {
+        position: absolute !important;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 9999999 !important;
+        background: #fff;
+        border: 2px solid #0072CE;
+        border-radius: 1rem;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    /* Force hide dropdowns when hidden class is applied */
+    .filters-section [id$="SelectOptions"].hidden {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+
+    .gm-style {
+        z-index: 1 !important;
+    }
+  </style>
+
+  <!-- JS (logic kept from your file, but script cleaned for style) -->
+  <script>
+    AOS.init({ duration: 900, once: true });
+
+    let map;
+    let markers = [];
+    let mapData = [];
+    let yieldData = [];
+    let mapLoaded = false, dataLoaded = false, yieldLoaded = false;
+    // Optional cutoff month for cumulative performance. Examples: '2025-07' or 'July-2025'.
+    // Set to null to include all months.
+    let performanceCutoffMonth = null;  // Changed to null to include all recent data (TW3 and other new sites)
+    // Performance filter for legend buttons: 'all', 'excellent', 'good', 'poor'
+    let performanceFilter = 'all';
+
+    const fieldMap = [
+      { id:'countrySelect',   col:'country',       btnId:'countrySelectBtn',       textId:'countrySelectText',       optionsId:'countrySelectOptions',       arrowId:'countrySelectArrow'       },
+      { id:'plantTypeSelect', col:'plant_type',    btnId:'plantTypeSelectBtn',     textId:'plantTypeSelectText',     optionsId:'plantTypeSelectOptions',     arrowId:'plantTypeSelectArrow'     },
+      { id:'installationTypeSelect', col:'installation_type', btnId:'installationTypeSelectBtn', textId:'installationTypeSelectText', optionsId:'installationTypeSelectOptions', arrowId:'installationTypeSelectArrow' },
+      { id:'portfolioSelect', col:'portfolio',     btnId:'portfolioSelectBtn',     textId:'portfolioSelectText',     optionsId:'portfolioSelectOptions',     arrowId:'portfolioSelectArrow'     },
+      { id:'assetNoSelect',   col:'asset_no',      btnId:'assetNoSelectBtn',       textId:'assetNoSelectText',       optionsId:'assetNoSelectOptions',       arrowId:'assetNoSelectArrow'       },
+      { id:'offtakerSelect',  col:'offtaker',      btnId:'offtakerSelectBtn',      textId:'offtakerSelectText',      optionsId:'offtakerSelectOptions',      arrowId:'offtakerSelectArrow'      },
+      { id:'codSelect',       col:'cod',           btnId:'codSelectBtn',           textId:'codSelectText',           optionsId:'codSelectOptions',           arrowId:'codSelectArrow'           }
+    ];
+
+    // Performance-only color scheme with darkest shades (Option 3) of red, yellow, and green
+    const colorSchemes = {
+      performance: {
+        'excellent': '#2E8B57', // Dark Green 3 for ≥90% achievement
+        'good': '#FFB800',      // Dark Yellow 3 for 70–90% achievement
+        'poor': '#B22222',      // Dark Red 3 for <70% achievement
+        'default': '#6B7280'    // Dark gray for unknown
+      }
+    };
+
+    // Utility: robust number parser (strips commas/whitespace and extracts first numeric token)
+    function parseNumeric(value) {
+      if (value === undefined || value === null) return NaN;
+      const normalized = String(value).replace(/[\s,]/g, '');
+      const match = normalized.match(/-?\d+(?:\.\d+)?/);
+      return match ? Number(match[0]) : NaN;
+    }
+
+    // Normalize values to handle trailing (and leading) spaces consistently
+    function normalizeValue(value) {
+      return String(value ?? '').trim();
+    }
+
+    // Escape text for safe inclusion in HTML attribute values
+    function escapeAttribute(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Utility: safe month → timestamp (supports 'YYYY-MM', 'YYYY/M', 'Jan-2025', 'July-2025')
+    function toTimestamp(monthStr) {
+      if (!monthStr) return NaN;
+      const s = String(monthStr).trim();
+      // YYYY-MM or YYYY-M
+      let m = s.match(/^(\d{4})-(\d{1,2})$/);
+      if (m) return Date.UTC(Number(m[1]), Number(m[2]) - 1, 1);
+      // YYYY/MM
+      m = s.match(/^(\d{4})\/(\d{1,2})$/);
+      if (m) return Date.UTC(Number(m[1]), Number(m[2]) - 1, 1);
+      // MonthName-YYYY (Jan/January etc)
+      m = s.match(/^([A-Za-z]+)-(\d{4})$/);
+      if (m) {
+        const names = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        const idx = names.indexOf(m[1].toLowerCase());
+        if (idx >= 0) return Date.UTC(Number(m[2]), idx, 1);
+      }
+      const ts = Date.parse(s);
+      return isNaN(ts) ? NaN : ts;
+    }
+
+    // Utility: format COD date to DD-MMM-YYYY format
+    function formatCODDate(dateStr) {
+      if (!dateStr || dateStr === 'N/A') return 'N/A';
+      
+      // Try to parse the date string
+      let date = new Date(dateStr);
+      
+      // If parsing failed, try MM/DD/YYYY format specifically
+      if (isNaN(date.getTime())) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          // MM/DD/YYYY format
+          const month = parseInt(parts[0], 10) - 1; // JavaScript months are 0-based
+          const day = parseInt(parts[1], 10);
+          const year = parseInt(parts[2], 10);
+          date = new Date(year, month, day);
+        }
+      }
+      
+      // If still invalid, return original string
+      if (isNaN(date.getTime())) {
+        return dateStr;
+      }
+      
+      // Format to DD-MMM-YYYY
+      const day = date.getDate().toString().padStart(2, '0');
+      const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
+                         'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+      const month = monthNames[date.getMonth()];
+      const year = date.getFullYear();
+      
+      return `${day}-${month}-${year}`;
+    }
+
+    // Function to calculate performance achievement percentage (cumulative across all months)
+    function calculatePerformanceAchievement(assetNo) {
+      if (!yieldData || yieldData.length === 0) {
+        return null;
+      }
+
+      const cutoffTs = performanceCutoffMonth ? toTimestamp(performanceCutoffMonth) : null;
+      const rows = yieldData
+        .filter(row => String(row.assetno).trim() === String(assetNo).trim())
+        .filter(row => {
+          if (!cutoffTs) return true;
+          const rowTs = toTimestamp(row.month);
+          if (!Number.isFinite(rowTs)) return false;
+          return rowTs <= cutoffTs;
+        });
+      if (rows.length === 0) {
+        return null;
+      }
+
+      let totalActual = 0;
+      let totalBudget = 0;
+      for (const r of rows) {
+        const a = parseNumeric(r.actual_generation);
+        const b = parseNumeric(r.ic_approved_budget);
+        if (Number.isFinite(a)) totalActual += a;
+        if (Number.isFinite(b)) totalBudget += b;
+      }
+
+      if (!Number.isFinite(totalBudget) || totalBudget <= 0) {
+        return null;
+      }
+
+      const percentage = (totalActual / totalBudget) * 100;
+      return percentage;
+    }
+
+    // Function to get performance category
+    function getPerformanceCategory(achievementPercentage) {
+      if (achievementPercentage === null) return 'default';
+      if (achievementPercentage >= 90) return 'excellent';
+      if (achievementPercentage >= 70) return 'good';
+      return 'poor';
+    }
+
+    // Function to get marker color (performance only)
+    function getMarkerColor(_scheme, data) {
+      const colorScheme = colorSchemes.performance;
+      const achievementPercentage = calculatePerformanceAchievement(data.asset_no);
+      const category = getPerformanceCategory(achievementPercentage);
+      return colorScheme[category] || colorScheme.default;
+    }
+
+    // Function to create custom marker icon with enhanced color attraction
+    function createCustomMarkerIcon(color) {
+      // Enhanced color scheme with darkest shades (Option 3) of red, yellow, and green
+      const enhancedColors = {
+        '#2E8B57': '#2E8B57', // Dark Green 3
+        '#FFB800': '#FFB800', // Dark Yellow 3
+        '#B22222': '#B22222', // Dark Red 3
+        '#6B7280': '#4B5563'  // Very dark gray
+      };
+      
+      const enhancedColor = enhancedColors[color] || color;
+      
+      // Create a more prominent marker design with sharp pointed bottom
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="56" viewBox="0 0 40 56">
+          <!-- Outer glow/shadow -->
+          <defs>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge> 
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+            </filter>
+          </defs>
+          
+          <!-- Main marker body with sharp pointed bottom -->
+          <path d="M20 0C14 0 9 5 9 11c0 8 11 18 11 18s11-10 11-18c0-6-5-11-11-11z M20 29L14 56L26 56Z" 
+                fill="${enhancedColor}" 
+                stroke="none"
+                stroke-width="0"
+                filter="url(#shadow)"/>
+          
+          <!-- Sharp pointed bottom triangle -->
+          <path d="M20 29L14 56L26 56Z" 
+                fill="${enhancedColor}" 
+                stroke="none"
+                stroke-width="0"
+                filter="url(#shadow)"/>
+          
+          <!-- Inner highlight circle -->
+          <circle cx="20" cy="11" r="4" fill="#ffffff" opacity="0.9"/>
+          
+          <!-- Performance indicator dot -->
+          <circle cx="20" cy="11" r="2.5" fill="${enhancedColor}"/>
+          
+          <!-- Top accent -->
+          <circle cx="20" cy="3" r="1.5" fill="#ffffff" opacity="0.8"/>
+        </svg>`;
+      
+      return {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+        anchor: new google.maps.Point(20, 56), // Anchor at the very bottom point
+        size: new google.maps.Size(40, 56),
+        scaledSize: new google.maps.Size(40, 56),
+        origin: new google.maps.Point(0, 0),
+        labelOrigin: new google.maps.Point(20, 8)
+      };
+    }
+
+    // Function to update the color legend (performance only)
+    function updateColorLegend() {
+      const legendContent = document.getElementById('legendContent');
+      if (!legendContent) return;
+      const legendHTML = `
+        <div class="w-full">
+          <div class="font-bold text-[#0072CE] mb-1 text-xs">Yield Achievement</div>
+          <div class="flex flex-wrap items-center gap-1">
+            <button id="legendAll" class="legend-btn active px-2 py-0.5 rounded-md font-semibold text-xs border-2 transition-all duration-200 hover:scale-105" 
+                    style="background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%); color: black; border-color: #374151;">
+              All Sites
+            </button>
+            <button id="legendExcellent" class="legend-btn px-2 py-0.5 rounded-md font-semibold text-xs border-2 transition-all duration-200 hover:scale-105" 
+                    style="background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%); color: white; border-color: #166534;">
+              ≥90%
+            </button>
+            <button id="legendGood" class="legend-btn px-2 py-0.5 rounded-md font-semibold text-xs border-2 transition-all duration-200 hover:scale-105" 
+                    style="background: linear-gradient(135deg, #FFB800 0%, #DAA520 100%); color: white; border-color: #A16207;">
+              70-90%
+            </button>
+            <button id="legendPoor" class="legend-btn px-2 py-0.5 rounded-md font-semibold text-xs border-2 transition-all duration-200 hover:scale-105" 
+                    style="background: linear-gradient(135deg, #B22222 0%, #A40000 100%); color: white; border-color: #991B1B;">
+              &lt;70%
+            </button>
+          </div>
+        </div>
+      `;
+      legendContent.innerHTML = legendHTML;
+      
+      // Add click event listeners to legend buttons
+      setupLegendButtonListeners();
+    }
+
+    // Function to setup legend button click listeners
+    function setupLegendButtonListeners() {
+      const buttons = ['legendAll', 'legendExcellent', 'legendGood', 'legendPoor'];
+      
+      buttons.forEach(btnId => {
+        const button = document.getElementById(btnId);
+        if (button) {
+          button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            buttons.forEach(id => {
+              const btn = document.getElementById(id);
+              if (btn) btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Set performance filter based on button clicked
+            switch(btnId) {
+              case 'legendAll':
+                performanceFilter = 'all';
+                break;
+              case 'legendExcellent':
+                performanceFilter = 'excellent';
+                break;
+              case 'legendGood':
+                performanceFilter = 'good';
+                break;
+              case 'legendPoor':
+                performanceFilter = 'poor';
+                break;
+            }
+            
+            // Update map with new filter
+            updateMapAndKPIs();
+          });
+        }
+      });
+    }
+
+    function getUnique(arr, col) {
+      return [...new Set(arr.map(r => normalizeValue(r[col])).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    }
+
+    // Special function to get formatted COD options for display
+    function getFormattedCODOptions(arr) {
+      const uniqueValues = [...new Set(arr.map(r => normalizeValue(r.cod)).filter(Boolean))];
+      return uniqueValues.map(val => ({
+        original: val,
+        formatted: formatCODDate(val)
+      })).sort((a,b) => a.original.localeCompare(b.original));
+    }
+
+    function debounce(fn, delay) {
+      let timer = null;
+      return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+
+    // Multi-select state management
+    let multiSelectStates = {};
+    
+    // Initialize multi-select states
+    function initializeMultiSelectStates() {
+      fieldMap.forEach(f => {
+        multiSelectStates[f.id] = {
+          selected: [],
+          isOpen: false
+        };
+      });
+    }
+    
+    // Toggle dropdown
+    function toggleDropdown(filterId) {
+      const field = fieldMap.find(f => f.id === filterId);
+      if (!field) return;
+      
+      const state = multiSelectStates[filterId];
+      const optionsDiv = document.getElementById(field.optionsId);
+      const arrow = document.getElementById(field.arrowId);
+      const btn = document.getElementById(field.btnId);
+      
+      // Close all other dropdowns
+      fieldMap.forEach(f => {
+        if (f.id !== filterId) {
+          const otherState = multiSelectStates[f.id];
+          const otherOptionsDiv = document.getElementById(f.optionsId);
+          const otherArrow = document.getElementById(f.arrowId);
+          const otherBtn = document.getElementById(f.btnId);
+          
+          if (otherState.isOpen) {
+            otherState.isOpen = false;
+            otherOptionsDiv.classList.add('hidden');
+            otherArrow.classList.remove('rotate-180');
+            otherBtn.classList.remove('dropdown-open');
+          }
+        }
+      });
+      
+      // Toggle current dropdown
+      state.isOpen = !state.isOpen;
+      if (state.isOpen) {
+        // Position dropdown relative to button (like normal select menus)
+        optionsDiv.style.position = 'absolute';
+        optionsDiv.style.top = '100%';
+        optionsDiv.style.left = '0';
+        optionsDiv.style.width = '100%';
+        optionsDiv.style.zIndex = '100';
+        optionsDiv.style.backgroundColor = 'white';
+        optionsDiv.style.border = '2px solid #0072CE';
+        optionsDiv.style.borderRadius = '1rem';
+        optionsDiv.style.boxShadow = '0 10px 25px rgba(0,0,0,0.1)';
+        optionsDiv.style.maxHeight = '240px';
+        optionsDiv.style.overflowY = 'auto';
+        optionsDiv.style.display = 'block';
+        
+        // Show the original dropdown
+        optionsDiv.classList.remove('hidden');
+        arrow.classList.add('rotate-180');
+        btn.classList.add('dropdown-open');
+      } else {
+        optionsDiv.classList.add('hidden');
+        arrow.classList.remove('rotate-180');
+        btn.classList.remove('dropdown-open');
+      }
+    }
+    
+
+    // Central function to close any dropdown
+    function closeDropdown(filterId) {
+      const field = fieldMap.find(f => f.id === filterId);
+      if (!field) {
+        return;
+      }
+
+      const state = multiSelectStates[filterId];
+      if (!state) {
+        return;
+      }
+
+      const optionsDiv = document.getElementById(field.optionsId);
+      const arrow = document.getElementById(field.arrowId);
+      const btn = document.getElementById(field.btnId);
+
+      // Force close state
+      state.isOpen = false;
+
+      // Force hide dropdown
+      if (optionsDiv) {
+        optionsDiv.classList.add('hidden');
+        optionsDiv.style.display = 'none';
+      }
+      
+      // Reset arrow rotation
+      if (arrow) {
+        arrow.classList.remove('rotate-180');
+      }
+      
+      // Reset button state
+      if (btn) {
+        btn.classList.remove('dropdown-open');
+      }
+
+
+    }
+
+    // Close all dropdowns at once
+    function closeAllDropdowns() {
+      fieldMap.forEach(f => {
+        closeDropdown(f.id);
+      });
+    }
+
+    // Toggle select all functionality
+    function toggleSelectAll(filterId, allSelected) {
+      const state = multiSelectStates[filterId];
+      const field = fieldMap.find(f => f.id === filterId);
+      if (!field) return;
+
+      if (allSelected) {
+        // Deselect everything
+        state.selected = [];
+      } else {
+        // Select everything
+        const opts = getUnique(mapData, field.col);
+        state.selected = [...opts];
+      }
+
+      updateFilterDisplay(filterId);
+      populateAllFilters(filterId);
+      updateMapAndKPIs();
+
+      // Close dropdown after select all
+      closeDropdown(filterId);
+    }
+
+    // Toggle option selection
+    function toggleOption(filterId, optionValue) {
+      const normalizedOption = normalizeValue(optionValue);
+      
+      const state = multiSelectStates[filterId];
+      if (!state) {
+        return;
+      }
+      
+      const index = state.selected.indexOf(normalizedOption);
+
+      // Add or remove the selected value
+      if (index > -1) {
+        state.selected.splice(index, 1);
+      } else {
+        state.selected.push(normalizedOption);
+      }
+
+      // Update UI and map
+      updateFilterDisplay(filterId);
+      populateAllFilters(filterId);
+      updateMapAndKPIs();
+
+      // Keep dropdown open for multiple selections
+      // closeDropdown(filterId);
+    }
+    
+    
+    // Update filter display text
+    function updateFilterDisplay(filterId) {
+      const field = fieldMap.find(f => f.id === filterId);
+      if (!field) return;
+      
+      const state = multiSelectStates[filterId];
+      const textElement = document.getElementById(field.textId);
+      
+      if (state.selected.length === 0) {
+        textElement.textContent = 'All';
+      } else if (state.selected.length === 1) {
+        // Special handling for COD to show formatted date
+        if (filterId === 'codSelect') {
+          textElement.textContent = formatCODDate(state.selected[0]);
+        } else {
+          textElement.textContent = state.selected[0];
+        }
+      } else {
+        textElement.textContent = `${state.selected.length} selected`;
+      }
+    }
+    
+    // Get selected values for a filter (compatible with existing logic)
+    function getSelectedValues(filterId) {
+      const state = multiSelectStates[filterId];
+      return state.selected.length === 0 ? ['__all__'] : state.selected;
+    }
+    
+    // Create multi-select options HTML
+    function createMultiSelectOptions(filterId, options) {
+      const field = fieldMap.find(f => f.id === filterId);
+      if (!field) return '';
+
+      const state = multiSelectStates[filterId];
+      const allSelected = state.selected.length === options.length;
+
+      // Add "Select All" option at the top
+      const selectAllOption = `
+          <div class="multi-select-option select-all-option ${allSelected ? 'selected' : ''}"
+               data-filter-id="${filterId}" 
+               data-select-all="true" 
+               data-all-selected="${allSelected}">
+              <div class="multi-select-checkbox ${allSelected ? 'checked' : ''}"></div>
+              <span class="multi-select-option-text"><b>Select All</b></span>
+          </div>
+      `;
+
+      // Build the rest of the options
+      const individualOptions = options.map(option => {
+        const isSelected = state.selected.includes(option);
+        const attrValue = escapeAttribute(option);
+        return `
+            <div class="multi-select-option ${isSelected ? 'selected' : ''}" 
+                 data-filter-id="${filterId}" 
+                 data-option-value="${attrValue}">
+                <div class="multi-select-checkbox ${isSelected ? 'checked' : ''}"></div>
+                <span class="multi-select-option-text">${option}</span>
+            </div>
+        `;
+      }).join('');
+
+      return selectAllOption + individualOptions;
+    }
+
+    // Special function to create COD options with formatted dates
+    function createCODOptions(filterId, options) {
+      const field = fieldMap.find(f => f.id === filterId);
+      if (!field) return '';
+
+      const state = multiSelectStates[filterId];
+      const allSelected = state.selected.length === options.length;
+
+      // Add "Select All" option at the top
+      const selectAllOption = `
+          <div class="multi-select-option select-all-option ${allSelected ? 'selected' : ''}"
+               data-filter-id="${filterId}" 
+               data-select-all="true" 
+               data-all-selected="${allSelected}">
+              <div class="multi-select-checkbox ${allSelected ? 'checked' : ''}"></div>
+              <span class="multi-select-option-text"><b>Select All</b></span>
+          </div>
+      `;
+
+      // Build the rest of the options with formatted dates
+      const individualOptions = options.map(option => {
+        const isSelected = state.selected.includes(option.original);
+        const attrValue = escapeAttribute(option.original);
+        return `
+            <div class="multi-select-option ${isSelected ? 'selected' : ''}" 
+                 data-filter-id="${filterId}" 
+                 data-option-value="${attrValue}">
+                <div class="multi-select-checkbox ${isSelected ? 'checked' : ''}"></div>
+                <span class="multi-select-option-text">${option.formatted}</span>
+            </div>
+        `;
+      }).join('');
+
+      return selectAllOption + individualOptions;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      initializeMultiSelectStates();
+      fieldMap.forEach(f => {
+        f.elem = document.getElementById(f.id);
+        f.btn = document.getElementById(f.btnId);
+        f.text = document.getElementById(f.textId);
+        f.options = document.getElementById(f.optionsId);
+        f.arrow = document.getElementById(f.arrowId);
+      });
+      
+      // Use data passed from Django view instead of fetching via AJAX
+      {% if error_message %}
+        showError('Error loading data: {{ error_message }}');
+      {% elif map_data_json %}
+        const data = {{ map_data_json|safe }};
+        mapData = data.map(r => {
+          const c = {};
+          for (const k in r) {
+            // Keep original key names to match fieldMap
+            c[k] = r[k];
+          }
+          return c;
+        });
+        
+        // Verify installation_type values
+        const installationTypes = getUnique(mapData, 'installation_type');
+        
+        // Verify portfolio values
+        const portfolios = getUnique(mapData, 'portfolio');
+        
+        // Verify country values
+        const countries = getUnique(mapData, 'country');
+        
+        // Verify offtaker values
+        const offtakers = getUnique(mapData, 'offtaker');
+        dataLoaded = true;
+        
+        // Load yield data for performance calculations
+        {% if yield_data_json %}
+          const yieldDataRaw = {{ yield_data_json|safe }};
+          yieldData = yieldDataRaw.map(r => {
+            const c = {};
+            for (const k in r) {
+              const cleanKey = k.trim().toLowerCase();
+              const cleanValue = String(r[k] || '').trim();
+              c[cleanKey] = cleanValue;
+            }
+            return c;
+          });
+          yieldLoaded = true;
+        {% else %}
+          yieldLoaded = true; // Set to true to not block the app
+        {% endif %}
+        
+        checkReady();
+      {% else %}
+        showError('No data available. Please check your permissions.');
+      {% endif %}
+    });
+
+    function populateAllFilters(changedId = null) {
+      const active = {};
+      let subset = mapData;
+      
+      for (let i = 0; i < fieldMap.length; i++) {
+        const f = fieldMap[i];
+        
+        // Skip the changed filter when building active filters
+        if (f.id !== changedId) {
+          const selectedValues = getSelectedValues(f.id);
+          if (selectedValues.length > 0 && !selectedValues.includes('__all__')) {
+            active[f.col] = selectedValues;
+          }
+        }
+        
+        // Filter subset based on active filters so far
+        subset = mapData.filter(r => {
+          return Object.entries(active).every(([col, val]) => {
+            const recordVal = String(r[col] || '').trim();
+            return Array.isArray(val) ? val.includes(recordVal) : recordVal === val;
+          });
+        });
+        
+        // Get unique options for this filter from the filtered subset
+        let opts;
+        if (f.id === 'codSelect') {
+          // Special handling for COD dates
+          opts = getFormattedCODOptions(subset);
+        } else {
+          opts = getUnique(subset, f.col);
+        }
+        
+        // Debug logging for specific filters
+        if (f.id === 'countrySelect' || f.id === 'plantTypeSelect' || f.id === 'installationTypeSelect' || f.id === 'offtakerSelect') {
+          // Debug logging can be added here if needed
+        }
+        
+        // Preserve current selection if valid
+        let prev = multiSelectStates[f.id].selected;
+        if (!changedId && window.localStorage) {
+          const saved = localStorage.getItem('dashboard_filter_' + f.id);
+          if (saved) {
+            try {
+              const savedArray = JSON.parse(saved);
+              if (Array.isArray(savedArray)) {
+                if (f.id === 'codSelect') {
+                  // For COD, check against original values
+                  prev = savedArray
+                    .map(item => normalizeValue(item))
+                    .filter(item => opts.some(opt => opt.original === item));
+                } else {
+                  prev = savedArray
+                    .map(item => normalizeValue(item))
+                    .filter(item => opts.includes(item));
+                }
+              }
+            } catch (e) {
+              // Invalid saved data, use empty array
+              prev = [];
+            }
+          }
+        }
+        
+        // Update multi-select state
+        multiSelectStates[f.id].selected = prev.map(item => normalizeValue(item));
+        
+        // Rebuild dropdown options
+        if (f.id === 'codSelect') {
+          f.options.innerHTML = createCODOptions(f.id, opts);
+        } else {
+          f.options.innerHTML = createMultiSelectOptions(f.id, opts);
+        }
+        
+        // Update display
+        updateFilterDisplay(f.id);
+        
+        // Add this filter to active filters if it has selections
+        const currentSelected = getSelectedValues(f.id);
+        if (currentSelected.length > 0 && !currentSelected.includes('__all__')) {
+          active[f.col] = currentSelected;
+        }
+      }
+      
+      if (window.localStorage) {
+        fieldMap.forEach(f => {
+          localStorage.setItem('dashboard_filter_' + f.id, JSON.stringify(multiSelectStates[f.id].selected));
+        });
+      }
+      updateMapAndKPIs();
+      setupListeners();
+    }
+
+    const debouncedPopulate = debounce(populateAllFilters, 200);
+    
+    // Set up global event delegation for option clicks (only once)
+    if (!window.multiSelectListenerSetup) {
+      document.addEventListener('click', (e) => {
+        const option = e.target.closest('.multi-select-option');
+        if (option) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const filterId = option.dataset.filterId;
+          const isSelectAll = option.dataset.selectAll === 'true';
+          
+          if (isSelectAll) {
+            const allSelected = option.dataset.allSelected === 'true';
+            toggleSelectAll(filterId, allSelected);
+          } else {
+            let optionValue = option.dataset.optionValue;
+            if (!optionValue) {
+              const textNode = option.querySelector('.multi-select-option-text');
+              optionValue = textNode ? textNode.textContent : '';
+            }
+            if (optionValue) {
+              toggleOption(filterId, optionValue);
+            }
+          }
+        }
+      });
+      window.multiSelectListenerSetup = true;
+    }
+    
+    function setupListeners() {
+      fieldMap.forEach(f => {
+        if (!f._listening) {
+          // Add click listener to dropdown button
+          f.btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown(f.id);
+          });
+          f._listening = true;
+        }
+      });
+    }
+
+    function resetFilters() {
+      // First, close all dropdowns
+      closeAllDropdowns();
+      
+      // Reset all dropdown states
+      fieldMap.forEach(f => {
+        multiSelectStates[f.id].selected = [];
+        updateFilterDisplay(f.id);
+
+        // Refresh options
+        let opts;
+        if (f.id === 'codSelect') {
+          opts = getFormattedCODOptions(mapData);
+        } else {
+          opts = getUnique(mapData, f.col);
+        }
+        const optionsDiv = document.getElementById(f.optionsId);
+        if (optionsDiv) {
+          if (f.id === 'codSelect') {
+            optionsDiv.innerHTML = createCODOptions(f.id, opts);
+          } else {
+            optionsDiv.innerHTML = createMultiSelectOptions(f.id, opts);
+          }
+          optionsDiv.classList.add('hidden');
+          optionsDiv.style.display = 'none';
+        }
+      });
+
+      // Clear localStorage
+      if (window.localStorage) {
+        fieldMap.forEach(f => localStorage.removeItem('dashboard_filter_' + f.id));
+      }
+
+      // Reset performance filter
+      performanceFilter = 'all';
+
+      // Refresh map and KPIs
+      populateAllFilters();
+
+      // Reset legend button states
+      const buttons = ['legendAll', 'legendExcellent', 'legendGood', 'legendPoor'];
+      buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+      });
+      const allBtn = document.getElementById('legendAll');
+      if (allBtn) allBtn.classList.add('active');
+      
+      if (typeof google !== 'undefined' && map) {
+        // Reset to show all sites by fitting bounds to all markers
+        const bounds = new google.maps.LatLngBounds();
+        let validSites = 0;
+        
+        mapData.forEach(r => {
+          if (r.latitude && r.longitude) {
+            bounds.extend(new google.maps.LatLng(+r.latitude, +r.longitude));
+            validSites++;
+          }
+        });
+        
+        if (!bounds.isEmpty()) {
+          map.fitBounds(bounds);
+          // Add some padding to ensure all markers are visible
+          google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+            const currentZoom = map.getZoom();
+            if (currentZoom > 10) {
+              map.setZoom(10); // Limit zoom to ensure all sites are visible
+            }
+          });
+        } else {
+          // Fallback to default position if no valid coordinates
+          map.setCenter({lat: 15, lng: 100});
+          map.setZoom(5);
+        }
+        
+        map.setMapTypeId('roadmap'); // Ensure roadmap view is maintained on reset
+      }
+    }
+
+    function updateMapAndKPIs() {
+      if (typeof google==='undefined' || !map) {
+        return;
+      }
+      
+      // Build filters object
+      const filters = {};
+      fieldMap.forEach(f => {
+        const selectedValues = getSelectedValues(f.id);
+        if (selectedValues.length > 0 && !selectedValues.includes('__all__')) {
+          filters[f.col] = selectedValues;
+        }
+      });
+      
+      // Apply filters to data
+      const filtered = mapData.filter(r => {
+        return Object.entries(filters).every(([col, val]) => {
+          const recordVal = String(r[col] || '').trim();
+          return Array.isArray(val) ? val.includes(recordVal) : recordVal === val;
+        });
+      });
+      
+      // Apply performance filter from legend buttons
+      let performanceFiltered = filtered;
+      if (performanceFilter !== 'all') {
+        performanceFiltered = filtered.filter(r => {
+          const achievementPercentage = calculatePerformanceAchievement(r.asset_no);
+          const category = getPerformanceCategory(achievementPercentage);
+          return category === performanceFilter;
+        });
+      }
+      
+      // Update KPIs
+      document.getElementById('siteCount').textContent = performanceFiltered.length;
+      const fmt = v=> !isNaN(+v)? (+v).toFixed(1) : '0.0';
+      document.getElementById('pvCapacity').textContent =
+        performanceFiltered.reduce((s,r)=> s + (+r.dc_capacity_mwp||0),0).toFixed(1);
+      document.getElementById('bessCapacity').textContent =
+        performanceFiltered.reduce((s,r)=> s + (+r.battery_capacity_mw||0),0).toFixed(1);
+      
+      // Update color legend
+      updateColorLegend();
+      
+      // Clear existing markers
+      markers.forEach(m=>m.setMap(null));
+      markers = [];
+      
+      // Use performance scheme by default
+      const selectedScheme = 'performance';
+      
+      // Add new markers for filtered data
+      performanceFiltered.forEach(r => {
+        if (!r.latitude || !r.longitude) return;
+        
+        // Get color based on selected scheme
+        const markerColor = getMarkerColor(selectedScheme, r);
+        
+        const marker = new google.maps.Marker({
+          position: { lat: +r.latitude, lng: +r.longitude },
+          map: map,
+          icon: createCustomMarkerIcon(markerColor),
+          optimized: false
+        });
+        
+        // Get performance data for info window
+        let performanceInfo = '';
+        if (selectedScheme === 'performance') {
+          const achievementPercentage = calculatePerformanceAchievement(r.asset_no);
+          if (achievementPercentage !== null) {
+            performanceInfo = `<div class="text-3xl text-black">Performance: <b>${achievementPercentage.toFixed(1)}%</b></div>`;
+          }
+        }
+        
+        const info = new google.maps.InfoWindow({
+          content: `
+            <div class="custom-infowindow">
+              <div class="font-bold text-4xl text-blue-700 mb-4">${r.site_name || 'N/A'}</div>
+              <div class="text-3xl text-black">Country: <b>${r.country || 'N/A'}</b></div>
+              <div class="text-3xl text-black">Asset No: <b>${r.asset_no || 'N/A'}</b></div>
+              <div class="text-3xl text-black">PV: <b>${fmt(r.dc_capacity_mwp)} MW</b></div>
+              <div class="text-3xl text-black">BESS: <b>${fmt(r.battery_capacity_mw)} MWh</b></div>
+              <div class="text-3xl text-black">Offtaker: <b>${r.offtaker || 'N/A'}</b></div>
+              <div class="text-3xl text-black">COD: <b>${formatCODDate(r.cod)}</b></div>
+              <div class="text-3xl text-black">Plant Type: <b>${r.plant_type || 'N/A'}</b></div>
+              <div class="text-3xl text-black">Installation: <b>${r.installation_type || 'N/A'}</b></div>
+              <div class="text-3xl text-black">Coordinates: <b>${(+r.latitude).toFixed(6)}, ${(+r.longitude).toFixed(6)}</b></div>
+              ${performanceInfo}
+            </div>
+          `
+        });
+        
+        marker.addListener('click', () => info.open(map, marker));
+        markers.push(marker);
+      });
+      // Auto-zoom and adjust map type based on number of filtered sites
+      if (performanceFiltered.length > 0) {
+        if (performanceFiltered.length === 1) {
+          // Single site: switch to satellite view and zoom in close
+          const site = performanceFiltered[0];
+          if (site.latitude && site.longitude) {
+            map.setCenter({ lat: +site.latitude, lng: +site.longitude });
+            map.setZoom(18); // Close zoom for detailed satellite view
+            map.setMapTypeId('satellite');
+          }
+        } else {
+          // Multiple sites: use roadmap view and fit bounds
+          map.setMapTypeId('roadmap');
+          const bounds = new google.maps.LatLngBounds();
+          performanceFiltered.forEach(r => {
+            if (r.latitude && r.longitude) {
+              bounds.extend(new google.maps.LatLng(+r.latitude, +r.longitude));
+            }
+          });
+          if (!bounds.isEmpty()) {
+            map.fitBounds(bounds);
+            // For multiple sites, maintain reasonable zoom level
+            google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+              const currentZoom = map.getZoom();
+              if (currentZoom > 12) {
+                map.setZoom(12); // Limit zoom to ensure all sites are visible
+              }
+            });
+          }
+        }
+      } else {
+        // No sites: default roadmap view
+        map.setMapTypeId('roadmap');
+        map.setCenter({lat: 15, lng: 100});
+        map.setZoom(5);
+      }
+      
+      // Update zoom level display
+      updateZoomLevel();
+    }
+
+    function initMap() {
+      map = new google.maps.Map(
+        document.getElementById('mapid'),
+        { 
+          center:{lat:15,lng:100}, 
+          zoom:5, 
+          mapTypeId:'roadmap',
+          mapId: 'DEMO_MAP_ID',
+          zoomControl: false, // Disable default zoom controls since we have custom ones
+          mapTypeControl: true,
+          mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+            position: google.maps.ControlPosition.TOP_LEFT,
+            mapTypeIds: ['roadmap', 'hybrid', 'satellite']
+          },
+          streetViewControl: false,
+          fullscreenControl: true,
+          fullscreenControlOptions: {
+            position: google.maps.ControlPosition.TOP_RIGHT
+          }
+        }
+      );
+      
+      // Initialize zoom controls
+      setupZoomControls();
+      
+      // Update zoom level display when zoom changes
+      google.maps.event.addListener(map, 'zoom_changed', function() {
+        updateZoomLevel();
+      });
+      
+      mapLoaded = true;
+      checkReady();
+    }
+    
+    // Setup custom zoom controls
+    function setupZoomControls() {
+      const zoomInBtn = document.getElementById('zoomInBtn');
+      const zoomOutBtn = document.getElementById('zoomOutBtn');
+      const resetViewBtn = document.getElementById('resetViewBtn');
+      
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', function() {
+          if (map) {
+            const currentZoom = map.getZoom();
+            map.setZoom(Math.min(currentZoom + 1, 20)); // Max zoom level is 20
+          }
+        });
+      }
+      
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', function() {
+          if (map) {
+            const currentZoom = map.getZoom();
+            map.setZoom(Math.max(currentZoom - 1, 1)); // Min zoom level is 1
+          }
+        });
+      }
+      
+      if (resetViewBtn) {
+        resetViewBtn.addEventListener('click', function() {
+          if (map) {
+            // Reset to show all sites
+            const bounds = new google.maps.LatLngBounds();
+            mapData.forEach(r => {
+              if (r.latitude && r.longitude) {
+                bounds.extend(new google.maps.LatLng(+r.latitude, +r.longitude));
+              }
+            });
+            
+            if (!bounds.isEmpty()) {
+              map.fitBounds(bounds);
+              map.setMapTypeId('roadmap');
+              // Add some padding to ensure all markers are visible
+              google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                const currentZoom = map.getZoom();
+                if (currentZoom > 10) {
+                  map.setZoom(10); // Limit zoom to ensure all sites are visible
+                }
+              });
+            } else {
+              // Fallback to default position if no valid coordinates
+              map.setCenter({lat: 15, lng: 100});
+              map.setZoom(5);
+            }
+            
+            // Update zoom level display
+            updateZoomLevel();
+          }
+        });
+      }
+    }
+    
+    // Update zoom level display
+    function updateZoomLevel() {
+      const zoomLevelElement = document.getElementById('zoomLevel');
+      if (zoomLevelElement && map) {
+        zoomLevelElement.textContent = map.getZoom();
+      }
+    }
+    window.initMap = initMap;
+
+    function checkReady() {
+      if (mapLoaded && dataLoaded && yieldLoaded) {
+        document.getElementById('loadingOverlay').style.display = 'none';
+        // Remove any overflow-hidden from body
+        document.body.classList.remove('overflow-hidden');
+        populateAllFilters();
+        
+        updateColorLegend();
+        updateMapAndKPIs(); // Update map with performance colors
+        
+        // Ensure initial view shows all sites properly
+        setTimeout(() => {
+          if (typeof google !== 'undefined' && map) {
+            const bounds = new google.maps.LatLngBounds();
+            mapData.forEach(r => {
+              if (r.latitude && r.longitude) {
+                bounds.extend(new google.maps.LatLng(+r.latitude, +r.longitude));
+              }
+            });
+            if (!bounds.isEmpty()) {
+              map.fitBounds(bounds);
+              map.setMapTypeId('roadmap'); // Ensure roadmap view on initial load
+              google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                const currentZoom = map.getZoom();
+                if (currentZoom > 10) {
+                  map.setZoom(10); // Limit zoom to ensure all sites are visible
+                }
+              });
+            }
+          }
+        }, 500);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      const err = document.getElementById('errorOverlay');
+      err.style.display = 'flex';
+      err.textContent = "⚠️ " + msg;
+      // document.querySelector('.min-h-screen').style.display = 'none'; // This line is removed
+    }
+
+
+    // Close dropdowns when clicking anywhere else
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.filters-section')) {
+        closeAllDropdowns();
+      }
+    });
+
+  </script>
+  <!-- Google Maps API -->
+  <script
+    async
+    defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPdGwRKctCvCnF2bNincrRpdTEAXzeDsA&callback=initMap&loading=async">
+  </script>
+  
+  <!-- Cross-frame messaging system (inline implementation) -->
+  
+  <script>
+    // Simple cross-frame messaging (if needed)
+    document.addEventListener('DOMContentLoaded', function() {
+      // Basic parent notification when data is loaded
+      if (window.parent && window.parent !== window) {
+        try {
+          window.parent.postMessage({
+            type: 'mapDataLoaded',
+            source: 'portfolio-map'
+          }, '*');
+        } catch (error) {
+          // Silently handle messaging errors
+        }
+      }
+    });
+  </script>
+</body>
+</html>

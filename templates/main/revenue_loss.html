@@ -1,0 +1,1842 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>ALL SITES Revenue Loss / Gain ($, K)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <!-- AOS animation library -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css"/>
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <!-- Tailwind for modern style (optional for utilities) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- BestCalendar Component -->
+  <script src="{% static "bestcalendar.js" %}"></script>
+  <!-- Multi-Select Component -->
+  <script src="{% static "js/multi-select.js" %}"></script>
+
+  <script>
+    if (typeof BestCalendar === 'undefined') {
+      const script = document.createElement('script');
+      script.src = "{% static "bestcalendar.js" %}";
+      script.onload = () => {
+        if (typeof BestCalendar !== 'undefined') {
+          // BestCalendar is now available
+        }
+      };
+      script.onerror = () => {
+        // Failed to load BestCalendar from alternative path
+      };
+      document.head.appendChild(script);
+    }
+  </script>
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      height: 100vh;
+      width: 100vw;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color: #222;
+      font-size: 1.16rem;
+      overflow: hidden;
+    }
+    .dashboard-main-wrapper {
+      width: 100vw;
+      padding: 0;
+      box-sizing: border-box;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Enhanced Dashboard Header */
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      background: linear-gradient(135deg, rgba(10,115,209,0.12), rgba(16,185,129,0.12));
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      border-radius: 0 0 24px 24px;
+      margin-bottom: 6px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(12px);
+      flex-shrink: 0;
+    }
+    .dashboard-header .title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin: 0;
+      display: block;
+      text-align: center;
+      width: 100%;
+      background: linear-gradient(90deg, #0a73d1, #10b981);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .filter-section {
+      min-height: 36px;
+      height: auto;
+      align-items: flex-start;
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+      padding: 8px 16px;
+      box-sizing: border-box;
+      margin: 0;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e0e0e0;
+      position: relative;
+      z-index: 10000;
+      flex-shrink: 0;
+    }
+    .filter-section .flex {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 1rem;
+      width: 100%;
+      align-items: flex-end;
+    }
+    .filter-section .flex > div {
+      min-width: 130px;
+      max-width: 200px;
+      flex: 1 1 150px;
+    }
+    
+    /* Increase width for multi-select filter containers */
+    .filter-section .flex > div:has(.multi-select-container) {
+      min-width: 160px;
+      max-width: 250px;
+      flex: 1 1 180px;
+    }
+    .filter-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #0072CE;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .filter-select {
+      background: rgba(255,255,255,0.95);
+      color: #222;
+      border-radius: 0.75rem;
+      border: none;
+      width: 100%;
+      height: 2.2rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      transition: border 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .filter-select:focus {
+      border: 2px solid #0072CE;
+      box-shadow: 0 0 0 2px #0072CE;
+    }
+    
+    /* Increase Budget Type dropdown width to show full options */
+    #budgetTypeSelect {
+      min-width: 180px;
+    }
+    
+    /* Multi-select component styles */
+    .multi-select-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      z-index: 9999;
+    }
+    
+    .multi-select-trigger {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.1rem 0.8rem;
+      background: rgba(255,255,255,0.95);
+      border: none;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      height: 2.2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      transition: border 0.2s, box-shadow 0.2s;
+      color: #222;
+    }
+    
+    .multi-select-trigger:hover {
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    
+    .multi-select-trigger.active {
+      border: 2px solid #0072CE;
+      box-shadow: 0 0 0 2px #0072CE;
+    }
+    
+    .multi-select-arrow {
+      font-size: 12px;
+      color: #0072CE;
+      transition: transform 0.2s;
+      margin-left: 8px;
+    }
+    
+    .multi-select-trigger.active .multi-select-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .multi-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-top: 4px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 10000;
+      display: none;
+    }
+    
+    .multi-select-dropdown.show {
+      display: block;
+    }
+    
+    .multi-select-option {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #222;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      min-height: 20px;
+    }
+    
+    .multi-select-option:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .multi-select-option.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.select-all-option {
+      border-bottom: 1px solid #e0e0e0;
+      font-weight: 600;
+      color: #0072CE;
+    }
+    
+    .multi-select-separator {
+      height: 1px;
+      background-color: #e0e0e0;
+      margin: 4px 0;
+    }
+    
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+      display: none;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      width: 100%;
+      font-size: 14px;
+      color: #222;
+    }
+    
+    .checkbox-custom {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #ccc;
+      border-radius: 3px;
+      margin-right: 8px;
+      position: relative;
+      background: white;
+      transition: all 0.2s ease;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+      background: #0072CE;
+      border-color: #0072CE;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+      content: '✓';
+      position: absolute;
+      top: -2px;
+      left: 1px;
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom {
+      background: #0072CE;
+      border-color: #0072CE;
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom::after {
+      content: '−';
+      position: absolute;
+      top: -2px;
+      left: 3px;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .checkbox-text {
+      flex: 1;
+    }
+    
+    .selected-items {
+      display: none; /* Hide selected items tags - only show count in placeholder */
+    }
+    
+    .selected-items-container {
+      display: none; /* Hide selected items display */
+    }
+    
+    .selected-item {
+      background: #0072CE;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .selected-item .remove {
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .selected-item .remove:hover {
+      color: #ffcccc;
+    }
+    
+    .main-content {
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #222;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+    #revenueChartDiv {
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      background: #ffffff;
+      position: relative;
+      z-index: 1;
+    }
+    .flicker-btn {
+      background: #fff;
+      border: 1.5px solid #0072CE;
+      color: #0072CE;
+      border-radius: 50%;
+      width: 2.2rem;
+      height: 2.2rem;
+      font-size: 1.3rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,114,206,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flicker-btn:hover, .flicker-btn:focus {
+      background: #e6f1fc;
+      outline: none;
+      box-shadow: 0 0 0 2px #0072CE;
+    }
+    @media (max-width: 950px) {
+      .filter-section .flex {
+        flex-direction: column !important;
+        gap: 0.7rem !important;
+      }
+      .filter-section .flex > div {
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        flex: unset !important;
+      }
+    }
+    @media (max-width: 900px) {
+      .dashboard-title { font-size: 2.2rem !important; padding: 4px 0 !important; border-radius: 5px !important; }
+      .filter-section .flex {
+        flex-direction: column !important;
+        gap: 2vh !important;
+      }
+      .filter-section .flex > div {
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+      .filter-label, .filter-select {
+        font-size: 1rem !important;
+      }
+    }
+    
+    /* BestCalendar compatibility styles */
+    .month-trigger-btn {
+      width: 100%;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #0072CE;
+      border-radius: 0.75rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      color: #0072CE;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s, border-color 0.2s;
+      height: 2.2rem;
+      font-weight: 600;
+    }
+        .month-trigger-btn:hover {
+      background: #e6f1fc;
+      border-color: #0072CE;
+    }
+    
+    /* Reset button styling */
+    .reset-btn {
+      background: #e60000;
+      border: 1px solid #e60000;
+      border-radius: 0.75rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      color: #ffffff;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      height: 2.2rem;
+      font-weight: 600;
+      min-width: 80px;
+    }
+    
+    .reset-btn:hover {
+      background: #cc0000;
+      border-color: #cc0000;
+      color: #ffffff;
+    }
+    .month-matrix-picker {
+      position: absolute;
+      z-index: 999999 !important;
+      background: #fff !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      margin-top: 4px;
+      border-radius: 10px;
+      top: 100%;
+      left: 0;
+      right: 0;
+      min-width: 280px;
+      max-width: 400px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .month-matrix-picker.show {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    /* Override BestCalendar's hidden class */
+    .month-matrix-picker:not(.bc-hidden) {
+      display: flex !important;
+    }
+    
+    .month-matrix-picker.show:not(.bc-hidden) {
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    .filter-pill {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      overflow: visible !important;
+    }
+    body, html, .dashboard-main-wrapper {
+      overflow-x: hidden !important;
+    }
+    
+
+    
+    /* Ensure calendar picker is always on top */
+    .month-matrix-picker {
+      position: fixed !important;
+      z-index: 999999 !important;
+    }
+    
+    /* Custom tooltip styles */
+    #custom-tooltip {
+      pointer-events: auto;
+      cursor: default;
+      position: fixed !important;
+      z-index: 10000 !important;
+      background: white !important;
+      border: 2px solid #0072CE !important;
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+      padding: 0 !important;
+      max-width: 90vw !important; /* Use viewport width instead of fixed width */
+      max-height: 70vh !important; /* Use viewport height instead of fixed height */
+      overflow-y: auto !important;
+      font-family: 'Segoe UI', Arial, sans-serif !important;
+      font-size: 14px !important;
+      line-height: 1.4 !important;
+      color: #333 !important;
+      /* Ensure tooltip is always visible and responsive */
+      min-width: 300px !important;
+      min-height: 200px !important;
+      /* Add backdrop blur effect for better visibility */
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+      /* Ensure tooltip never goes above header */
+      top: auto !important;
+      left: auto !important;
+    }
+    
+    #custom-tooltip div {
+      margin-bottom: 8px;
+    }
+    
+    #custom-tooltip b {
+      color: #0072CE;
+      font-weight: 600;
+    }
+    
+    /* Ensure tooltip table is responsive */
+    #custom-tooltip table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      font-size: 13px !important;
+    }
+    
+    #custom-tooltip th,
+    #custom-tooltip td {
+      padding: 8px !important;
+      border: 1px solid #ddd !important;
+      text-align: left !important;
+    }
+    
+    #custom-tooltip th {
+      background: #0072CE !important;
+      color: white !important;
+      font-weight: bold !important;
+    }
+    
+    /* Tooltip scrollbar styling */
+    #custom-tooltip::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #custom-tooltip::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    #custom-tooltip::-webkit-scrollbar-thumb {
+      background: #0072CE;
+      border-radius: 4px;
+    }
+    
+    #custom-tooltip::-webkit-scrollbar-thumb:hover {
+      background: #005a9e;
+    }
+    
+    /* Close button styling */
+    #tooltip-close-btn {
+      position: absolute !important;
+      top: 8px !important;
+      right: 8px !important;
+      background: #e60000 !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 50% !important;
+      width: 24px !important;
+      height: 24px !important;
+      font-size: 14px !important;
+      font-weight: bold !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 10001 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+      transition: all 0.2s ease !important;
+      line-height: 1 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    
+    #tooltip-close-btn:hover {
+      background: #cc0000 !important;
+      transform: scale(1.1) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+    }
+    
+    #tooltip-close-btn:active {
+      transform: scale(0.95) !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-main-wrapper">
+    <!-- Filter controls for year, month, country, and portfolio -->
+    <div class="filter-section">
+      <div class="flex flex-wrap gap-4 md:gap-8 items-end justify-start w-full">
+        <div class="flex flex-col" style="position: relative;">
+          <label class="filter-label mb-1" for="monthMatrixTrigger">Month</label>
+          <button id="monthMatrixTrigger" type="button" class="month-trigger-btn">
+            <span id="selectedMonthLabel">Select Period</span>
+          </button>
+          <div id="monthMatrixPicker" class="month-matrix-picker" style="display:none;"></div>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1">Country</label>
+          <div class="multi-select-container">
+            <div id="countryTrigger" class="multi-select-trigger">
+              <span id="countryPlaceholder" data-default="All Countries">All Countries</span>
+              <span class="multi-select-arrow">▼</span>
+            </div>
+            <div id="countryDropdown" class="multi-select-dropdown">
+              <!-- Options will be populated dynamically -->
+            </div>
+            <div id="countrySelectedItems" class="selected-items"></div>
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1">Portfolio</label>
+          <div class="multi-select-container">
+            <div id="portfolioTrigger" class="multi-select-trigger">
+              <span id="portfolioPlaceholder" data-default="All Portfolios">All Portfolios</span>
+              <span class="multi-select-arrow">▼</span>
+            </div>
+            <div id="portfolioDropdown" class="multi-select-dropdown">
+              <!-- Options will be populated dynamically -->
+            </div>
+            <div id="portfolioSelectedItems" class="selected-items"></div>
+          </div>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="budgetTypeSelect">Budget Type</label>
+          <select id="budgetTypeSelect" class="filter-select">
+            <option value="expected">Expected Budget</option>
+            <option value="operational">Operation Budget</option>
+          </select>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="resetBtn">&nbsp;</label>
+          <button id="resetBtn" type="button" class="reset-btn">Reset</button>
+        </div>
+      </div>
+    </div>
+    <div class="main-content">
+      <!-- Main chart container -->
+      <div id="revenueChartDiv"></div>
+    </div>
+  </div>
+
+  <script>
+    AOS.init({ duration: 900, once: true });
+    // -----------------------------
+    // Revenue Loss Dashboard Script
+    // -----------------------------
+    //
+    let prData = [];
+    let revenueInstance = null;
+    let currentYear = null;
+    let currentMonth = null;
+    let bestCalendar = null;
+    let isYearMode = false; // Track if we're in year selection mode
+
+    function getAvailableMonths() {
+      // Get current date for comparison
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based
+      
+      // Returns sorted array of unique YYYY-MM strings in prData that have actual data
+      const months = Array.from(new Set(
+        prData
+          .filter(r => {
+            // Only include rows that have actual data (non-null revenue_loss values)
+            const revenueLoss = parseFloat(r.revenue_loss);
+            if (isNaN(revenueLoss) || !r.month) return false;
+            
+            // Parse the month from data
+            const monthStr = (r.month || '').slice(0,7);
+            if (!monthStr || monthStr.length !== 7) return false;
+            
+            const [year, month] = monthStr.split('-');
+            const dataYear = parseInt(year);
+            const dataMonth = parseInt(month);
+            
+            // Only include months that are not in the future
+            if (dataYear > currentYear) return false;
+            if (dataYear === currentYear && dataMonth > currentMonth) return false;
+            
+            return true;
+          })
+          .map(r => (r.month || '').slice(0,7))
+          .filter(Boolean)
+      ));
+      
+      months.sort((a, b) => {
+        // Sort months chronologically
+        const [aYear, aMonth] = a.split('-');
+        const [bYear, bMonth] = b.split('-');
+        if (aYear !== bYear) return parseInt(aYear) - parseInt(bYear);
+        return parseInt(aMonth) - parseInt(bMonth);
+      });
+      
+      return months;
+    }
+
+    function setLatestMonth() {
+      const months = getAvailableMonths();
+      if (months.length) {
+        const [y, m] = months[months.length-1].split('-');
+        currentYear = +y;
+        currentMonth = +m;
+      } else {
+        const now = new Date();
+        currentYear = now.getFullYear();
+        currentMonth = now.getMonth() + 1;
+      }
+    }
+
+    // Function to set current month based on available data
+    function setCurrentMonth() {
+      // Get available months from the data
+      const availableMonths = getAvailableMonths();
+      
+      
+      if (availableMonths.length > 0) {
+        // Use the latest available month from the data
+        const latestMonth = availableMonths[availableMonths.length - 1];
+        const [year, month] = latestMonth.split('-');
+        currentYear = parseInt(year);
+        currentMonth = parseInt(month);
+        
+        // Update the label to show the latest available month
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthName = monthNames[parseInt(month) - 1];
+        document.getElementById('selectedMonthLabel').textContent = `${monthName} ${year}`;
+        
+      } else {
+        // No data available, reset selections
+        currentYear = null;
+        currentMonth = null;
+        document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+      }
+      
+      // Update the label and trigger chart update
+      updateCountryOptions();
+      updatePortfolioOptions();
+      updateRevenueChart();
+    }
+
+    function updateMonthLabel() {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      document.getElementById('selectedMonthLabel').textContent = `${monthNames[currentMonth-1]} ${currentYear}`;
+    }
+
+    function changeMonth(delta) {
+      currentMonth += delta;
+      if (currentMonth < 1) {
+        currentMonth = 12;
+        currentYear -= 1;
+      } else if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear += 1;
+      }
+      // Clamp to available months
+      const months = getAvailableMonths();
+      const target = `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+      if (!months.includes(target)) {
+        // If not available, try next in direction
+        if (delta > 0) {
+          for (let i = 0; i < months.length; i++) {
+            if (months[i] > target) {
+              const [y, m] = months[i].split('-');
+              currentYear = +y; currentMonth = +m; break;
+            }
+          }
+        } else {
+          for (let i = months.length-1; i >= 0; i--) {
+            if (months[i] < target) {
+              const [y, m] = months[i].split('-');
+              currentYear = +y; currentMonth = +m; break;
+            }
+          }
+        }
+      }
+      updateMonthLabel();
+      updateCountryOptions();
+      updatePortfolioOptions();
+      updateRevenueChart();
+    }
+
+    function isInSelectedMonth(rowMonth) {
+      if (!rowMonth) return false;
+      const m = rowMonth.toString().slice(0,7);
+      return m === `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+    }
+
+    function isInSelectedYear(rowMonth) {
+      if (!rowMonth) return false;
+      const year = rowMonth.toString().slice(0,4);
+      return year === String(currentYear);
+    }
+
+    // Responsive font size helper for chart
+    function getBigFont(base = 32, max = 66, min = 16) {
+      const width = window.innerWidth;
+      return Math.max(min, Math.min(max, Math.round(base * (width / 1920))));
+    }
+
+    // Responsive bar width helper
+    function getBarWidth() {
+      const width = window.innerWidth;
+      if (width <= 1200) return 10;
+      if (width <= 1400) return 15;
+      if (width <= 1600) return 18;
+      return 20;
+    }
+
+    // Responsive Y-axis name gap helper
+    function getYAxisNameGap() {
+      const width = window.innerWidth;
+      if (width <= 1200) return 40;
+      if (width <= 1400) return 45;
+      if (width <= 1600) return 50;
+      return 55;
+    }
+
+    // Format a value as K (thousands) or M (millions) for display
+    // Use appropriate format based on value size to match Y-axis
+    function formatK(v) {
+      v = +v;
+      if (isNaN(v)) return '';
+      // If value is >= 1 million, use M format with no decimals
+      if (Math.abs(v) >= 1000000) {
+        const millions = v / 1000000;
+        return Math.round(millions) + 'M';
+      }
+      // If value is >= 1 thousand, use K format with no decimals
+      if (Math.abs(v) >= 1000) {
+        const thousands = v / 1000;
+        return Math.round(thousands) + 'K';
+      }
+      // For very small values, still show in K format
+      if (Math.abs(v) > 0) {
+        const thousands = v / 1000;
+        return Math.round(thousands) + 'K';
+      }
+      return '0K';
+    }
+    
+    // Format for Y-axis labels - use M for millions
+    function formatYAxis(v) {
+      v = +v;
+      if (isNaN(v)) return '';
+      if (Math.abs(v) >= 1000000) {
+        const millions = v / 1000000;
+        // Show 1 decimal place for Y-axis
+        return millions.toFixed(1) + 'M';
+      }
+      if (Math.abs(v) >= 1000) {
+        const thousands = v / 1000;
+        return thousands.toFixed(1) + 'K';
+      }
+      return v.toString();
+    }
+
+    // Get array of YYYY-MM strings for selected month range
+    function getMonthRangeArr() {
+      const sy = +document.getElementById('startYear').value;
+      const sm = +document.getElementById('startMonth').value;
+      const ey = +document.getElementById('endYear').value;
+      const em = +document.getElementById('endMonth').value;
+      const arr = [];
+      let y=sy, m=sm;
+      while(y<ey|| (y===ey&&m<=em)) {
+        arr.push(`${y}-${String(m).padStart(2,'0')}`);
+        m++;
+        if(m>12){ m=1; y++; }
+      }
+      return arr;
+    }
+
+    // Check if a record's month is within the selected range
+    function isInMonthRange(raw) {
+      if (!raw) return false;
+      const m = raw.toString().slice(0,7);
+      return getMonthRangeArr().includes(m);
+    }
+
+    // Custom tooltip functionality (similar to PR Gap dashboard)
+    function showCustomTooltip(content, event) {
+      // Remove existing custom tooltip if any
+      const existingTooltip = document.getElementById('custom-tooltip');
+      if (existingTooltip) {
+        existingTooltip.remove();
+      }
+      
+      // Create tooltip element
+      const tooltip = document.createElement('div');
+      tooltip.id = 'custom-tooltip';
+      
+      // Add close button to the content
+      const contentWithCloseButton = `
+        <div style="position: relative;">
+          <button id="tooltip-close-btn" style="
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #e60000;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+          " onmouseover="this.style.background='#cc0000'" onmouseout="this.style.background='#e60000'">×</button>
+          ${content}
+        </div>
+      `;
+      
+      tooltip.innerHTML = contentWithCloseButton;
+      tooltip.style.cssText = `
+        position: fixed;
+        z-index: 10000;
+        background: white;
+        border: 2px solid #0072CE;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        padding: 0;
+        max-width: 1000px;
+        max-height: 600px;
+        overflow-y: auto;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #333;
+      `;
+      
+      // Add to document first to get dimensions
+      document.body.appendChild(tooltip);
+      
+      // Get tooltip dimensions
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const tooltipWidth = tooltipRect.width;
+      const tooltipHeight = tooltipRect.height;
+      
+      // Get viewport dimensions
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Get actual header height by measuring the header elements
+      const headerElement = document.querySelector('.dashboard-header');
+      const filterElement = document.querySelector('.filter-section');
+      const headerHeight = (headerElement ? headerElement.offsetHeight : 60) + 
+                          (filterElement ? filterElement.offsetHeight : 50) + 20; // Add 20px buffer
+      
+      // Calculate optimal position
+      let x, y;
+      
+      // Horizontal positioning - prefer right side of screen for better visibility
+      const rightSpace = viewportWidth - event.clientX;
+      const leftSpace = event.clientX;
+      
+      if (rightSpace >= tooltipWidth + 20) {
+        // Position to the right of cursor
+        x = event.clientX + 20;
+      } else if (leftSpace >= tooltipWidth + 20) {
+        // Position to the left of cursor
+        x = event.clientX - tooltipWidth - 20;
+      } else {
+        // Center horizontally if not enough space on either side
+        x = Math.max(10, (viewportWidth - tooltipWidth) / 2);
+      }
+      
+      // Vertical positioning - ALWAYS start below header and stay within viewport
+      const minY = headerHeight + 10; // Always start below header with 10px buffer
+      const maxY = viewportHeight - tooltipHeight - 10; // Leave 10px from bottom
+      
+      // Calculate available space below header
+      const availableSpaceBelowHeader = viewportHeight - headerHeight - 20;
+      
+      if (availableSpaceBelowHeader >= tooltipHeight) {
+        // Enough space below header - position in center of available space
+        y = Math.max(minY, Math.min(maxY, headerHeight + 50));
+      } else {
+        // Not enough space - position at minimum Y (just below header)
+        y = minY;
+      }
+      
+      // Ensure tooltip doesn't go off-screen horizontally
+      x = Math.max(10, Math.min(x, viewportWidth - tooltipWidth - 10));
+      
+      // Final boundary check - ensure tooltip is always within viewport
+      if (y + tooltipHeight > viewportHeight - 10) {
+        y = viewportHeight - tooltipHeight - 10;
+      }
+      if (y < minY) {
+        y = minY;
+      }
+      
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+      
+      // Function to close tooltip
+      const closeTooltip = () => {
+        tooltip.remove();
+        document.removeEventListener('click', handleOutsideClick);
+        window.removeEventListener('resize', repositionTooltip);
+      };
+      
+      // Add click outside to close
+      const handleOutsideClick = (e) => {
+        if (!tooltip.contains(e.target)) {
+          closeTooltip();
+        }
+      };
+      
+      // Function to reposition tooltip on window resize
+      const repositionTooltip = () => {
+        if (tooltip && tooltip.parentNode) {
+          // Recalculate header height
+          const headerElement = document.querySelector('.dashboard-header');
+          const filterElement = document.querySelector('.filter-section');
+          const newHeaderHeight = (headerElement ? headerElement.offsetHeight : 60) + 
+                                 (filterElement ? filterElement.offsetHeight : 50) + 20;
+          
+          // Recalculate viewport dimensions
+          const newViewportWidth = window.innerWidth;
+          const newViewportHeight = window.innerHeight;
+          
+          // Get current tooltip dimensions
+          const tooltipRect = tooltip.getBoundingClientRect();
+          const tooltipWidth = tooltipRect.width;
+          const tooltipHeight = tooltipRect.height;
+          
+          // Recalculate position
+          let newX = parseFloat(tooltip.style.left);
+          let newY = parseFloat(tooltip.style.top);
+          
+          // Ensure tooltip stays within new viewport bounds
+          newX = Math.max(10, Math.min(newX, newViewportWidth - tooltipWidth - 10));
+          newY = Math.max(newHeaderHeight + 10, Math.min(newY, newViewportHeight - tooltipHeight - 10));
+          
+          tooltip.style.left = newX + 'px';
+          tooltip.style.top = newY + 'px';
+        }
+      };
+      
+      // Add event listener for close button
+      setTimeout(() => {
+        const closeBtn = document.getElementById('tooltip-close-btn');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', closeTooltip);
+        }
+        
+        // Add click outside to close
+        document.addEventListener('click', handleOutsideClick);
+        window.addEventListener('resize', repositionTooltip);
+      }, 100);
+    }
+
+    // Format currency with thousand separators
+    function formatCurrency(value) {
+      const num = parseFloat(value);
+      if (isNaN(num)) return '0';
+      return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    // Format number with thousand separators but no decimals (for tooltips)
+    function formatNumberWithSeparator(value) {
+      const num = parseFloat(value);
+      if (isNaN(num)) return '0';
+      return Math.round(num).toLocaleString('en-US');
+    }
+
+    // Function to create detailed tooltip content for revenue loss
+    function createRevenueLossTooltip(assetNo, month) {
+      // Filter data for the specific asset and month
+      const matches = prData.filter(r => {
+        const asset = r.asset_no || r.assetno || r.asset || 'Unknown';
+        const assetMatch = String(asset).trim() === String(assetNo).trim();
+        const monthMatch = isYearMode ? isInSelectedYear(r.month) : isInSelectedMonth(r.month);
+        return assetMatch && monthMatch;
+      });
+      
+      if (matches.length === 0) {
+        return `<div style="padding: 15px; text-align: center;">
+          <h3 style="margin: 0 0 10px 0; color: #0072CE;">No Data Available</h3>
+          <p style="margin: 5px 0;"><b>Asset:</b> ${assetNo}</p>
+          <p style="margin: 5px 0;"><b>Period:</b> ${month}</p>
+          <p style="margin: 5px 0; color: #666;">No revenue loss data available for this period</p>
+        </div>`;
+      }
+      
+      // Get first match for country and portfolio info
+      const firstMatch = matches[0];
+      const country = firstMatch.country || 'N/A';
+      const portfolio = firstMatch.portfolio || 'N/A';
+      
+      // Get selected budget type to use correct revenue field
+      const selectedBudgetType = budgetTypeSelect ? budgetTypeSelect.value : 'expected';
+      const revenueField = selectedBudgetType === 'operational' ? 'revenue_loss_op' : 'revenue_loss';
+      
+      // Calculate totals and averages
+      const totalLoss = matches.reduce((sum, m) => sum + (parseFloat(m[revenueField]) || 0), 0);
+      const avgLoss = totalLoss / matches.length;
+      const observations = [...new Set(matches.map(m => m.revenue_loss_observation).filter(Boolean))];
+      const actions = [...new Set(matches.map(m => m.revenue_loss_action_need_to_taken).filter(Boolean))];
+      
+      // Determine if it's loss or gain
+      const isLoss = totalLoss < 0;
+      const revenueType = isLoss ? 'Revenue Loss' : 'Revenue Gain';
+      const revenueValue = Math.abs(totalLoss);
+      
+      // Build tooltip content based on mode
+      let tooltipContent = '';
+      
+      if (isYearMode) {
+        // Year mode: Simple tooltip with Country, Portfolio, Asset No, and Revenue Loss/Gain
+        tooltipContent = `
+          <div style="padding: 15px; max-width: 500px; font-family: 'Segoe UI', Arial, sans-serif;">
+            <div style="margin-bottom: 10px; border-bottom: 2px solid #0072CE; padding-bottom: 10px;">
+              <h3 style="margin: 0 0 10px 0; color: #0072CE;">Revenue Details</h3>
+              <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <tbody>
+                  <tr>
+                    <td style="padding: 8px 8px 8px 0; font-weight: bold; color: #333; width: 120px;">Country:</td>
+                    <td style="padding: 8px 0;">${country}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 8px 8px 0; font-weight: bold; color: #333;">Portfolio:</td>
+                    <td style="padding: 8px 0;">${portfolio}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 8px 8px 0; font-weight: bold; color: #333;">Asset No:</td>
+                    <td style="padding: 8px 0;">${assetNo}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 8px 8px 0; font-weight: bold; color: #333;">${revenueType}:</td>
+                    <td style="padding: 8px 0; font-weight: bold; color: ${isLoss ? '#e73323' : '#1aaa55'};">
+                      $${formatCurrency(revenueValue)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      } else {
+        // Month mode: Detailed tooltip with breakdown
+        tooltipContent = `
+          <div style="padding: 15px; max-width: 800px; font-family: 'Segoe UI', Arial, sans-serif;">
+            <div style="margin-bottom: 15px; border-bottom: 2px solid #0072CE; padding-bottom: 10px;">
+              <h3 style="margin: 0 0 5px 0; color: #0072CE;">Revenue Loss Details</h3>
+              <p style="margin: 3px 0;"><b>Asset:</b> ${assetNo}</p>
+              <p style="margin: 3px 0;"><b>Period:</b> ${month}</p>
+              <p style="margin: 3px 0;"><b>Data Points:</b> ${matches.length}</p>
+              <p style="margin: 3px 0;"><b>Total Loss:</b> $${formatNumberWithSeparator(totalLoss)}</p>
+            </div>
+        `;
+        
+        // Add observations and actions for month mode
+        if (observations.length > 0 || actions.length > 0) {
+          tooltipContent += `
+            <div style="margin-bottom: 15px;">
+              <h4 style="margin: 0 0 10px 0; color: #0072CE;">Observations & Actions</h4>
+          `;
+          
+          if (observations.length > 0) {
+            tooltipContent += `
+              <div style="margin-bottom: 10px;">
+                <p style="margin: 0 0 5px 0; font-weight: bold;">Observations:</p>
+                <ul style="margin: 0; padding-left: 20px;">
+                  ${observations.map(obs => `<li style="margin-bottom: 3px;">${obs}</li>`).join('')}
+                </ul>
+              </div>
+            `;
+          }
+          
+          if (actions.length > 0) {
+            tooltipContent += `
+              <div>
+                <p style="margin: 0 0 5px 0; font-weight: bold;">Actions Needed:</p>
+                <ul style="margin: 0; padding-left: 20px;">
+                  ${actions.map(action => `<li style="margin-bottom: 3px;">${action}</li>`).join('')}
+                </ul>
+              </div>
+            `;
+          }
+          
+          tooltipContent += `</div>`;
+        }
+        
+        tooltipContent += `
+          </div>
+        `;
+      }
+      
+      return tooltipContent;
+    }
+
+    // Multi-select components are initialized dynamically
+    // No static DOM references needed
+
+    // Get unique values for a key from filtered data
+    function getUnique(data,key){
+      return Array.from(new Set(data.map(r=>r[key]).filter(Boolean))).sort();
+    }
+
+    // Multi-select component instances
+    let countryMultiSelect = null;
+    let portfolioMultiSelect = null;
+    const budgetTypeSelect = document.getElementById('budgetTypeSelect');
+
+    // Initialize multi-select components
+    function initializeMultiSelects() {
+      // Initialize country multi-select
+      if (typeof MultiSelect !== 'undefined') {
+        countryMultiSelect = new MultiSelect(
+          'countryTrigger',
+          'countryDropdown',
+          'countryPlaceholder',
+          'countrySelectedItems',
+          function(selectedValues) {
+            // Country selection changed - update portfolio options and chart
+            updatePortfolioOptions();
+            updateRevenueChart();
+          }
+        );
+        
+        // Initialize portfolio multi-select
+        portfolioMultiSelect = new MultiSelect(
+          'portfolioTrigger',
+          'portfolioDropdown',
+          'portfolioPlaceholder',
+          'portfolioSelectedItems',
+          function(selectedValues) {
+            // Portfolio selection changed - update chart
+            updateRevenueChart();
+          }
+        );
+      }
+      
+      // Initialize budget type select
+      if (budgetTypeSelect) {
+        budgetTypeSelect.addEventListener('change', function() {
+          updateRevenueChart();
+        });
+      }
+      
+      // Reset button functionality
+      const resetBtn = document.getElementById('resetBtn');
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+          // Reset month selection
+          currentYear = null;
+          currentMonth = null;
+          document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+          
+          // Reset multi-selects
+          if (countryMultiSelect) {
+            countryMultiSelect.selectedValues = [];
+            countryMultiSelect.renderOptions();
+            countryMultiSelect.updateDisplay();
+          }
+          if (portfolioMultiSelect) {
+            portfolioMultiSelect.selectedValues = [];
+            portfolioMultiSelect.renderOptions();
+            portfolioMultiSelect.updateDisplay();
+          }
+          
+          // Reset budget type
+          if (budgetTypeSelect) {
+            budgetTypeSelect.value = 'expected';
+          }
+          
+          // Update options and chart
+          updateCountryOptions();
+          updatePortfolioOptions();
+          updateRevenueChart();
+          
+          // Hide calendar picker if open
+          if (bestCalendar && typeof bestCalendar.hidePicker === 'function') {
+            bestCalendar.hidePicker();
+          }
+        });
+      }
+    }
+
+    // Update country multi-select options based on filtered data
+    function updateCountryOptions(){
+      if (!countryMultiSelect) return;
+      
+      const f = prData.filter(r => isYearMode ? isInSelectedYear(r.month) : isInSelectedMonth(r.month));
+      const uniqueCountries = getUnique(f, 'country');
+      
+      // Convert to options format for multi-select
+      const options = uniqueCountries.map(country => ({
+        value: country,
+        label: country
+      }));
+      
+      countryMultiSelect.setOptions(options);
+    }
+
+    // Update portfolio multi-select options based on filtered data and selected countries
+    function updatePortfolioOptions(){
+      if (!portfolioMultiSelect) return;
+      
+      let f = prData.filter(r => isYearMode ? isInSelectedYear(r.month) : isInSelectedMonth(r.month));
+      
+      // Get selected countries from multi-select
+      const selectedCountries = countryMultiSelect ? countryMultiSelect.selectedValues : [];
+      if (selectedCountries.length > 0) {
+        f = f.filter(r => selectedCountries.includes(r.country));
+      }
+      
+      const uniquePortfolios = getUnique(f, 'portfolio');
+      
+      // Convert to options format for multi-select
+      const options = uniquePortfolios.map(portfolio => ({
+        value: portfolio,
+        label: portfolio
+      }));
+      
+      portfolioMultiSelect.setOptions(options);
+    }
+
+    // Main function to update the revenue loss chart
+    function updateRevenueChart(){
+      // Filter data by month/year, country, and portfolio
+      let f = prData.filter(r => isYearMode ? isInSelectedYear(r.month) : isInSelectedMonth(r.month));
+      
+      // Get selected values from multi-select components
+      const selectedCountries = countryMultiSelect ? countryMultiSelect.selectedValues : [];
+      const selectedPortfolios = portfolioMultiSelect ? portfolioMultiSelect.selectedValues : [];
+      const selectedBudgetType = budgetTypeSelect ? budgetTypeSelect.value : 'expected';
+      
+      // Filter by countries (if any selected)
+      if (selectedCountries.length > 0) {
+        f = f.filter(r => selectedCountries.includes(r.country));
+      }
+      
+      // Filter by portfolios (if any selected)
+      if (selectedPortfolios.length > 0) {
+        f = f.filter(r => selectedPortfolios.includes(r.portfolio));
+      }
+
+      // Aggregate average revenue loss per asset
+      const map = {};
+      f.forEach(r=>{
+        const a = r.asset_no||r.assetno||r.asset||'Unknown';
+        // Use appropriate revenue loss column based on budget type
+        const revenueField = selectedBudgetType === 'operational' ? 'revenue_loss_op' : 'revenue_loss';
+        const v = parseFloat(r[revenueField]);
+        if(!isNaN(v)){
+          map[a] = map[a]||{tot:0,c:0,details:[]};
+          map[a].tot += v;
+          map[a].c   += 1;
+          map[a].details.push({month: r.month, value: v});
+        }
+      });
+      
+      // Prepare data for chart
+      const pts = Object.entries(map).map(([a,v])=>{
+        // Calculate average for month mode and total for year mode
+        const avg = v.tot/v.c;
+        const total = v.tot;
+        
+        // For year mode: sum of all monthly values (total annual revenue loss/gain)
+        // For month mode: average monthly revenue loss
+        const value = isYearMode ? total : avg;
+        
+        return { asset:a, loss:value, color: value>=0 ? '#1aaa55' : '#e73323' };
+      }).sort((a,b)=>b.loss-a.loss);
+
+      const x = pts.map(p=>p.asset), y=pts.map(p=>p.loss), cols=pts.map(p=>p.color);
+
+      // Dispose previous chart instance if exists
+      if(revenueInstance) echarts.dispose(revenueInstance);
+      
+      const chartContainer = document.getElementById('revenueChartDiv');
+      revenueInstance = echarts.init(chartContainer);
+
+      if(!x.length){
+        // No data: show message but still render chart
+        revenueInstance.setOption({
+          title: { 
+            text: 'No data found for selected filters', 
+            left: 'center', 
+            top: 'middle', 
+            textStyle: { color: 'red', fontSize: getBigFont(16, 26, 10) } 
+          },
+          grid: { left: 70, right: 40, top: 100, bottom: 50, containLabel: true },
+          xAxis: { type: 'category', data: [] },
+          yAxis: { type: 'value' },
+          series: []
+        });
+        return;
+      }
+
+      // Build chart title suffix for selected period
+      const suffix = isYearMode ? 
+        ` (${currentYear} - Full Year)` : 
+        ` (${String(currentYear)}-${String(currentMonth).padStart(2,'0')})`;
+
+      // Responsive tooltip font size
+      const tooltipFontSize = getBigFont(14, 22, 10);
+
+      // Build chart title based on budget type
+      const chartTitleText = selectedBudgetType === 'operational' 
+        ? 'Revenue Loss/Gain ($) based on Operational Budget' 
+        : 'Revenue Loss/Gain ($) based on Expected Budget';
+
+      // ECharts option configuration
+      const option = {
+        title:{
+          show: true,
+          text: chartTitleText,
+          left: 'center',
+          top: 10,
+          textStyle: {
+            fontSize: getBigFont(14, 22, 12),
+            fontWeight: 'bold',
+            background: 'linear-gradient(90deg, #0a73d1, #10b981)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }
+        },
+        tooltip: {
+          show: false // Disable default ECharts tooltip (we use custom tooltip for both modes)
+        },
+        grid:{ left:25, right:20, top:60, bottom:50, containLabel:true },
+        xAxis:{
+          type:'category',
+          data:x,
+          axisLabel:{
+            rotate:45,
+            fontSize: getBigFont(11, 15, 8),
+            interval:'auto',
+            color:'#0072CE',
+            margin: 10
+          },
+        },
+        yAxis:{
+          type:'value',
+          name:'Revenue',
+          nameLocation:'middle',
+          nameGap: getYAxisNameGap(),
+          axisLabel:{
+            fontSize: getBigFont(12, 17, 9),
+            formatter:v=>formatYAxis(v),
+            color:'#0072CE',
+            interval:'auto',
+            margin: 6,
+            width: 45
+          },
+          nameTextStyle: {
+            fontSize: getBigFont(13,19,10),
+            fontWeight: 'bold',
+            color: '#0072CE'
+          },
+          min: v=>Math.min(0,v.min)
+        },
+        dataZoom:[{ 
+          type:'slider', 
+          xAxisIndex:0,
+          bottom: 0,
+          height: 30,
+          handleSize: 12
+        }],
+        series:[{
+          type:'bar',
+          data:y,
+          itemStyle:{
+            color:(p)=>cols[p.dataIndex],
+            borderRadius: 2
+          },
+          barWidth: getBarWidth(),
+          barCategoryGap:'20%',
+          label:{
+            show:true,
+            position: 'top',
+            fontSize: getBigFont(13, 18, 10),
+            fontWeight:'bold',
+            color: '#000000',
+            formatter: function(p) {
+              return formatK(p.value);
+            },
+            distance: 8,
+            textBorderColor: '#ffffff',
+            textBorderWidth: 2,
+            overflow: 'none'
+          }
+        }],
+        legend: {
+          show: true,
+          textStyle: {
+            fontSize: getBigFont(12, 18, 9),
+            color: '#0072CE',
+            fontWeight: 'bold'
+          }
+        }
+      };
+
+      // Add click event handlers for custom tooltip (both month and year mode)
+      // Add click event handler for X-axis labels (asset names)
+      revenueInstance.on('click', function(params) {
+        if (params.componentType === 'xAxis') {
+          const assetNo = params.value;
+          const periodStr = isYearMode ? `${currentYear} (Year)` : `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+          
+          const tooltipContent = createRevenueLossTooltip(assetNo, periodStr);
+          showCustomTooltip(tooltipContent, params.event.event);
+        }
+      });
+      
+      // Add custom click handler for X-axis labels as fallback
+      revenueInstance.getZr().on('click', function(params) {
+        const pointInPixel = [params.offsetX, params.offsetY];
+        const pointInGrid = revenueInstance.convertFromPixel({seriesIndex: 0}, pointInPixel);
+        
+        // Check if click is in X-axis area (bottom of chart)
+        if (pointInGrid && pointInGrid[0] !== undefined && pointInGrid[0] >= 0 && pointInGrid[0] < x.length) {
+          const assetIndex = Math.floor(pointInGrid[0]);
+          const assetNo = x[assetIndex];
+          const periodStr = isYearMode ? `${currentYear} (Year)` : `${currentYear}-${String(currentMonth).padStart(2,'0')}`;
+          
+          const tooltipContent = createRevenueLossTooltip(assetNo, periodStr);
+          showCustomTooltip(tooltipContent, params.event);
+        }
+      });
+
+      // Render the chart
+      try {
+        revenueInstance.setOption(option);
+        
+        // Force a resize to ensure the chart is visible
+        setTimeout(() => {
+          revenueInstance.resize();
+        }, 100);
+      } catch (error) {
+        // Error rendering chart
+      }
+      
+      // Responsive: resize chart and update on window resize
+      window.addEventListener('resize', ()=> {
+        if (revenueInstance) {
+          revenueInstance.resize();
+        }
+        
+        // Hide tooltip on window resize to prevent positioning issues
+        const existingTooltip = document.getElementById('custom-tooltip');
+        if (existingTooltip) {
+          existingTooltip.remove();
+        }
+      });
+      
+      // Ensure chart fills available space
+      setTimeout(() => {
+        if (revenueInstance) {
+          revenueInstance.resize();
+        }
+      }, 100);
+    }
+
+    // Multi-select components handle their own change events through callbacks
+    // No need for separate event listeners as they're handled in initializeMultiSelects()
+
+    // Initialize BestCalendar component
+    function initializeBestCalendar() {
+      if (typeof BestCalendar === 'undefined') {
+        return false;
+      }
+      
+      bestCalendar = new BestCalendar({
+        triggerId: 'monthMatrixTrigger',
+        pickerId: 'monthMatrixPicker',
+        labelId: 'selectedMonthLabel',
+        data: [],
+        options: {
+          range: false, // Single month selection mode
+          autoCloseDelay: 1000, // Auto close after 1 second
+          onPeriodChange: function(period) {
+            if (period.month) {
+              const [y, m] = period.month.split('-');
+              currentYear = +y;
+              currentMonth = +m;
+              isYearMode = false;
+              updateMonthLabel();
+              updateCountryOptions();
+              updatePortfolioOptions();
+              updateRevenueChart();
+              
+              // Hide the picker after selection
+              if (typeof bestCalendar.hidePicker === 'function') {
+                setTimeout(() => {
+                  bestCalendar.hidePicker();
+                }, 500);
+              }
+              
+              // Force hide picker by manipulating DOM directly
+              setTimeout(() => {
+                const picker = document.getElementById('monthMatrixPicker');
+                if (picker) {
+                  picker.style.display = 'none';
+                  picker.classList.remove('show');
+                  picker.classList.add('bc-hidden');
+                }
+              }, 600);
+            } else if (period.year) {
+              currentYear = +period.year;
+              isYearMode = true;
+              // For year selection, we'll show all months in that year
+              const availableMonths = getAvailableMonths();
+              const yearMonths = availableMonths.filter(m => m.startsWith(period.year + '-'));
+              if (yearMonths.length > 0) {
+                const [y, m] = yearMonths[0].split('-');
+                currentMonth = +m;
+              } else {
+                currentMonth = 1; // Default to January
+              }
+              // Update label to show year
+              document.getElementById('selectedMonthLabel').textContent = `${currentYear} (Year)`;
+              updateCountryOptions();
+              updatePortfolioOptions();
+              updateRevenueChart();
+              
+              // Hide the picker after selection
+              if (typeof bestCalendar.hidePicker === 'function') {
+                setTimeout(() => {
+                  bestCalendar.hidePicker();
+                }, 500);
+              }
+              
+              // Force hide picker by manipulating DOM directly
+              setTimeout(() => {
+                const picker = document.getElementById('monthMatrixPicker');
+                if (picker) {
+                  picker.style.display = 'none';
+                  picker.classList.remove('show');
+                  picker.classList.add('bc-hidden');
+                }
+              }, 600);
+            }
+          }
+        }
+      });
+      
+      // Set global instance for onclick handlers
+      window.currentBestCalendar = bestCalendar;
+      
+      // Add custom click handler for calendar trigger
+      const calendarTrigger = document.getElementById('monthMatrixTrigger');
+      if (calendarTrigger) {
+        calendarTrigger.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const picker = document.getElementById('monthMatrixPicker');
+          if (picker) {
+            // Force show the picker
+            picker.style.display = 'flex';
+            picker.style.visibility = 'visible';
+            picker.style.opacity = '1';
+            picker.style.zIndex = '999999';
+            picker.style.position = 'fixed';
+            picker.classList.remove('bc-hidden');
+            picker.classList.add('show');
+            
+            // Position the picker relative to the trigger
+            const rect = calendarTrigger.getBoundingClientRect();
+            picker.style.top = (rect.bottom + 5) + 'px';
+            picker.style.left = rect.left + 'px';
+            picker.style.width = '300px';
+            picker.style.height = 'auto';
+            picker.style.maxHeight = '400px';
+            picker.style.overflow = 'auto';
+          }
+        });
+      }
+      
+      // Add click outside handler to close picker
+      document.addEventListener('click', function(event) {
+        const picker = document.getElementById('monthMatrixPicker');
+        const trigger = document.getElementById('monthMatrixTrigger');
+        
+        if (picker && trigger && !picker.contains(event.target) && !trigger.contains(event.target)) {
+          if (typeof bestCalendar.hidePicker === 'function') {
+            bestCalendar.hidePicker();
+          }
+          // Force hide picker by manipulating DOM directly
+          picker.style.display = 'none';
+          picker.classList.remove('show');
+          picker.classList.add('bc-hidden');
+        }
+      });
+      
+      return true;
+    }
+
+    // Load data from Django view
+    document.addEventListener('DOMContentLoaded', function() {
+      {% if error_message %}
+        document.getElementById('loadingSpinner').innerHTML = "<div class='text-danger'>Error loading revenue loss data: {{ error_message }}</div>";
+      {% elif yield_data_json %}
+        const data = {{ yield_data_json|safe }};
+        prData = data; // Assign to prData for chart updates
+        
+        // Check if BestCalendar is available
+        if (typeof BestCalendar !== 'undefined') {
+          try {
+            const calendarInitResult = initializeBestCalendar();
+            
+            if (calendarInitResult && bestCalendar) {
+              // Format data for BestCalendar
+              const availableMonths = getAvailableMonths();
+              
+              let convertedMonths = [];
+              if (availableMonths.length > 0) {
+                convertedMonths = availableMonths.map(month => ({ month, value: 1 }));
+              }
+              
+              if (typeof bestCalendar.setData === 'function') {
+                bestCalendar.setData(convertedMonths);
+              }
+              
+              // Set to latest available month and update chart
+              setCurrentMonth();
+              
+              // Initialize multi-select components after data is loaded
+              try {
+                initializeMultiSelects();
+                updateCountryOptions();
+                updatePortfolioOptions();
+              } catch (error) {
+                // Error initializing multi-select components
+              }
+              
+              // Set the latest available month in the calendar
+              if (availableMonths.length > 0) {
+                const latestMonth = availableMonths[availableMonths.length - 1];
+                if (typeof bestCalendar.setSelectedMonth === 'function') {
+                  bestCalendar.setSelectedMonth(latestMonth);
+                }
+              }
+              
+              // Force BestCalendar to render its content
+              const picker = document.getElementById('monthMatrixPicker');
+              if (picker) { 
+                picker.innerHTML = ''; 
+              }
+              
+              if (typeof bestCalendar.renderPicker === 'function') {
+                bestCalendar.renderPicker();
+              }
+              
+            } else {
+              // Fallback: set current month and update chart
+              setCurrentMonth();
+              // Initialize multi-select components
+              try {
+                initializeMultiSelects();
+                updateCountryOptions();
+                updatePortfolioOptions();
+              } catch (error) {
+                // Error initializing multi-select components
+              }
+            }
+          } catch (error) {
+            // Fallback: set current month and update chart
+            setCurrentMonth();
+            // Initialize multi-select components
+            try {
+              if (typeof MultiSelect !== 'undefined') {
+                initializeMultiSelects();
+              }
+            } catch (error) {
+              // Error initializing multi-select components
+            }
+          }
+        } else {
+          // Fallback: set current month and update chart
+          setCurrentMonth();
+          // Initialize multi-select components
+          try {
+            if (typeof MultiSelect !== 'undefined') {
+              initializeMultiSelects();
+            }
+          } catch (error) {
+            // Error initializing multi-select components
+          }
+        }
+      {% else %}
+        document.getElementById('loadingSpinner').innerHTML = "<div class='text-danger'>No revenue loss data available. Please check your permissions.</div>";
+      {% endif %}
+    });
+  </script>
+</body>
+</html>

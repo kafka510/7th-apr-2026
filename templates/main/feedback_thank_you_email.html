@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You for Your Feedback</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+            border: 1px solid #dee2e6;
+        }
+        .feedback-details {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_url %}
+        <img src="{{ logo_url }}" alt="Peak Energy Logo" style="max-width: 150px; height: auto; margin-bottom: 10px;">
+        {% endif %}
+        <h1>Thank You for Your Feedback!</h1>
+    </div>
+    
+    <div class="content">
+        <p>Dear {{ user_name }},</p>
+        
+        <p>Thank you for taking the time to submit your feedback regarding <strong>"{{ feedback_subject }}"</strong>. We truly appreciate your input and the time you took to help us improve our services.</p>
+        
+        <div class="feedback-details">
+            <h3>Your Feedback Details:</h3>
+            <p><strong>Subject:</strong> {{ feedback_subject }}</p>
+            <p><strong>Submitted on:</strong> {{ feedback_date }}</p>
+            <p><strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">✓ Attended</span></p>
+        </div>
+        
+        <p>We have reviewed your feedback and are pleased to inform you that your concerns have been addressed. Our team has taken the necessary actions to resolve the issues you mentioned.</p>
+        
+        {% if has_admin_response %}
+        <div class="feedback-details" style="background-color: #e8f5e8; border-left-color: #28a745;">
+            <h3>Additional Response from Our Team:</h3>
+            <p style="white-space: pre-line; margin: 0;">{{ admin_response }}</p>
+        </div>
+        {% endif %}
+        
+        <p>If you have any further questions or additional feedback, please don't hesitate to reach out to us. We value your continued partnership and look forward to serving you better.</p>
+        
+        <p>Thank you again for your valuable feedback!</p>
+        
+        <p>Best regards,<br>
+        <strong>Peak Energy Team</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>© {% now "Y" %} Peak Energy. All rights reserved.</p>
+    </div>
+</body>
+</html>
+

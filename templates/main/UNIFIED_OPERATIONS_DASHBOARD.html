@@ -1,0 +1,1806 @@
+{% load static %}
+{% load permission_tags %}
+{% load permission_tags %}
+{% load url_encryption %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Peak Energy Unified Operations Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.1, minimum-scale=0.8, user-scalable=no">
+  <!-- Bootstrap CSS from CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Google Fonts - using system fonts as fallback -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" onerror="this.onerror=null;">
+  <style>
+    /* Fallback font stack if Google Fonts fails to load */
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>  
+  <style>
+    :root {
+      --sidebar-bg: rgba(2, 22, 43, 0.85);
+      --main-bg: #f8fbff;
+      --text-color: #222;
+      --accent: #00A3FF;
+      --header-bg: rgba(2, 22, 43, 0.92);
+      --sidebar-divider: rgba(255,255,255,0.08);
+      --header-height: 50px;
+    }
+    [data-theme='dark'] {
+      --sidebar-bg: rgba(10, 20, 40, 0.98);
+      --main-bg: #1a2233;
+      --text-color: #f3f6fa;
+      --accent: #FFD700;
+      --header-bg: #101a2b;
+      --sidebar-divider: rgba(255,255,255,0.18);
+    }
+    html, body {
+      background: var(--main-bg);
+      color: var(--text-color);
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      min-height: 100vh;
+      width: 100vw;
+      overflow-x: hidden;
+      /* Prevent zoom on touch devices */
+      touch-action: pan-x pan-y;
+      /* Prevent text selection that might trigger zoom */
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+    
+    /* Prevent zoom on specific elements */
+    * {
+      /* Disable zoom on double-tap for mobile */
+      touch-action: manipulation;
+    }
+    
+    /* Allow text selection in input fields and text areas */
+    input, textarea, [contenteditable] {
+      -webkit-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
+    }
+
+    /* TOP HEADER */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--header-height);
+      background: var(--header-bg);
+      color: #fff;
+      z-index: 1100;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .topbar-inner {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .topbar-logo img {
+      height: 32px;
+      width: auto;
+      border-radius: 6px;
+    }
+    .topbar-menu-btn {
+      background: transparent;
+      color: #fff;
+      border: none;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+    }
+    .topbar-menu-btn:hover { color: #00c6ff; }
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 60%;
+    }
+    .topbar-page-title {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 14px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 60vw;
+      text-align: center;
+      pointer-events: none;
+    }
+    .topbar-username {
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 320px;
+      font-size: 14px;
+    }
+    .topbar-logout-btn {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ce 100%);
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .topbar-logout-btn:hover { opacity: 0.9; }
+    .topbar-export-btn {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+    .topbar-export-btn:hover { 
+      opacity: 0.9; 
+      transform: scale(1.05);
+    }
+    .topbar-role {
+      margin-left: 8px;
+      color: rgba(255,255,255,0.85);
+      font-weight: 600;
+      background: rgba(255,255,255,0.08);
+      padding: 2px 6px;
+      border-radius: 6px;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
+    /* Push layout below header */
+    .dashboard-root { padding-top: var(--header-height); }
+
+    /* Sidebar and main area below header */
+    .sidebar { top: var(--header-height); height: calc(100vh - var(--header-height)); }
+    .main-area { height: calc(100vh - var(--header-height)); }
+
+    /* Floating toggle/pin removed in favor of header menu button */
+
+    /* SIDEBAR BASE - START HIDDEN BY DEFAULT */
+    .sidebar {
+      width: 250px;
+      min-width: 120px;
+      max-width: 350px;
+      background: linear-gradient(180deg, #0d1b2a 0%, #1b263b 50%, #2c3e50 100%);
+      position: fixed;
+      z-index: 1000;
+      height: calc(100vh - var(--header-height));
+      overflow: auto;
+      transition: transform 0.3s cubic-bezier(.68,-0.01,.29,1.06);
+      transform: translateX(-100%); /* START HIDDEN */
+      left: 0;
+      top: var(--header-height);
+      box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+    }
+
+    /* SHOW SIDEBAR ONLY WHEN EXPLICITLY SHOWN OR PINNED */
+    .sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Subtle indicator when sidebar is visible due to hover */
+    .sidebar.show:not(.pinned) {
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    /* Pinned behavior removed */
+    
+    /* Responsive sidebar widths and button positions */
+    /* Laptop screens (1200px and below) */
+    @media (max-width: 1200px) {
+      .sidebar {
+        width: 200px;
+      }
+      .sidebar-title {
+        font-size: 1rem;
+        padding: 16px 12px;
+      }
+      .sidebar-link {
+        font-size: 0.8rem;
+        padding: 9px 14px;
+      }
+      .sidebar-label {
+        font-size: 0.85rem;
+        padding: 11px 14px;
+      }
+      .sidebar-icon {
+        font-size: 0.95rem;
+        margin-right: 9px;
+      }
+      .sidebar-toggle-btn { top: calc(10px + var(--header-height)) !important; }
+      .sidebar-pin-btn { top: calc(56px + var(--header-height)) !important; }
+    }
+    
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 190px;
+      }
+      .sidebar-title {
+        font-size: 0.95rem;
+        padding: 15px 12px;
+      }
+      .sidebar-link {
+        font-size: 0.75rem;
+        padding: 8px 12px;
+      }
+      .sidebar-label {
+        font-size: 0.8rem;
+        padding: 10px 12px;
+      }
+      .sidebar-icon {
+        font-size: 0.9rem;
+        margin-right: 8px;
+      }
+      .sidebar-toggle-btn { top: calc(10px + var(--header-height)) !important; }
+      .sidebar-pin-btn { top: calc(56px + var(--header-height)) !important; }
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 180px;
+      }
+      .sidebar-title {
+        font-size: 0.95rem;
+        padding: 14px 12px;
+      }
+      .sidebar-link {
+        font-size: 0.75rem;
+        padding: 8px 12px;
+      }
+      .sidebar-label {
+        font-size: 0.8rem;
+        padding: 10px 12px;
+      }
+      .sidebar-icon {
+        font-size: 0.9rem;
+        margin-right: 8px;
+      }
+      .sidebar-toggle-btn { top: calc(8px + var(--header-height)) !important; }
+      .sidebar-pin-btn { top: calc(48px + var(--header-height)) !important; }
+    }
+    
+    @media (max-width: 600px) {
+      .sidebar {
+        width: 250px; /* Keep full width on mobile for overlay */
+      }
+      .sidebar-title {
+        font-size: 1.1rem;
+        padding: 18px 15px;
+      }
+      .sidebar-link {
+        font-size: 0.9rem;
+        padding: 12px 18px;
+      }
+      .sidebar-label {
+        font-size: 0.95rem;
+        padding: 14px 18px;
+      }
+      .sidebar-icon {
+        font-size: 1.1rem;
+        margin-right: 12px;
+      }
+    }
+
+    /* MAIN AREA */
+    .dashboard-root {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .main-area {
+      flex: 1;
+      /* height is already set above to account for header */
+      overflow: hidden;
+      transition: margin-left 0.3s cubic-bezier(.68,-0.01,.29,1.06);
+      position: relative;
+      margin-left: 0; /* Start with no margin */
+    }
+
+    /* Adjust main content when sidebar is open */
+    .sidebar.show ~ .main-area {
+      margin-left: 250px; /* Push content to start after sidebar */
+    }
+
+    /* Responsive adjustments for sidebar width */
+    /* Laptop screens (1200px and below) */
+    @media (max-width: 1200px) {
+      .sidebar.show ~ .main-area {
+        margin-left: 200px;
+      }
+    }
+    
+    @media (max-width: 1024px) {
+      .sidebar.show ~ .main-area {
+        margin-left: 190px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar.show ~ .main-area {
+        margin-left: 180px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .sidebar.show ~ .main-area {
+        margin-left: 0; /* On mobile, sidebar overlays content */
+      }
+    }
+
+    /* Sidebar logo removed */
+
+    .sidebar-title {
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 20px 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.03);
+      letter-spacing: 0.5px;
+    }
+
+    /* User Information Section removed as requested */
+
+    /* SIDEBAR GROUPS */
+    .sidebar-group {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .sidebar-group.open .sidebar-label {
+      background: rgba(255,255,255,0.08);
+      border-left-color: #00c6ff;
+    }
+
+    .sidebar-links {
+      display: none;
+      background: rgba(0,0,0,0.15);
+      border-radius: 8px;
+      margin: 0 8px 8px 8px;
+      overflow: hidden;
+    }
+    
+    .sidebar-links .sidebar-link {
+      padding: 12px 18px 12px 36px;
+    }
+
+    .sidebar-group.open .sidebar-links {
+      display: block;
+    }
+
+    .sidebar-link {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      padding: 12px 18px;
+      display: block;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: 6px;
+      margin: 2px 8px;
+      position: relative;
+    }
+
+    .sidebar-link:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.1);
+      transform: translateX(4px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .sidebar-link.active {
+      color: #fff;
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ce 100%);
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,198,255,0.3);
+      transform: translateX(4px);
+    }
+
+    .sidebar-link.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #fff;
+      border-radius: 0 2px 2px 0;
+    }
+    
+    .sidebar-links .sidebar-link.active::before {
+      left: 18px;
+    }
+
+    .sidebar-icon {
+      margin-right: 12px;
+      font-size: 1.1rem;
+      width: 20px;
+      text-align: center;
+      transition: transform 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .sidebar-link:hover .sidebar-icon {
+      transform: scale(1.1);
+    }
+
+    .sidebar-link.active .sidebar-icon {
+      transform: scale(1.1);
+    }
+
+    /* Visual distinction between folders and pages */
+    .sidebar-label {
+      color: #e0e0e0;
+      padding: 14px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      border-radius: 8px;
+      margin: 4px 8px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid transparent;
+    }
+    
+    .sidebar-label .sidebar-icon {
+      margin-right: 12px;
+    }
+
+    .sidebar-label:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transform: translateX(4px);
+      border-left-color: rgba(255,255,255,0.3);
+    }
+
+    .sidebar-label .arrow {
+      transition: transform 0.3s ease;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.6);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-group.open .arrow {
+      transform: rotate(90deg);
+      color: #00c6ff;
+    }
+
+    .sidebar-group.open .sidebar-label {
+      background: rgba(255,255,255,0.08);
+      border-left-color: #00c6ff;
+    }
+
+    /* Individual page links styling */
+    .sidebar-link.sidebar-single {
+      margin: 2px 8px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.02);
+      border-left: 3px solid transparent;
+      padding: 12px 18px;
+    }
+
+    .sidebar-link.sidebar-single:hover {
+      background: rgba(255,255,255,0.1);
+      border-left-color: rgba(255,255,255,0.3);
+    }
+
+    .sidebar-link.sidebar-single.active {
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ce 100%);
+      border-left-color: #fff;
+    }
+
+    /* Modern scrollbar styling */
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .sidebar::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      transition: background 0.3s ease;
+    }
+
+    .sidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Enhanced focus states for accessibility */
+    .sidebar-link:focus,
+    .sidebar-label:focus {
+      outline: 2px solid #00c6ff;
+      outline-offset: 2px;
+    }
+
+    /* Smooth transitions for all interactive elements */
+    .sidebar * {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Loading state improvements */
+    .sidebar-link.loading {
+      pointer-events: none;
+      opacity: 0.6;
+      cursor: not-allowed;
+      position: relative;
+    }
+
+    .sidebar-link.loading::after {
+      content: '';
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top: 2px solid #00c6ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* Floating toggle/pin styles removed */
+
+    /* TAB CONTENT */
+    .tab-content {
+      height: 100%;
+      position: relative;
+    }
+
+    /* Security Notice - Now handled by common template */
+
+    .tab-pane {
+      height: 100%;
+      position: relative;
+    }
+
+    .tab-pane iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      transition: opacity 0.3s;
+    }
+
+    /* Loader for Iframes */
+    .iframe-loader {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      display: none;
+    }
+    
+    .tab-pane.loading .iframe-loader { 
+      display: block; 
+    }
+    
+    .tab-pane.loading iframe { 
+      opacity: 0.7; 
+      pointer-events: none; 
+    }
+    
+    .tab-pane:not(.loading) iframe { 
+      opacity: 1; 
+      pointer-events: auto; 
+    }
+    
+    .iframe-loader .spinner {
+      border: 4px solid #e0eafc;
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+    
+    /* Overlay for mobile when sidebar is open */
+    .sidebar-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+    
+    @media (max-width: 600px) {
+      .sidebar.show ~ .sidebar-overlay {
+        display: block;
+      }
+    }
+
+    /* Sidebar divider */
+    .sidebar-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+      margin: 15px 18px;
+    }
+
+    .sidebar-section-title {
+      color: rgba(255,255,255,0.7);
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      padding: 20px 18px 8px;
+      margin: 0;
+      position: relative;
+    }
+
+    .sidebar-section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 18px;
+      right: 18px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    }
+
+    .sidebar-single {
+      padding-left: 18px !important;
+    }
+
+    /* SIDEBAR PIN BUTTON */
+    .sidebar-pin-btn {
+      position: fixed;
+      top: 20px;
+      left: 80px;
+      z-index: 1001;
+      background: var(--header-bg);
+      border: none;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .sidebar-pin-btn:hover {
+      background: var(--accent);
+      transform: scale(1.05);
+    }
+
+    .sidebar.pinned ~ .sidebar-pin-btn {
+      left: 330px;
+    }
+
+    @media (max-width: 1200px) {
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 220px; /* 200px sidebar + 20px margin */
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 210px; /* 190px sidebar + 20px margin */
+      }
+    }
+
+    @media (max-width: 900px) {
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 200px; /* 200px sidebar */
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 200px; /* 180px sidebar + 20px margin */
+      }
+    }
+
+    @media (max-width: 600px) {
+      .sidebar-pin-btn {
+        left: 140px;
+      }
+      .sidebar.pinned ~ .sidebar-pin-btn {
+        left: 80%;
+      }
+    }
+
+  </style>
+  <link rel="icon" href="{% static 'PEAK_LOGO.jpg' %}">
+</head>
+<body>
+  <header class="topbar" role="banner" aria-label="Top Navigation">
+    <div class="topbar-inner">
+      <div class="topbar-left">
+        <button class="topbar-menu-btn" id="headerMenuBtn" title="Menu" aria-label="Toggle Sidebar"><span id="headerToggleIcon">☰</span></button>
+        <div class="topbar-logo">
+          <img src="{% static 'PEAK_LOGO.jpg' %}" alt="Peak Energy Logo"/>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-page-title" id="topbarPageTitle"></div>
+        <div class="topbar-username">
+          {{ request.user.get_full_name|default:request.user.username }}
+          <span class="topbar-role">
+            {% with role=request.user.userprofile.role %}
+              {% if role == 'admin' %}
+                Admin
+              {% elif role == 'om' %}
+                O&M
+              {% elif role == 'customer' %}
+                Customer
+              {% elif role == 'management' %}
+                Management
+              {% elif role == 'others' %}
+                Others
+              {% else %}
+                {{ role|role_label:role|default:'User' }}
+              {% endif %}
+            {% endwith %}
+          </span>
+        </div>
+        <form method="post" action="{% url 'accounts:logout' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="topbar-logout-btn">Logout</button>
+        </form>
+      </div>
+    </div>
+  </header>
+  <div class="dashboard-root">
+    <!-- Sidebar Overlay (mobile only) -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar" aria-label="Sidebar Navigation">
+      
+      <!-- User Information Section removed as requested -->
+      
+      <!-- Portfolio Section -->
+      {% if request.user|has_permission_for:'portfolio_map' or request.user|has_permission_for:'kpi_dashboard' or request.user|has_permission_for:'sales' %}
+        {% if request.user|has_permission_for:'portfolio_map' and request.user|has_permission_for:'kpi_dashboard' and request.user|has_permission_for:'sales' %}
+          <!-- Multiple items - use folder structure -->
+          <div class="sidebar-group">
+            <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+              <span class="sidebar-icon">📁</span> Portfolio <span class="arrow">▶</span>
+            </div>
+            <div class="sidebar-links">
+              {% if request.user|has_permission_for:'portfolio_map' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-portfolio-map',this);return false;">
+                  <span class="sidebar-icon">🗺️</span> Portfolio Map
+                </a>
+              {% endif %}
+              {% if request.user|has_permission_for:'kpi_dashboard' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-kpi-dashboard',this);return false;">
+                  <span class="sidebar-icon">📊</span> KPI Dashboard
+                </a>
+              {% endif %}
+              {% if request.user|has_permission_for:'sales' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-sales',this);return false;">
+                  <span class="sidebar-icon">💰</span> Sales
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <!-- Single items - show directly without section title -->
+          {% if request.user|has_permission_for:'portfolio_map' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-portfolio-map',this);return false;">
+              <span class="sidebar-icon">🗺️</span> Portfolio Map
+            </a>
+          {% endif %}
+          {% if request.user|has_permission_for:'kpi_dashboard' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-kpi-dashboard',this);return false;">
+              <span class="sidebar-icon">📊</span> KPI Dashboard
+            </a>
+          {% endif %}
+          {% if request.user|has_permission_for:'sales' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-sales',this);return false;">
+              <span class="sidebar-icon">💰</span> Sales
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- Performance Section -->
+      {% if request.user|has_permission_for:'yield_report' or request.user|has_permission_for:'pr_gap' or request.user|has_permission_for:'revenue_loss' or request.user|has_permission_for:'areas_of_concern' or request.user|has_permission_for:'bess_performance' or request.user|has_permission_for:'minamata_typhoon_damage' or request.user|has_permission_for:'ic_budget_vs_expected' %}
+        <!-- PV Performance Subsection -->
+        {% if request.user|has_permission_for:'yield_report' or request.user|has_permission_for:'pr_gap' or request.user|has_permission_for:'revenue_loss' or request.user|has_permission_for:'areas_of_concern' %}
+          {% comment %}Show folder structure if user has multiple PV Performance permissions{% endcomment %}
+          {% if request.user|has_permission_for:'yield_report' and request.user|has_permission_for:'pr_gap' or request.user|has_permission_for:'yield_report' and request.user|has_permission_for:'revenue_loss' or request.user|has_permission_for:'yield_report' and request.user|has_permission_for:'areas_of_concern' or request.user|has_permission_for:'pr_gap' and request.user|has_permission_for:'revenue_loss' or request.user|has_permission_for:'pr_gap' and request.user|has_permission_for:'areas_of_concern' or request.user|has_permission_for:'revenue_loss' and request.user|has_permission_for:'areas_of_concern' %}
+            <!-- Multiple items - use folder structure -->
+            <div class="sidebar-group">
+              <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+                <span class="sidebar-icon">☀️</span> PV Performance <span class="arrow">▶</span>
+              </div>
+              <div class="sidebar-links">
+                {% if request.user|has_permission_for:'yield_report' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-yield-report',this);return false;">
+                    <span class="sidebar-icon">📊</span> Yield Report
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'pr_gap' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-pr-gap',this);return false;">
+                    <span class="sidebar-icon">📈</span> PR Gap (%)
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'revenue_loss' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-revenue-loss',this);return false;">
+                    <span class="sidebar-icon">💸</span> Revenue
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'areas_of_concern' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-areas-of-concern',this);return false;">
+                    <span class="sidebar-icon">⚠️</span> Areas of Concern
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <!-- Single items - show directly -->
+            {% if request.user|has_permission_for:'yield_report' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-yield-report',this);return false;">
+                <span class="sidebar-icon">📊</span> Yield Report
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'pr_gap' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-pr-gap',this);return false;">
+                <span class="sidebar-icon">📈</span> PR Gap (%)
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'revenue_loss' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-revenue-loss',this);return false;">
+                <span class="sidebar-icon">💸</span> Revenue
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'areas_of_concern' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-areas-of-concern',this);return false;">
+                <span class="sidebar-icon">⚠️</span> Areas of Concern
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+
+        <!-- BESS Performance Subsection -->
+      {% if request.user|has_permission_for:'bess_performance' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-bess-performance',this);return false;">
+          <span class="sidebar-icon">⚡</span> BESS Performance
+        </a>
+      {% endif %}
+      {% if request.user|has_permission_for:'bess_v1_performance' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-bess-v1-performance',this);return false;">
+          <span class="sidebar-icon">🔋</span> BESS Dashboard
+        </a>
+      {% endif %}
+
+        <!-- Generic Subsection -->
+        {% if request.user|has_permission_for:'minamata_typhoon_damage' or request.user|has_permission_for:'ic_budget_vs_expected' %}
+          {% if request.user|has_permission_for:'minamata_typhoon_damage' and request.user|has_permission_for:'ic_budget_vs_expected' %}
+            <!-- Multiple items - use folder structure -->
+            <div class="sidebar-group">
+              <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+                <span class="sidebar-icon">📋</span> Generic <span class="arrow">▶</span>
+              </div>
+              <div class="sidebar-links">
+                {% if request.user|has_permission_for:'minamata_typhoon_damage' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-minamata-typhoon-damage',this);return false;">
+                    <span class="sidebar-icon">🌪️</span> Minamata Typhoon Damage
+                  </a>
+                {% endif %}
+                {% if request.user|has_permission_for:'ic_budget_vs_expected' %}
+                  <a class="sidebar-link" href="#" onclick="showTab('dash-ic-budget-vs-expected',this);return false;">
+                    <span class="sidebar-icon">📊</span> IC Budget Vs Expected
+                  </a>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <!-- Single items - show directly -->
+            {% if request.user|has_permission_for:'minamata_typhoon_damage' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-minamata-typhoon-damage',this);return false;">
+                <span class="sidebar-icon">🌪️</span> Minamata Typhoon Damage
+              </a>
+            {% endif %}
+            {% if request.user|has_permission_for:'ic_budget_vs_expected' %}
+              <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-ic-budget-vs-expected',this);return false;">
+                <span class="sidebar-icon">📊</span> IC Budget Vs Expected
+              </a>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- Generation Report Section -->
+      {% if request.user|has_permission_for:'generation_report' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-generation-report',this);return false;">
+          <span class="sidebar-icon">📊</span> Generation Report
+        </a>
+      {% endif %}
+
+      <!-- Energy Monitoring Section -->
+      {% if request.user|has_permission_for:'time_series_dashboard' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-time-series-dashboard',this);return false;">
+          <span class="sidebar-icon">📈</span> Energy Monitoring
+        </a>
+      {% endif %}
+
+      <!-- Analytics Dashboard Section -->
+      {% if request.user|has_permission_for:'analytics' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-analytics',this);return false;">
+          <span class="sidebar-icon">📊</span> Analytics Dashboard
+        </a>
+      {% endif %}
+
+      <!-- Ticketing System Section -->
+      {% if request.user|has_capability:'ticketing.manage_settings' or request.user|has_app_access:'ticketing' %}
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-group">
+          <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+            <span class="sidebar-icon">🎫</span> Ticketing System <span class="arrow">▶</span>
+          </div>
+          <div class="sidebar-links">
+            {% if request.user|has_capability:'ticketing.manage_settings' or request.user.is_superuser %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-ticket-list',this);return false;">
+              <span class="sidebar-icon">📋</span> All Tickets
+            </a>
+            {% else %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-my-tickets',this);return false;">
+              <span class="sidebar-icon">📋</span> My Tickets
+            </a>
+            {% endif %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-ticket-create',this);return false;">
+              <span class="sidebar-icon">➕</span> Create Ticket
+            </a>
+            <a class="sidebar-link" href="#" onclick="showTab('dash-ticket-dashboard',this);return false;">
+              <span class="sidebar-icon">📊</span> Dashboard
+            </a>
+            {% if request.user|has_capability:'ticketing.manage_settings' or request.user.is_superuser %}
+            <a class="sidebar-link" href="#" onclick="showTab('dash-ticketing-admin',this);return false;">
+              <span class="sidebar-icon">⚙️</span> Ticketing Admin
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% with api_user=request.user.api_users.first %}
+      {% if request.user.is_superuser or request.user|has_capability:'core.admin' or api_user and api_user.access_level == 'api_only' or api_user and api_user.access_level == 'both' %}
+        <div class="sidebar-divider"></div>
+        <div class="sidebar-group">
+          <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+            <span class="sidebar-icon">🔌</span> API <span class="arrow">▶</span>
+          </div>
+          <div class="sidebar-links">
+            {% if request.user.is_superuser or request.user|has_capability:'core.admin' %}
+              <a class="sidebar-link" href="#" onclick="showTab('dash-api-config',this);return false;">
+                <span class="sidebar-icon">🔧</span> API Config
+              </a>
+            {% endif %}
+            {% if api_user and api_user.access_level == 'api_only' or api_user and api_user.access_level == 'both' %}
+              <a class="sidebar-link" href="#" onclick="showTab('dash-api-manual',this);return false;">
+                <span class="sidebar-icon">📖</span> API Manual
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+      {% endwith %}
+
+      <!-- Data Management Section -->
+      {% if request.user|has_permission_for:'data_upload' or request.user|has_capability:'data_upload.manage' %}
+        {% if request.user|has_permission_for:'data_upload' and request.user|has_permission_for:'data_upload_help' or request.user|has_capability:'data_upload.manage' %}
+          <!-- Multiple items - use folder structure -->
+          <div class="sidebar-divider"></div>
+          <div class="sidebar-group">
+            <div class="sidebar-label" onclick="toggleSidebarGroup(this)">
+              <span class="sidebar-icon">📁</span> Data Management <span class="arrow">▶</span>
+            </div>
+            <div class="sidebar-links">
+              {% if request.user|has_permission_for:'data_upload' or request.user|has_capability:'data_upload.manage' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-data-upload',this);return false;">
+                  <span class="sidebar-icon">📤</span> Data Upload
+                </a>
+              {% endif %}
+              {% if request.user|has_permission_for:'data_upload_help' or request.user|has_capability:'data_upload.manage' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-data-upload-help',this);return false;">
+                  <span class="sidebar-icon">📋</span> Upload Help
+                </a>
+              {% endif %}
+              {% if request.user|has_capability:'site_onboarding.manage' %}
+                <a class="sidebar-link" href="#" onclick="showTab('dash-site-onboarding',this);return false;">
+                  <span class="sidebar-icon">🏗️</span> Site Onboarding
+                </a>
+                <a class="sidebar-link" href="#" onclick="showTab('dash-site-onboarding-wizard',this);return false;">
+                  <span class="sidebar-icon">✨</span> Single-site wizard
+                </a>
+                <a class="sidebar-link" href="#" onclick="showTab('dash-device-onboarding',this);return false;">
+                  <span class="sidebar-icon">🔧</span> Device Onboarding
+                </a>
+              {% endif %}
+              {% if request.user.is_superuser %}
+                <a class="sidebar-link" href="{% url 'main:background_jobs' %}" target="_parent">
+                  <span class="sidebar-icon">⏱️</span> Background Jobs
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <!-- Single items - show directly -->
+          <div class="sidebar-divider"></div>
+          {% if request.user|has_permission_for:'data_upload' or request.user|has_capability:'data_upload.manage' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-data-upload',this);return false;">
+              <span class="sidebar-icon">📤</span> Data Upload
+            </a>
+          {% endif %}
+          {% if request.user|has_permission_for:'data_upload_help' or request.user|has_capability:'data_upload.manage' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-data-upload-help',this);return false;">
+              <span class="sidebar-icon">📋</span> Upload Help
+            </a>
+          {% endif %}
+          {% if request.user|has_capability:'site_onboarding.manage' %}
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-site-onboarding',this);return false;">
+              <span class="sidebar-icon">🏗️</span> Site Onboarding
+            </a>
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-site-onboarding-wizard',this);return false;">
+              <span class="sidebar-icon">✨</span> Single-site wizard
+            </a>
+            <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-device-onboarding',this);return false;">
+              <span class="sidebar-icon">🔧</span> Device Onboarding
+            </a>
+          {% endif %}
+          {% if request.user.is_superuser %}
+            <a class="sidebar-link sidebar-single" href="{% url 'main:background_jobs' %}" target="_parent">
+              <span class="sidebar-icon">⏱️</span> Background Jobs
+            </a>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- User Management Section -->
+      {% if request.user|has_permission_for:'user_management' %}
+        <div class="sidebar-divider"></div>
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-user-management',this);return false;">
+          <span class="sidebar-icon">👤</span> User Management
+        </a>
+      {% endif %}
+
+      <!-- Feedback Section -->
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-section-title">💬 Feedback</div>
+      {% if request.user|has_permission_for:'feedback_submit' %}
+        <a class="sidebar-link sidebar-single" href="/{% encrypted_url 'main:feedback_submit' %}" target="_blank" rel="noopener noreferrer">
+          <span class="sidebar-icon">💬</span> Submit Feedback
+        </a>
+      {% endif %}
+      {% if request.user|has_permission_for:'feedback_list' %}
+        <a class="sidebar-link sidebar-single" href="#" onclick="showTab('dash-feedback-list',this);return false;">
+          <span class="sidebar-icon">📋</span> Manage Feedback
+        </a>
+      {% endif %}
+
+      <!-- Logout removed from sidebar as requested -->
+    </div>
+    
+    <!-- Floating toggle/pin removed; header menu button is used -->
+    
+    <!-- Main Content Area -->
+    <div class="main-area" id="mainContent">
+      <!-- Security Notice - Using Common Template -->
+      {% include 'security_notice.html' %}
+      
+      <div class="tab-content" id="sideTabContent">
+        <!-- Portfolio Map -->
+        {% if request.user|has_permission_for:'portfolio_map' %}
+          <div class="tab-pane fade" id="dash-portfolio-map" role="tabpanel">
+            <div class="iframe-loader" id="loader-portfolio-map"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:portfolio_map' %}" loading="lazy" aria-label="Portfolio Map" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- KPI Dashboard -->
+        {% if request.user|has_permission_for:'kpi_dashboard' %}
+          <div class="tab-pane fade" id="dash-kpi-dashboard" role="tabpanel">
+            <div class="iframe-loader" id="loader-kpi-dashboard"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:kpi_dashboard' %}" loading="lazy" aria-label="KPI Dashboard" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Sales -->
+        {% if request.user|has_permission_for:'sales' %}
+          <div class="tab-pane fade" id="dash-sales" role="tabpanel">
+            <div class="iframe-loader" id="loader-sales"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:sales' %}" loading="lazy" aria-label="Sales" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Yield Report -->
+        {% if request.user|has_permission_for:'yield_report' %}
+          <div class="tab-pane fade" id="dash-yield-report" role="tabpanel">
+            <div class="iframe-loader" id="loader-yield-report"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:yield_report' %}" loading="lazy" aria-label="Yield Report" sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-top-navigation"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- PR Gap -->
+        {% if request.user|has_permission_for:'pr_gap' %}
+          <div class="tab-pane fade" id="dash-pr-gap" role="tabpanel">
+            <div class="iframe-loader" id="loader-pr-gap"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:pr_gap' %}" loading="lazy" aria-label="PR Gap (%)" sandbox="allow-scripts allow-forms allow-popups allow-top-navigation allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Revenue Loss -->
+        {% if request.user|has_permission_for:'revenue_loss' %}
+          <div class="tab-pane fade" id="dash-revenue-loss" role="tabpanel">
+            <div class="iframe-loader" id="loader-revenue-loss"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:revenue_loss' %}" loading="lazy" aria-label="Revenue Loss" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Areas of Concern -->
+        {% if request.user|has_permission_for:'areas_of_concern' %}
+          <div class="tab-pane fade" id="dash-areas-of-concern" role="tabpanel">
+            <div class="iframe-loader" id="loader-areas-of-concern"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:areas_of_concern' %}" loading="lazy" aria-label="Areas of Concern" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- BESS Performance -->
+        {% if request.user|has_permission_for:'bess_performance' %}
+          <div class="tab-pane fade" id="dash-bess-performance" role="tabpanel">
+            <div class="iframe-loader" id="loader-bess-performance"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:bess_performance' %}" loading="lazy" aria-label="BESS Performance" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user|has_permission_for:'bess_v1_performance' %}
+          <div class="tab-pane fade" id="dash-bess-v1-performance" role="tabpanel">
+            <div class="iframe-loader" id="loader-bess-v1-performance"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:bess_v1_performance' %}" loading="lazy" aria-label="BESS Dashboard" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Minamata Typhoon Damage -->
+        {% if request.user|has_permission_for:'minamata_typhoon_damage' %}
+          <div class="tab-pane fade" id="dash-minamata-typhoon-damage" role="tabpanel">
+            <div class="iframe-loader" id="loader-minamata-typhoon-damage"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:minamata_typhoon_damage' %}" loading="lazy" aria-label="Minamata Typhoon Damage" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- IC Budget Vs Expected -->
+        {% if request.user|has_permission_for:'ic_budget_vs_expected' %}
+          <div class="tab-pane fade" id="dash-ic-budget-vs-expected" role="tabpanel">
+            <div class="iframe-loader" id="loader-ic-budget-vs-expected"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:ic_budget_vs_expected' %}" loading="lazy" aria-label="IC Budget Vs Expected" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Generation Report -->
+        {% if request.user|has_permission_for:'generation_report' %}
+          <div class="tab-pane fade" id="dash-generation-report" role="tabpanel">
+            <div class="iframe-loader" id="loader-generation-report"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:generation_report' %}" loading="lazy" aria-label="Generation Report" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Time Series Dashboard -->
+        {% if request.user|has_permission_for:'time_series_dashboard' %}
+          <div class="tab-pane fade" id="dash-time-series-dashboard" role="tabpanel">
+            <div class="iframe-loader" id="loader-time-series-dashboard"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:time_series_dashboard' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Analytics Dashboard -->
+        {% if request.user|has_permission_for:'analytics' %}
+          <div class="tab-pane fade" id="dash-analytics" role="tabpanel">
+            <div class="iframe-loader" id="loader-analytics"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:analytics' %}" loading="lazy" aria-label="Analytics Dashboard" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Data Upload iframes -->
+        {% if request.user|has_permission_for:'data_upload' or request.user|has_capability:'data_upload.manage' %}
+          <div class="tab-pane fade" id="dash-data-upload" role="tabpanel">
+            <div class="iframe-loader" id="loader-data-upload">
+              <div class="spinner"></div>
+              <p>Loading Data Upload page...</p>
+            </div>
+            <iframe src="/{% encrypted_url 'main:data_upload' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" onload="console.log('Data Upload iframe loaded successfully')" onerror="console.error('Data Upload iframe failed to load')"></iframe>
+          </div>
+        {% endif %}
+        {% if request.user|has_permission_for:'data_upload_help' or request.user|has_capability:'data_upload.manage' %}
+          <div class="tab-pane fade" id="dash-data-upload-help" role="tabpanel">
+            <div class="iframe-loader" id="loader-data-upload-help"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:data_upload_help' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Site Onboarding (Admin Only) -->
+        {% if request.user|has_capability:'site_onboarding.manage' %}
+          <div class="tab-pane fade" id="dash-site-onboarding" role="tabpanel">
+            <div class="iframe-loader" id="loader-site-onboarding"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:site_onboarding' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="Site Onboarding" onload="console.log('Site Onboarding iframe loaded successfully')" onerror="console.error('Site Onboarding iframe failed to load')"></iframe>
+          </div>
+          <div class="tab-pane fade" id="dash-site-onboarding-wizard" role="tabpanel">
+            <div class="iframe-loader" id="loader-site-onboarding-wizard"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:site_onboarding_wizard' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="Single-site onboarding wizard" onload="console.log('Single-site wizard iframe loaded successfully')" onerror="console.error('Single-site wizard iframe failed to load')"></iframe>
+          </div>
+          <div class="tab-pane fade" id="dash-device-onboarding" role="tabpanel">
+            <div class="iframe-loader" id="loader-device-onboarding"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:device_onboarding' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="Device Onboarding" onload="console.log('Device Onboarding iframe loaded successfully')" onerror="console.error('Device Onboarding iframe failed to load')"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- User Management -->
+        {% if request.user|has_permission_for:'user_management' %}
+          <div class="tab-pane fade" id="dash-user-management" role="tabpanel">
+            {% if request.user.is_superuser or request.user|has_capability:'accounts.manage_access' %}
+              <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div>
+                  <strong>Access Controls:</strong> Manage roles, features, and capabilities for all applications.
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <a class="btn btn-outline-primary btn-sm" href="{% url 'accounts:role_list' %}" target="_parent" data-skip-iframe-nav="true">Manage Roles</a>
+                  <a class="btn btn-outline-primary btn-sm" href="{% url 'accounts:feature_list' %}" target="_parent" data-skip-iframe-nav="true">Manage Features</a>
+                  <a class="btn btn-outline-primary btn-sm" href="{% url 'accounts:capability_list' %}" target="_parent" data-skip-iframe-nav="true">Manage Capabilities</a>
+                </div>
+              </div>
+            {% endif %}
+            <div class="iframe-loader" id="loader-user-management"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:user_management' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- API Config Tab -->
+        {% if request.user.is_superuser or request.user|has_capability:'core.admin' %}
+          <div class="tab-pane fade" id="dash-api-config" role="tabpanel">
+            <div class="iframe-loader" id="loader-api-config"><div class="spinner"></div></div>
+            <iframe src="{% url 'api:api_config_dashboard' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="API Configuration"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- API Manual Tab -->
+        <div class="tab-pane fade" id="dash-api-manual" role="tabpanel">
+          <div class="iframe-loader" id="loader-api-manual"><div class="spinner"></div></div>
+          <iframe src="{% url 'api:api_manual' %}?v={{ timestamp|default:'' }}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="API Documentation"></iframe>
+        </div>
+
+        <!-- Feedback Submit -->
+        {% if request.user|has_permission_for:'feedback_submit' %}
+          <div class="tab-pane fade" id="dash-feedback-submit" role="tabpanel">
+            <div class="iframe-loader" id="loader-feedback-submit"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:feedback_submit' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Feedback Management -->
+        {% if request.user|has_permission_for:'feedback_list' %}
+          <div class="tab-pane fade" id="dash-feedback-list" role="tabpanel">
+            <div class="iframe-loader" id="loader-feedback-list"><div class="spinner"></div></div>
+            <iframe src="/{% encrypted_url 'main:feedback_list' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation allow-top-navigation-by-user-activation" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+        {% endif %}
+
+        <!-- Ticketing System Tabs -->
+        {% if request.user|has_capability:'ticketing.manage_settings' or request.user|has_app_access:'ticketing' %}
+          <!-- Ticket List -->
+          <div class="tab-pane fade" id="dash-ticket-list" role="tabpanel">
+            <div class="iframe-loader" id="loader-ticket-list"><div class="spinner"></div></div>
+            <iframe src="{% url 'ticketing:ticket_list' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="Ticket List" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+
+          <!-- Create Ticket -->
+          <div class="tab-pane fade" id="dash-ticket-create" role="tabpanel">
+            <div class="iframe-loader" id="loader-ticket-create"><div class="spinner"></div></div>
+            <iframe src="{% url 'ticketing:ticket_create' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="Create Ticket" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+
+          <!-- Ticket Dashboard -->
+          <div class="tab-pane fade" id="dash-ticket-dashboard" role="tabpanel">
+            <div class="iframe-loader" id="loader-ticket-dashboard"><div class="spinner"></div></div>
+            <iframe src="{% url 'ticketing:ticket_dashboard' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="Ticket Dashboard" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+
+          <!-- My Tickets (for non-admin users) -->
+          {% if not request.user|has_capability:'ticketing.manage_settings' and not request.user.is_superuser %}
+          <div class="tab-pane fade" id="dash-my-tickets" role="tabpanel">
+            <div class="iframe-loader" id="loader-my-tickets"><div class="spinner"></div></div>
+            <iframe src="{% url 'ticketing:my_tickets' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="My Tickets" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+          {% endif %}
+
+          <!-- Ticketing Admin -->
+          {% if request.user|has_capability:'ticketing.manage_settings' or request.user.is_superuser %}
+          <div class="tab-pane fade" id="dash-ticketing-admin" role="tabpanel">
+            <div class="iframe-loader" id="loader-ticketing-admin"><div class="spinner"></div></div>
+            <iframe src="{% url 'ticketing:ticketing_admin' %}" loading="lazy" sandbox="allow-scripts allow-forms allow-same-origin allow-downloads allow-modals allow-popups allow-top-navigation-by-user-activation" aria-label="Ticketing Admin" style="width: 100%; min-height: 600px; border: none;"></iframe>
+          </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Error handling for network issues
+    window.addEventListener('error', function(e) {
+      if (e.target.tagName === 'LINK' || e.target.tagName === 'SCRIPT') {
+        console.warn('Failed to load external resource:', e.target.src || e.target.href);
+      }
+    });
+    
+    // Enhanced error handling for various message channel and promise errors
+    window.addEventListener('unhandledrejection', function(event) {
+      const reason = event.reason;
+      const message = reason && reason.message ? reason.message : '';
+      
+      // Handle message channel errors
+      if (message.includes('message channel closed') || 
+          message.includes('listener indicated an asynchronous response') ||
+          message.includes('Extension context invalidated') ||
+          message.includes('Receiving end does not exist')) {
+        console.warn('Message channel/extension error suppressed:', message);
+        event.preventDefault();
+        return;
+      }
+      
+      // Handle other common iframe-related errors
+      if (message.includes('Blocked a frame with origin') ||
+          message.includes('Permission denied') ||
+          message.includes('Cannot read properties of null')) {
+        console.warn('Iframe communication error suppressed:', message);
+        event.preventDefault();
+        return;
+      }
+      
+      // Log other unhandled rejections for debugging
+      console.error('Unhandled promise rejection:', reason);
+    });
+    
+    // Additional error handling for general errors
+    window.addEventListener('error', function(event) {
+      const message = event.message || '';
+      
+      // Suppress common extension and iframe errors
+      if (message.includes('message channel closed') ||
+          message.includes('Extension context invalidated') ||
+          message.includes('Receiving end does not exist') ||
+          message.includes('Blocked a frame with origin')) {
+        console.warn('Error suppressed:', message);
+        event.preventDefault();
+        return;
+      }
+    });
+    
+    // Sidebar functionality
+    const sidebar = document.getElementById('sidebar');
+    const headerMenuBtn = document.getElementById('headerMenuBtn');
+    const headerToggleIcon = document.getElementById('headerToggleIcon');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const mainContent = document.getElementById('mainContent');
+    const topbarPageTitle = document.getElementById('topbarPageTitle');
+
+    // Start hidden by default
+    sidebar.classList.remove('show');
+
+    // Toggle sidebar
+    function toggleSidebar() {
+      // Toggle show/hide
+      sidebar.classList.toggle('show');
+      updateToggleIcon();
+      // Track manual toggle state
+      isManuallyToggled = sidebar.classList.contains('show');
+      // No auto-hide - sidebar stays open until menu button is clicked again
+    }
+ 
+    // Pin behavior removed
+
+    // Update toggle icon
+    function updateToggleIcon() {
+      if (sidebar.classList.contains('show')) {
+        headerToggleIcon.textContent = '✕';
+      } else {
+        headerToggleIcon.textContent = '☰';
+      }
+    }
+
+    // Toggle sidebar groups
+    function toggleSidebarGroup(element) {
+      const group = element.parentElement;
+      group.classList.toggle('open');
+    }
+
+    // Set the header page title text
+    function setHeaderPageTitle(title) {
+      if (!topbarPageTitle) return;
+      topbarPageTitle.textContent = title || '';
+    }
+
+    // Track which iframes have been loaded to avoid unnecessary reloads
+    const loadedIframes = new Set();
+    
+    // Function to force refresh an iframe (useful for manual refresh)
+    function refreshIframe(tabId, element) {
+      const tab = document.getElementById(tabId);
+      if (!tab) return;
+      
+      const iframe = tab.querySelector('iframe');
+      if (!iframe) return;
+      
+      // Remove from loaded set to force reload
+      loadedIframes.delete(tabId);
+      
+      // Reload the iframe
+      const originalSrc = iframe.src || iframe.getAttribute('src');
+      if (originalSrc) {
+        iframe.src = '';
+        setTimeout(() => {
+          iframe.src = originalSrc;
+        }, 100);
+      }
+    }
+    
+    // Make refreshIframe available globally for debugging
+    window.refreshIframe = refreshIframe;
+
+    // Show tab content
+    function showTab(tabId, element) {
+      // Prevent multiple rapid clicks
+      if (element.classList.contains('loading')) {
+        return;
+      }
+
+      // Save the active tab to localStorage for persistence across page refreshes (encrypted)
+      if (window.localStorageEncryption) {
+        window.localStorageEncryption.encrypt('activeTab', tabId);
+      } else {
+        localStorage.setItem('activeTab', tabId);
+      }
+
+      // Remove loading class from all links
+      document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('loading');
+      });
+
+      // Add loading class to clicked link
+      element.classList.add('loading');
+
+      // Hide all tab panes
+      const tabPanes = document.querySelectorAll('.tab-pane');
+      tabPanes.forEach(pane => {
+        pane.classList.remove('show', 'active');
+        pane.classList.add('fade');
+      });
+
+      // Remove active class from all links
+      document.querySelectorAll('.sidebar-link').forEach(link => {
+        link.classList.remove('active');
+      });
+
+      // Show selected tab
+      const selectedTab = document.getElementById(tabId);
+      if (selectedTab) {
+        selectedTab.classList.add('show', 'active');
+        selectedTab.classList.remove('fade');
+
+        // Add loading state
+        selectedTab.classList.add('loading');
+
+        // Set header page title from clicked link text (not iframe)
+        const linkText = element ? element.textContent.trim() : '';
+        if (linkText) {
+          setHeaderPageTitle(linkText);
+        }
+
+        // Get the iframe in this tab
+        const iframe = selectedTab.querySelector('iframe');
+        const loader = selectedTab.querySelector('.iframe-loader');
+
+        if (iframe) {
+          // Check if iframe is already loaded - skip reload if it is
+          const iframeSrc = iframe.src || iframe.getAttribute('src');
+          const isAlreadyLoaded = loadedIframes.has(tabId) && iframe.src && iframe.src.length > 0;
+          
+          if (!isAlreadyLoaded && loader) {
+            // Only show loader and set up handlers if iframe hasn't loaded yet
+            // Clear any existing onload handlers
+            iframe.onload = null;
+
+            // Set new onload handler with enhanced error handling
+            iframe.onload = function() {
+            try {
+              selectedTab.classList.remove('loading');
+              element.classList.remove('loading');
+              
+              // Mark this iframe as loaded
+              loadedIframes.add(tabId);
+              
+              // Set header title from the iframe's own page title when available
+              try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const pageTitle = (iframeDoc && iframeDoc.title) ? iframeDoc.title.trim() : '';
+                if (pageTitle) {
+                  setHeaderPageTitle(pageTitle);
+                }
+
+                // Hide common in-page title elements to reclaim vertical space
+                try {
+                  const candidateSelectors = [
+                    '.dashboard-header .title', '.dashboard-header',
+                    'h1.page-title', 'header .page-title', '.page-title', '.header-title', '.page-header h1', '.page-header',
+                    'h1', 'h2.page-title', '.card-title.page-title'
+                  ];
+                  let hidden = false;
+                  for (const sel of candidateSelectors) {
+                    const el = iframeDoc.querySelector(sel);
+                    if (el) {
+                      // Only hide if near the top to avoid hiding chart sub-titles
+                      const rect = el.getBoundingClientRect();
+                      if (rect && rect.top < 150) {
+                        el.style.display = 'none';
+                        hidden = true;
+                        break;
+                      }
+                    }
+                  }
+                } catch (e) {
+                  // Silently handle CORS or other access errors
+                }
+              } catch (e) {
+                // Ignore if cross-origin restrictions apply
+              }
+
+              // Try to hide any internal dashboard links to prevent recursive loading
+              try {
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                const internalLinks = iframeDoc.querySelectorAll('a[href*="unified_operations_dashboard"]');
+                internalLinks.forEach(link => {
+                  link.style.display = 'none';
+                });
+              } catch (e) {
+                // CORS restrictions may prevent this
+                console.log('Could not modify iframe content due to CORS restrictions');
+              }
+            } catch (error) {
+              console.error('Error in iframe onload handler:', error);
+              // Ensure loading state is cleared even if there's an error
+              selectedTab.classList.remove('loading');
+              element.classList.remove('loading');
+            }
+          };
+
+          // Fallback timeout with error handling
+          setTimeout(() => {
+            try {
+              if (selectedTab.classList.contains('loading')) {
+                selectedTab.classList.remove('loading');
+                element.classList.remove('loading');
+                console.log('Iframe loading timeout - cleared loading state');
+              }
+            } catch (error) {
+              console.error('Error in iframe timeout handler:', error);
+            }
+          }, 10000);
+          
+            // If iframe src is not set, set it now from the data attribute
+            if (!iframe.src && iframeSrc) {
+              iframe.src = iframeSrc;
+            }
+          } else if (isAlreadyLoaded) {
+            // Iframe is already loaded, just remove loading states immediately
+            selectedTab.classList.remove('loading');
+            element.classList.remove('loading');
+            
+            // Hide loader if it exists
+            if (loader) {
+              loader.style.display = 'none';
+            }
+            
+            // Try to get title from already loaded iframe
+            try {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+              const pageTitle = (iframeDoc && iframeDoc.title) ? iframeDoc.title.trim() : '';
+              if (pageTitle) {
+                setHeaderPageTitle(pageTitle);
+              }
+            } catch (e) {
+              // CORS restrictions may apply
+            }
+          }
+        } else {
+          // No iframe found, remove loading state immediately
+          selectedTab.classList.remove('loading');
+          element.classList.remove('loading');
+        }
+      } else {
+        // Tab not found, remove loading state
+        element.classList.remove('loading');
+        console.error('Tab not found:', tabId);
+      }
+
+      // Add active class to clicked link
+      element.classList.add('active');
+
+      // Keep sidebar open after tab selection - no auto-hide
+    }
+
+    // Function to restore the last active tab on page load
+    function restoreActiveTab() {
+      const savedTabId = window.localStorageEncryption ? 
+        window.localStorageEncryption.decrypt('activeTab') : 
+        localStorage.getItem('activeTab');
+      let tabToShow = null;
+      let linkToActivate = null;
+      
+      if (savedTabId) {
+        // Check if the saved tab exists on the current page
+        const savedTab = document.getElementById(savedTabId);
+        const correspondingSidebarLink = document.querySelector(`[onclick*="${savedTabId}"]`);
+        
+        if (savedTab && correspondingSidebarLink) {
+          tabToShow = savedTab;
+          linkToActivate = correspondingSidebarLink;
+        }
+      }
+      
+      // If no saved tab or saved tab not found, show the first available tab
+      if (!tabToShow) {
+        const firstTab = document.querySelector('.tab-pane');
+        const firstLink = document.querySelector('.sidebar-link[onclick*="showTab"]');
+        
+        if (firstTab && firstLink) {
+          tabToShow = firstTab;
+          linkToActivate = firstLink;
+        }
+      }
+      
+      // Show the selected tab
+      if (tabToShow && linkToActivate) {
+        // Hide all tab panes first
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+          pane.classList.remove('show', 'active');
+          pane.classList.add('fade');
+        });
+        
+        // Remove active class from all sidebar links
+        document.querySelectorAll('.sidebar-link').forEach(link => {
+          link.classList.remove('active');
+        });
+        
+        // Show the selected tab
+        tabToShow.classList.add('show', 'active');
+        tabToShow.classList.remove('fade');
+        
+        // Mark the corresponding sidebar link as active
+        linkToActivate.classList.add('active');
+        
+        // Set the header title
+        const linkText = linkToActivate.textContent.trim();
+        if (linkText) {
+          setHeaderPageTitle(linkText);
+        }
+        
+        // If the tab has an iframe, ensure it loads properly
+        const iframe = tabToShow.querySelector('iframe');
+        if (iframe) {
+          // Only load iframe if it hasn't been loaded yet
+          const iframeSrc = iframe.src || iframe.getAttribute('src');
+          const isAlreadyLoaded = loadedIframes.has(tabToShow.id) && iframe.src && iframe.src.length > 0;
+          
+          if (!isAlreadyLoaded && iframeSrc) {
+            // Set up load handler
+            iframe.onload = function() {
+              loadedIframes.add(tabToShow.id);
+            };
+            
+            // Load the iframe
+            if (!iframe.src) {
+              iframe.src = iframeSrc;
+            }
+          } else if (isAlreadyLoaded) {
+            // Iframe already loaded, try to get title
+            try {
+              const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+              const pageTitle = (iframeDoc && iframeDoc.title) ? iframeDoc.title.trim() : '';
+              if (pageTitle) {
+                setHeaderPageTitle(pageTitle);
+              }
+            } catch (e) {
+              // CORS restrictions may apply
+            }
+          }
+        }
+      }
+    }
+
+    // Event listeners
+    headerMenuBtn.addEventListener('click', toggleSidebar);
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+    
+    // Initialize page - restore last active tab when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      // Small delay to ensure all elements are rendered
+      setTimeout(restoreActiveTab, 100);
+    });
+
+    // Listen for messages from iframes (for drill-down navigation)
+    window.addEventListener('message', function(event) {
+      // Verify the message is from our own domain
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      
+      if (event.data && event.data.type === 'NAVIGATE_TO_DRILLDOWN') {
+        console.log('Received navigation message from iframe:', event.data);
+        
+        // Update the iframe src to navigate within the iframe, preserving the header
+        const yieldReportTab = document.getElementById('dash-yield-report');
+        if (yieldReportTab) {
+          const iframe = yieldReportTab.querySelector('iframe');
+          if (iframe) {
+            iframe.src = event.data.url;
+            console.log('Updated iframe src to:', event.data.url);
+            // Show the yield report tab if not already visible
+            yieldReportTab.classList.add('show', 'active');
+            yieldReportTab.classList.remove('fade');
+          } else {
+            // Fallback: navigate parent window
+            window.location.href = event.data.url;
+          }
+        } else {
+          // Fallback: navigate parent window
+          window.location.href = event.data.url;
+        }
+      }
+    });
+
+  </script>
+
+  <!-- localStorage Encryption Utility -->
+  <script src="{% static 'js/localStorage-encryption.js' %}"></script>
+</body>
+</html>

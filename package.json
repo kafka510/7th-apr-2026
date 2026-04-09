@@ -1,0 +1,18 @@
+{
+  "devDependencies": {
+    "@storybook/builder-vite": "^10.1.10",
+    "@storybook/react-vite": "^10.1.10",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.19",
+    "autoprefixer": "^10.4.22",
+    "baseline-browser-mapping": "^2.9.19",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "leaflet": "^1.9.4",
+    "playwright": "^1.57.0",
+    "sweetalert2": "^11.26.24"
+  }
+}

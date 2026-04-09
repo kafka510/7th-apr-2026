@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- ========================================
+       META TAGS AND DOCUMENT SETUP
+       ======================================== -->
+  <meta charset="UTF-8" />
+  <!-- Responsive viewport for mobile compatibility -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Real-Time Energy Flow Dashboard</title>
+  
+  <!-- ========================================
+       CSS STYLES - DASHBOARD LAYOUT
+       ======================================== -->
+  <style>
+    /* ========================================
+         GLOBAL STYLES
+         ======================================== */
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif; /* Modern, readable font */
+      background: #f0f4fb; /* Light blue background for professional look */
+    }
+
+    /* ========================================
+         MAIN DASHBOARD CONTAINER
+         ======================================== */
+    .dashboard-container {
+      display: flex;
+      flex-direction: column; /* Stack sections vertically */
+      align-items: center; /* Center content horizontally */
+      padding: 20px;
+      max-width: 100%;
+      margin: 0 auto;
+      background: transparent;
+      border-radius: 0;
+      box-shadow: none;
+      overflow: hidden;
+    }
+    
+    /* ========================================
+         HEADER SECTION
+         ======================================== */
+    .dashboard-header {
+      background: linear-gradient(to right, #6a11cb, #2575fc); /* Purple to blue gradient */
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .dashboard-header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-shadow: none;
+    }
+    
+    .dashboard-header p {
+      display: none; /* Hide subtitle for cleaner look */
+    }
+    
+    /* ========================================
+         SUMMARY METRICS SECTION (KPI CARDS)
+         ======================================== */
+    .summary-metrics {
+      background: white;
+      padding: 1rem;
+      border-bottom: none;
+      display: flex; /* Horizontal layout for KPI cards */
+      flex-wrap: wrap; /* Wrap cards on smaller screens */
+      justify-content: space-around; /* Distribute cards evenly */
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+      gap: 0;
+      align-items: stretch;
+      width: 100%;
+      margin-bottom: 20px;
+      border-radius: 12px; /* Rounded corners */
+    }
+    
+    /* ========================================
+         DATE DISPLAY SECTION
+         ======================================== */
+    .date-section {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+      flex: 1; /* Take available space */
+      min-width: 200px;
+      max-width: 300px;
+      margin: 1rem;
+    }
+    
+    .date-box {
+      background: white;
+      padding: 1rem;
+      border: 2px solid #e0e0e0; /* Light gray border */
+      border-radius: 12px;
+      box-shadow: none;
+      min-width: 180px;
+      text-align: center;
+      flex: 1;
+    }
+    
+    .date-label {
+      font-weight: 600;
+      color: #888; /* Gray text for label */
+      font-size: 0.9em;
+      margin-bottom: 4px;
+    }
+    
+    .date-value {
+      font-size: 1.4rem; /* Larger font for date value */
+      color: #28a745; /* Green color for emphasis */
+      font-weight: bold;
+    }
+    
+    /* ========================================
+         KPI METRIC CARDS
+         ======================================== */
+    .metric-card {
+      background: white;
+      padding: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      box-shadow: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth hover effects */
+      flex: 1; /* Equal width distribution */
+      min-width: 200px;
+      max-width: 300px;
+      margin: 1rem;
+      text-align: center;
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-1px); /* Slight lift on hover */
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15); /* Enhanced shadow on hover */
+    }
+    
+    .metric-label {
+      font-size: 0.9em;
+      color: #888;
+      font-weight: 500;
+      margin-bottom: 4px;
+      text-transform: uppercase; /* All caps for labels */
+      letter-spacing: 0.2px; /* Slightly spaced letters */
+    }
+    
+    .metric-value {
+      font-size: 1.4rem; /* Large font for values */
+      font-weight: bold;
+      color: #28a745; /* Green for positive metrics */
+      margin: 0;
+    }
+    
+    /* ========================================
+         MAIN DATA FLOW SECTION
+         ======================================== */
+    .data-flow-section {
+      padding: 0;
+      text-align: center;
+      background: transparent;
+      width: 100%;
+    }
+    
+    /* ========================================
+         GLOBAL TOTAL BOX
+         ======================================== */
+    .global-total-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 40px; /* Space below global total */
+    }
+    
+    .global-total-box {
+      font-size: 1.4rem;
+      font-weight: bold;
+      background: linear-gradient(to right, #6a11cb, #2575fc); /* Same gradient as header */
+      color: white;
+      padding: 14px 26px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Prominent shadow */
+    }
+    
+    /* ========================================
+         COUNTRY CONTAINERS LAYOUT
+         ======================================== */
+    .flow-wrapper {
+      display: flex;
+      justify-content: center;
+      gap: 40px; /* Space between country containers */
+      flex-wrap: wrap; /* Wrap on smaller screens */
+      margin-top: 0;
+      width: 100%;
+    }
+    
+    /* ========================================
+         INDIVIDUAL COUNTRY COLUMNS
+         ======================================== */
+    .country-column {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1); /* Subtle shadow */
+      padding: 20px;
+      min-width: 280px;
+      flex: 1; /* Equal distribution by default */
+      position: relative;
+      display: flex;
+      flex-direction: column; /* Stack elements vertically */
+      align-items: center;
+    }
+    
+    /* ========================================
+         KOREA CONTAINER - LARGER SIZE
+         ======================================== */
+    .country-column.korea {
+      flex: 1.5; /* 1.5x larger than other countries */
+      min-width: 420px; /* Larger minimum width */
+    }
+    
+    /* ========================================
+         OTHER COUNTRIES - SMALLER SIZE
+         ======================================== */
+    .country-column.japan,
+    .country-column.singapore,
+    .country-column.taiwan {
+      flex: 0.8; /* Smaller than default */
+      min-width: 200px; /* Smaller minimum width */
+    }
+    
+    /* ========================================
+         COUNTRY HEADER BOXES
+         ======================================== */
+    .country-box {
+      background: linear-gradient(to right, #6a11cb, #2575fc); /* Consistent gradient */
+      color: white;
+      padding: 12px;
+      font-weight: bold;
+      text-align: center;
+      border-radius: 8px;
+      width: 100%;
+      margin-bottom: 10px;
+      font-size: 1.1rem; /* Slightly larger font */
+    }
+    
+    /* ========================================
+         ARROW CONNECTORS
+         ======================================== */
+    .arrow-down {
+      width: 4px; /* Arrow line width */
+      height: 24px; /* Arrow line height */
+      background-color: #007bff; /* Blue color */
+      margin: 6px auto; /* Center horizontally */
+    }
+    
+    /* ========================================
+         ARROW HEAD (CSS TRIANGLE)
+         ======================================== */
+    .arrow-down::after {
+      content: '';
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 10px solid #007bff; /* Blue triangle pointing down */
+      margin: 0 auto 10px auto;
+      display: block;
+    }
+    
+    /* ========================================
+         REGION BOXES (EXPANDABLE)
+         ======================================== */
+    .region-box {
+      margin: 6px 0;
+      background-color: #4CAF50; /* Green background */
+      color: white;
+      padding: 10px;
+      border-radius: 6px;
+      text-align: center;
+      font-size: 1rem; /* Standard font size */
+      width: 100%;
+      position: relative; /* For expand button positioning */
+      cursor: pointer; /* Indicates clickable */
+      transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth hover effects */
+      font-weight: 500;
+    }
+    
+    .region-box:hover {
+      transform: translateY(-1px); /* Slight lift on hover */
+      box-shadow: 0 3px 10px rgba(40, 167, 69, 0.4); /* Green glow on hover */
+    }
+    
+    /* ========================================
+         EXPAND/COLLAPSE BUTTONS
+         ======================================== */
+    .expand-btn {
+      position: absolute; /* Position relative to region box */
+      left: -30px; /* Position to the left of region box */
+      top: 50%;
+      transform: translateY(-50%); /* Center vertically */
+      background: #007bff; /* Blue background */
+      color: white;
+      border: none;
+      border-radius: 50%; /* Circular button */
+      width: 24px;
+      height: 24px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s ease; /* Smooth color transition */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Subtle shadow */
+    }
+    
+    .expand-btn:hover {
+      background: #0056b3; /* Darker blue on hover */
+    }
+    
+    .expand-btn.expanded {
+      background: #dc3545; /* Red when expanded */
+    }
+    
+    /* ========================================
+         SITES CONTAINER (EXPANDABLE)
+         ======================================== */
+    .sites-container {
+      max-height: 0; /* Hidden by default */
+      overflow: hidden; /* Hide overflow content */
+      transition: max-height 0.3s ease; /* Smooth expand/collapse */
+      width: 100%;
+    }
+    
+    .sites-container.expanded {
+      max-height: 2000px; /* Large enough for all content */
+    }
+    
+    /* ========================================
+         SITES GRID LAYOUT (FOR BLACKWOOD)
+         ======================================== */
+    .sites-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr); /* 4 columns */
+      grid-template-rows: repeat(15, auto); /* 15 rows */
+      gap: 10px; /* Space between grid items */
+      padding: 15px;
+    }
+    
+    /* ========================================
+         INDIVIDUAL SITE BOXES
+         ======================================== */
+    .site-box {
+      background: white;
+      padding: 10px 12px;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow */
+      font-weight: bold;
+      min-width: 120px;
+      border-left: 3px solid #17a2b8; /* Blue accent border */
+      transition: transform 0.3s ease; /* Smooth hover effect */
+      margin: 3px 0;
+      font-size: 0.85em; /* Default font size for Korea */
+    }
+    
+    .site-box:hover {
+      transform: translateY(-1px); /* Slight lift on hover */
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15); /* Enhanced shadow */
+    }
+    
+    /* ========================================
+         SITE BOX CONTENT STYLING
+         ======================================== */
+    .site-name {
+      font-weight: 600;
+      color: #495057; /* Dark gray text */
+      margin-bottom: 3px;
+      font-size: 0.95em; /* Default size for Korea */
+    }
+    
+    .site-capacity {
+      font-size: 0.8em; /* Default size for Korea */
+      color: #6c757d; /* Medium gray text */
+    }
+    
+    .site-power {
+      font-size: 0.85em; /* Default size for Korea */
+      color: #28a745; /* Green for power values */
+      font-weight: 600;
+    }
+    
+    /* ========================================
+         ENHANCED FONT SIZES FOR OTHER COUNTRIES
+         ======================================== */
+    /* Japan, Singapore, Taiwan - larger fonts for better readability */
+    .japan .site-box,
+    .singapore .site-box,
+    .taiwan .site-box {
+      font-size: 1em; /* Larger than Korea */
+      padding: 12px 14px; /* More padding */
+      min-width: 140px; /* Larger minimum width */
+    }
+    
+    .japan .site-name,
+    .singapore .site-name,
+    .taiwan .site-name {
+      font-size: 1.1em; /* Larger than Korea */
+    }
+    
+    .japan .site-capacity,
+    .singapore .site-capacity,
+    .taiwan .site-capacity {
+      font-size: 0.95em; /* Larger than Korea */
+    }
+    
+    .japan .site-power,
+    .singapore .site-power,
+    .taiwan .site-power {
+      font-size: 1em; /* Larger than Korea */
+    }
+    
+    /* ========================================
+         LOADING INDICATOR
+         ======================================== */
+    .loading-indicator {
+      text-align: center;
+      padding: 10px;
+      color: #6c757d; /* Gray text */
+      font-style: italic;
+      font-size: 0.8em;
+    }
+    
+    /* ========================================
+         RESPONSIVE DESIGN - MEDIA QUERIES
+         ======================================== */
+    
+    /* Large screens - Enhanced spacing */
+    @media screen and (max-width: 1280px) {
+      .flow-wrapper {
+        flex-direction: column; /* Stack vertically on medium screens */
+        align-items: center;
+        gap: 30px; /* Reduced gap for vertical layout */
+      }
+    }
+    
+    /* Mobile and tablet screens */
+    @media (max-width: 768px) {
+      /* KPI cards stack vertically on mobile */
+      .summary-metrics {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      /* Date section adjustments for mobile */
+      .date-section {
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      
+      /* Smaller header on mobile */
+      .dashboard-header h1 {
+        font-size: 1.4em;
+      }
+      
+      /* Reduced padding on mobile */
+      .data-flow-section {
+        padding: 15px;
+      }
+      
+      /* Country containers stack vertically on mobile */
+      .flow-wrapper {
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      /* Smaller expand buttons on mobile */
+      .expand-btn {
+        left: -20px;
+        width: 18px;
+        height: 18px;
+        font-size: 9px;
+      }
+      
+      /* Smaller arrows on mobile */
+      .arrow-down {
+        height: 25px;
+      }
+      .arrow-down::after {
+        border-width: 4px;
+      }
+    }
+  </style>
+</head>
+
+<!-- ========================================
+     BODY CONTENT - DASHBOARD STRUCTURE
+     ======================================== -->
+<body>
+  <!-- ========================================
+       MAIN DASHBOARD CONTAINER
+       ======================================== -->
+  <div class="dashboard-container">
+    
+    <!-- ========================================
+         HEADER SECTION - DASHBOARD TITLE
+         ======================================== -->
+    <div class="dashboard-header">
+      <h1>Real-Time Energy Flow Dashboard</h1>
+    </div>
+
+    <!-- ========================================
+         SUMMARY METRICS SECTION - KPI CARDS
+         ======================================== -->
+    <div class="summary-metrics">
+      <!-- Date Display Card -->
+      <div class="date-section">
+        <div class="date-box">
+          <div class="date-label">Date</div>
+          <div class="date-value" id="current-date">--</div>
+        </div>
+      </div>
+      
+      <!-- Daily Energy KPI Card -->
+      <div class="metric-card" id="kpi-daily">
+        <div class="metric-label">DAILY ENERGY (MWh)</div>
+        <div class="metric-value" id="daily-generation">-- MWh</div>
+      </div>
+      
+      <!-- Monthly Energy KPI Card -->
+      <div class="metric-card" id="kpi-monthly">
+        <div class="metric-label">MONTHLY ENERGY (MWh)</div>
+        <div class="metric-value" id="monthly-generation">-- MWh</div>
+      </div>
+      
+      <!-- Yearly Energy KPI Card -->
+      <div class="metric-card" id="kpi-yearly">
+        <div class="metric-label">YEARLY ENERGY (MWh)</div>
+        <div class="metric-value" id="yearly-generation">-- MWh</div>
+      </div>
+      
+      <!-- Active Sites Count KPI Card -->
+      <div class="metric-card" id="kpi-active-sites">
+        <div class="metric-label">ACTIVE SITES COUNT</div>
+        <div class="metric-value" id="active-sites">--</div>
+      </div>
+    </div>
+
+    <!-- ========================================
+         DATA FLOW SECTION - MAIN CONTENT
+         ======================================== -->
+    <div class="data-flow-section">
+      <!-- Global Total Display -->
+      <div class="global-total-wrapper">
+        <div class="global-total-box" id="global-total-box">
+          Total Cumulative Active Power<br><span id="total-cumulative-power">-- MWp</span>
+        </div>
+      </div>
+      
+      <!-- SVG Layer for Dynamic Arrows -->
+      <svg id="arrow-svg" style="position:absolute;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:10;"></svg>
+      
+      <!-- Country Containers Wrapper -->
+      <div class="flow-wrapper" style="margin-top: 60px;">
+        
+        <!-- ========================================
+             KOREA COUNTRY CONTAINER
+             ======================================== -->
+        <div class="country-column korea">
+          <!-- Korea Header -->
+          <div class="country-box" id="country-korea">Korea<br><span id="korea-total">-- MWp</span></div>
+          <div class="arrow-down"></div>
+          
+          <!-- Korea Region 1: Blackwood (47 assets) -->
+          <div class="region-box" onclick="toggleSites('blackwood-sites')">
+            <button class="expand-btn" id="blackwood-btn">+</button>
+            Blackwood<br><span id="blackwood-region">-- MWh</span>
+          </div>
+          <div class="sites-container" id="blackwood-sites">
+            <div class="loading-indicator">Loading sites...</div>
+          </div>
+          
+          <!-- Korea Region 2: Iceberg (1 asset) -->
+          <div class="region-box" onclick="toggleSites('iceberg-sites')">
+            <button class="expand-btn" id="iceberg-btn">+</button>
+            Iceberg<br><span id="iceberg-region">-- MWh</span>
+          </div>
+          <div class="sites-container" id="iceberg-sites">
+            <div class="loading-indicator">Loading sites...</div>
+          </div>
+          
+          <!-- Korea Region 3: Sroof (2 assets) -->
+          <div class="region-box" onclick="toggleSites('sroof-sites')">
+            <button class="expand-btn" id="sroof-btn">+</button>
+            Sroof<br><span id="sroof-region">-- MWh</span>
+          </div>
+          <div class="sites-container" id="sroof-sites">
+            <div class="loading-indicator">Loading sites...</div>
+          </div>
+        </div>
+
+        <!-- ========================================
+             JAPAN COUNTRY CONTAINER
+             ======================================== -->
+        <div class="country-column japan">
+          <!-- Japan Header -->
+          <div class="country-box" id="country-japan">Japan<br><span id="japan-total">-- MWp</span></div>
+          <div class="arrow-down"></div>
+          
+          <!-- Japan Region: MINA (1 asset) -->
+          <div class="region-box" onclick="toggleSites('mina-sites')">
+            <button class="expand-btn" id="mina-btn">+</button>
+            MINA<br><span id="mina-region">-- MWh</span>
+          </div>
+          <div class="sites-container" id="mina-sites">
+            <div class="loading-indicator">Loading sites...</div>
+          </div>
+        </div>
+
+        <!-- ========================================
+             SINGAPORE COUNTRY CONTAINER
+             ======================================== -->
+        <div class="country-column singapore">
+          <!-- Singapore Header -->
+          <div class="country-box" id="country-singapore">Singapore<br><span id="singapore-total">-- MWp</span></div>
+          <div class="arrow-down"></div>
+          
+          <!-- Singapore Region: MATCO ASIA (1 asset) -->
+          <div class="region-box" onclick="toggleSites('matco-sites')">
+            <button class="expand-btn" id="matco-btn">+</button>
+            MATCO ASIA<br><span id="matco-region">-- MWh</span>
+          </div>
+          <div class="sites-container" id="matco-sites">
+            <div class="loading-indicator">Loading sites...</div>
+          </div>
+        </div>
+
+        <!-- ========================================
+             TAIWAN COUNTRY CONTAINER
+             ======================================== -->
+        <div class="country-column taiwan">
+          <!-- Taiwan Header -->
+          <div class="country-box" id="country-taiwan">Taiwan<br><span id="taiwan-total">-- MWp</span></div>
+          <div class="arrow-down"></div>
+          
+          <!-- Taiwan Region: TW1 (1 asset) -->
+          <div class="region-box" onclick="toggleSites('tw1-sites')">
+            <button class="expand-btn" id="tw1-btn">+</button>
+            TW1<br><span id="tw1-region">-- MWh</span>
+          </div>
+          <div class="sites-container" id="tw1-sites">
+            <div class="loading-indicator">Loading sites...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================
+       JAVASCRIPT FUNCTIONALITY
+       ======================================== -->
+  <script>
+    // ========================================
+    // GLOBAL VARIABLES
+    // ========================================
+    let siteData = []; // Stores processed CSV data for all regions
+    let lastUpdateTime = null; // Tracks when data was last updated
+    
+    // ========================================
+    // EXPAND/COLLAPSE FUNCTIONALITY
+    // ========================================
+    
+    /**
+     * Toggles the visibility of site containers
+     * @param {string} sitesId - The ID of the sites container to toggle
+     */
+    function toggleSites(sitesId) {
+      const sitesContainer = document.getElementById(sitesId);
+      const btnId = sitesId.replace('-sites', '-btn'); // Convert container ID to button ID
+      const btn = document.getElementById(btnId);
+      
+      if (sitesContainer.classList.contains('expanded')) {
+        // Collapse the container
+        sitesContainer.classList.remove('expanded');
+        btn.classList.remove('expanded');
+        btn.textContent = '+'; // Show plus sign for collapsed state
+      } else {
+        // Expand the container
+        sitesContainer.classList.add('expanded');
+        btn.classList.add('expanded');
+        btn.textContent = '−'; // Show minus sign for expanded state
+      }
+    }
+    
+    // ========================================
+    // CSV DATA FETCHING AND PARSING
+    // ========================================
+    
+    /**
+     * Gets data from Django view
+     * @returns {Promise<Array>} Array of parsed data objects
+     */
+    async function fetchCSVData() {
+      {% if error_message %}
+        console.error('Error loading energy monitoring data:', '{{ error_message }}');
+        return [];
+      {% elif map_data_json %}
+        const data = {{ map_data_json|safe }};
+        return data;
+      {% else %}
+        console.error('No energy monitoring data available');
+        return [];
+      {% endif %}
+    }
+    
+    /**
+     * Parses CSV text into JavaScript objects
+     * @param {string} csvText - Raw CSV text content
+     * @returns {Array} Array of objects with CSV headers as keys
+     */
+    function parseCSV(csvText) {
+      const lines = csvText.split('\n'); // Split by newlines
+      const headers = lines[0].split(',').map(h => h.trim()); // Get headers from first line
+      const data = [];
+      
+      // Process each line (skip header row)
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) { // Skip empty lines
+          const values = lines[i].split(',').map(v => v.trim()); // Split line by commas
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || ''; // Map header to value
+          });
+          data.push(row);
+        }
+      }
+      
+      return data;
+    }
+    
+    // ========================================
+    // SITE DATA PROCESSING
+    // ========================================
+    
+    /**
+     * Processes raw CSV data into organized region structure
+     * @param {Array} data - Raw CSV data array
+     * @returns {Object} Organized data by portfolio/region
+     */
+    function processSiteData(data) {
+      // Initialize regions object with empty arrays and zero totals
+      const regions = {
+        'Korea-Blackwood': { sites: [], totalCapacity: 0 }, // 47 assets
+        'Korea-Iceberg': { sites: [], totalCapacity: 0 },   // 1 asset
+        'Korea-Sroof': { sites: [], totalCapacity: 0 },     // 2 assets
+        'JP Minamata': { sites: [], totalCapacity: 0 },     // 1 asset
+        'SG Matco Asia': { sites: [], totalCapacity: 0 },   // 1 asset
+        'TW-Yunlin': { sites: [], totalCapacity: 0 }        // 1 asset
+      };
+      
+      // Process each site from CSV data
+      data.forEach(site => {
+        const portfolio = site.portfolio; // Get portfolio/region name
+        if (regions[portfolio]) { // Check if portfolio exists in our regions
+          const capacity = parseFloat(site.dc_capacity_mwp) || 0; // Convert capacity to number
+          regions[portfolio].sites.push({
+            name: site.site_name,
+            assetNo: site.asset_no,
+            capacity: capacity,
+            plantType: site.plant_type,
+            installationType: site.installation_type
+          });
+          regions[portfolio].totalCapacity += capacity; // Add to region total
+        }
+      });
+      
+      return regions;
+    }
+    
+    // ========================================
+    // SITE DISPLAY FUNCTIONS
+    // ========================================
+    
+    /**
+     * Generates HTML for displaying sites in a specific region
+     * @param {string} regionKey - The region key (e.g., 'Korea-Blackwood')
+     * @param {string} sitesContainerId - The DOM element ID for the container
+     */
+    function displaySites(regionKey, sitesContainerId) {
+      const container = document.getElementById(sitesContainerId);
+      const regionData = siteData[regionKey];
+      
+      // Handle case where no data is available
+      if (!regionData || regionData.sites.length === 0) {
+        container.innerHTML = '<div class="loading-indicator">No sites found</div>';
+        return;
+      }
+      
+      let sitesHTML = '';
+      
+      // Special handling for Blackwood - use grid layout for 47 assets
+      if (regionKey === 'Korea-Blackwood') {
+        sitesHTML = '<div class="sites-grid">';
+        regionData.sites.forEach(site => {
+          // Generate random current power (simulated data - replace with real API)
+          const currentPower = (site.capacity * (0.3 + Math.random() * 0.7)).toFixed(2);
+          
+          sitesHTML += `
+            <div class="site-box">
+              <div class="site-name">${site.assetNo}</div>
+              <div class="site-capacity">Cap: ${site.capacity.toFixed(2)} MWp</div>
+              <div class="site-power">${currentPower} MWh</div>
+            </div>
+          `;
+        });
+        sitesHTML += '</div>';
+      } else {
+        // Regular vertical layout for other regions (1-2 assets each)
+        regionData.sites.forEach(site => {
+          // Generate random current power (simulated data - replace with real API)
+          const currentPower = (site.capacity * (0.3 + Math.random() * 0.7)).toFixed(2);
+          
+          sitesHTML += `
+            <div class="site-box">
+              <div class="site-name">${site.assetNo}</div>
+              <div class="site-capacity">Cap: ${site.capacity.toFixed(2)} MWp</div>
+              <div class="site-power">${currentPower} MWh</div>
+            </div>
+          `;
+        });
+      }
+      
+      container.innerHTML = sitesHTML;
+    }
+    
+    // ========================================
+    // DATA FETCHING AND DISPLAY LOGIC
+    // ========================================
+    
+    /**
+     * Main function that orchestrates all data updates and calculations
+     * Fetches CSV data, processes it, and updates all dashboard elements
+     */
+    async function fetchData() {
+      try {
+        // Step 1: Fetch CSV data from local file
+        const csvData = await fetchCSVData();
+        if (csvData.length === 0) {
+          console.error('No CSV data received');
+          return;
+        }
+        
+        // Step 2: Process site data into organized structure
+        siteData = processSiteData(csvData);
+        
+        // Step 3: Update current date display
+        const now = new Date();
+        const dateOptions = { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric',
+          weekday: 'long'
+        };
+        
+        document.getElementById("current-date").textContent = now.toLocaleDateString('en-US', dateOptions);
+        lastUpdateTime = now;
+
+        // Step 4: Extract region totals from processed data
+        const blackwoodTotal = siteData['Korea-Blackwood']?.totalCapacity || 0;
+        const icebergTotal = siteData['Korea-Iceberg']?.totalCapacity || 0;
+        const sroofTotal = siteData['Korea-Sroof']?.totalCapacity || 0;
+        const minaTotal = siteData['JP Minamata']?.totalCapacity || 0;
+        const matcoTotal = siteData['SG Matco Asia']?.totalCapacity || 0;
+        const tw1Total = siteData['TW-Yunlin']?.totalCapacity || 0;
+        
+        // Step 5: Update region displays with calculated totals
+        document.getElementById("blackwood-region").textContent = blackwoodTotal.toFixed(2) + " MWp";
+        document.getElementById("iceberg-region").textContent = icebergTotal.toFixed(2) + " MWp";
+        document.getElementById("sroof-region").textContent = sroofTotal.toFixed(2) + " MWp";
+        document.getElementById("mina-region").textContent = minaTotal.toFixed(2) + " MWp";
+        document.getElementById("matco-region").textContent = matcoTotal.toFixed(2) + " MWp";
+        document.getElementById("tw1-region").textContent = tw1Total.toFixed(2) + " MWp";
+
+        // Step 6: Calculate country totals by summing regions
+        const koreaTotal = blackwoodTotal + icebergTotal + sroofTotal;
+        const japanTotal = minaTotal;
+        const singaporeTotal = matcoTotal;
+        const taiwanTotal = tw1Total;
+        
+        // Step 7: Calculate global total across all countries
+        const totalPower = koreaTotal + japanTotal + singaporeTotal + taiwanTotal;
+
+        // Step 8: Update country total displays
+        document.getElementById("korea-total").textContent = koreaTotal.toFixed(2) + " MWp";
+        document.getElementById("japan-total").textContent = japanTotal.toFixed(2) + " MWp";
+        document.getElementById("singapore-total").textContent = singaporeTotal.toFixed(2) + " MWp";
+        document.getElementById("taiwan-total").textContent = taiwanTotal.toFixed(2) + " MWp";
+
+        // Step 9: Update global cumulative total display
+        document.getElementById("total-cumulative-power").textContent = totalPower.toFixed(2) + " MWp";
+
+        // Step 10: Calculate and update summary metrics (KPI cards)
+        // Using simulated calculations - replace with real energy production data
+        const dailyGeneration = totalPower * 0.6 * 24; // Assuming 60% capacity factor and 24 hours
+        const monthlyGeneration = dailyGeneration * 30; // Assuming 30 days
+        const yearlyGeneration = monthlyGeneration * 12; // Assuming 12 months
+        
+        // Calculate total active sites count across all regions
+        const totalSites = Object.values(siteData).reduce((total, region) => {
+          return total + region.sites.length;
+        }, 0);
+        
+        // Update KPI card displays
+        document.getElementById("daily-generation").textContent = dailyGeneration.toFixed(2) + " MWh";
+        document.getElementById("monthly-generation").textContent = monthlyGeneration.toFixed(2) + " MWh";
+        document.getElementById("yearly-generation").textContent = yearlyGeneration.toFixed(2) + " MWh";
+        document.getElementById("active-sites").textContent = totalSites;
+        
+        // Step 11: Update site displays for all regions
+        displaySites('Korea-Blackwood', 'blackwood-sites');
+        displaySites('Korea-Iceberg', 'iceberg-sites');
+        displaySites('Korea-Sroof', 'sroof-sites');
+        displaySites('JP Minamata', 'mina-sites');
+        displaySites('SG Matco Asia', 'matco-sites');
+        displaySites('TW-Yunlin', 'tw1-sites');
+        
+      } catch (error) {
+        console.error('Error in fetchData:', error);
+      }
+    }
+    
+    // ========================================
+    // AUTO-REFRESH CONFIGURATION
+    // ========================================
+    
+    // Initial data load when page loads
+    fetchData();
+    
+    // Set up automatic refresh every 5 minutes (300,000 milliseconds)
+    // This ensures the dashboard shows current energy production data
+    setInterval(fetchData, 300000); // 5 minute interval
+
+    // ========================================
+    // ARROW DRAWING LOGIC
+    // ========================================
+    
+    /**
+     * Dynamically draws SVG arrows connecting global total to country cards
+     * Creates a T-shaped connection pattern with horizontal distribution line
+     */
+    function drawArrows() {
+      const svg = document.getElementById('arrow-svg');
+      svg.innerHTML = ''; // Clear existing arrows
+      const globalBox = document.getElementById('global-total-box');
+      const countryIds = ['country-korea', 'country-japan', 'country-singapore', 'country-taiwan'];
+      
+      if (!globalBox) return;
+      
+      const globalRect = globalBox.getBoundingClientRect();
+      
+      // Calculate the horizontal line position (below the global total)
+      const horizontalY = globalRect.bottom + 20;
+      const countries = countryIds.map(id => document.getElementById(id)).filter(Boolean);
+      
+      if (countries.length === 0) return;
+      
+      // Calculate the horizontal line span (from leftmost to rightmost country)
+      const leftmostCountry = countries[0].getBoundingClientRect();
+      const rightmostCountry = countries[countries.length - 1].getBoundingClientRect();
+      const horizontalStartX = leftmostCountry.left + leftmostCountry.width / 2;
+      const horizontalEndX = rightmostCountry.left + rightmostCountry.width / 2;
+      
+      // Draw vertical line from global total to horizontal line
+      const globalCenterX = globalRect.left + globalRect.width / 2;
+      const verticalLineFromGlobal = `<line x1="${globalCenterX + window.scrollX}" y1="${globalRect.bottom + window.scrollY}" x2="${globalCenterX + window.scrollX}" y2="${horizontalY + window.scrollY}" stroke="#007bff" stroke-width="2" />`;
+      svg.innerHTML += verticalLineFromGlobal;
+      
+      // Draw the main horizontal distribution line
+      const horizontalLine = `<line x1="${horizontalStartX + window.scrollX}" y1="${horizontalY + window.scrollY}" x2="${horizontalEndX + window.scrollX}" y2="${horizontalY + window.scrollY}" stroke="#007bff" stroke-width="2" />`;
+      svg.innerHTML += horizontalLine;
+      
+      // Draw vertical lines from horizontal line to each country (pointing upward)
+      countries.forEach(country => {
+        const countryRect = country.getBoundingClientRect();
+        const verticalX = countryRect.left + countryRect.width / 2;
+        const verticalStartY = countryRect.top - 20; // Start from country card
+        const verticalEndY = horizontalY; // End at horizontal line
+        
+        const verticalLine = `<line x1="${verticalX + window.scrollX}" y1="${verticalStartY + window.scrollY}" x2="${verticalX + window.scrollX}" y2="${verticalEndY + window.scrollY}" stroke="#007bff" stroke-width="2" marker-start="url(#arrowhead)" />`;
+        svg.innerHTML += verticalLine;
+      });
+      
+      // Add arrowhead marker definition for SVG arrows
+      svg.innerHTML = `<defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#007bff"/></marker></defs>` + svg.innerHTML;
+    }
+    
+    // ========================================
+    // EVENT LISTENERS
+    // ========================================
+    
+    // Redraw arrows when window is resized
+    window.addEventListener('resize', drawArrows);
+    
+    // Draw arrows after DOM is loaded (with delay for proper positioning)
+    window.addEventListener('DOMContentLoaded', () => setTimeout(drawArrows, 300));
+  </script>
+</body>
+</html>

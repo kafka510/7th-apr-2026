@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Alerts</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .alert-critical {
+            border-left: 5px solid #dc3545;
+            background-color: #f8d7da;
+        }
+        .alert-high {
+            border-left: 5px solid #fd7e14;
+            background-color: #fff3cd;
+        }
+        .alert-medium {
+            border-left: 5px solid #ffc107;
+            background-color: #fff3cd;
+        }
+        .alert-low {
+            border-left: 5px solid #28a745;
+            background-color: #d4edda;
+        }
+        .status-open {
+            background-color: #dc3545;
+            color: white;
+        }
+        .status-investigating {
+            background-color: #ffc107;
+            color: black;
+        }
+        .status-resolved {
+            background-color: #28a745;
+            color: white;
+        }
+        .status-false-positive {
+            background-color: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Security Alerts</h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'main:user_management' %}">User Management</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Security Alerts</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Filter Alerts</h5>
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                        <option value="investigating" {% if status_filter == 'investigating' %}selected{% endif %}>Investigating</option>
+                        <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Resolved</option>
+                        <option value="false_positive" {% if status_filter == 'false_positive' %}selected{% endif %}>False Positive</option>
+                        <option value="" {% if not status_filter %}selected{% endif %}>All</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="severity" class="form-label">Severity</label>
+                    <select class="form-select" id="severity" name="severity">
+                        <option value="">All Severities</option>
+                        {% for severity_value, severity_label in severity_choices %}
+                        <option value="{{ severity_value }}" {% if severity_filter == severity_value %}selected{% endif %}>
+                            {{ severity_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="alert_type" class="form-label">Alert Type</label>
+                    <select class="form-select" id="alert_type" name="alert_type">
+                        <option value="">All Types</option>
+                        {% for type_value, type_label in alert_type_choices %}
+                        <option value="{{ type_value }}" {% if alert_type_filter == type_value %}selected{% endif %}>
+                            {{ type_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="{% url 'main:security_alerts' %}" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alerts List -->
+    <div class="row">
+        {% for alert in alerts %}
+        <div class="col-12 mb-3">
+            <div class="card alert-{{ alert.severity }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <span class="badge bg-danger">{{ alert.get_severity_display|upper }}</span>
+                            <span class="badge status-{{ alert.status }}">{{ alert.get_status_display }}</span>
+                            {{ alert.title }}
+                        </h5>
+                        <small class="text-muted">{{ alert.get_alert_type_display }} - {{ alert.created_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                    <div>
+                        {% if alert.status == 'open' %}
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#resolveModal{{ alert.id }}">
+                                <i class="fas fa-check"></i> Resolve
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="blockIPFromAlert('{{ alert.ip_address }}')" title="Block this IP address">
+                                <i class="fas fa-ban"></i> Block IP
+                            </button>
+                            {% if alert.user_agent %}
+                            <button class="btn btn-sm btn-secondary" onclick="blockUserAgentFromAlert('{{ alert.user_agent|escapejs }}')" title="Block this user agent">
+                                <i class="fas fa-shield-alt"></i> Block Agent
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="badge bg-success">{{ alert.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p><strong>Description:</strong> {{ alert.description }}</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>IP Address:</strong> {{ alert.ip_address }}
+                                {% if alert.ip_address %}
+                                    {% if alert.ip_is_blocked %}
+                                        <span id="ip-status-{{ alert.id }}" class="badge bg-danger ms-2" 
+                                              title="Blocked: {{ alert.ip_blocking_info.reason }}{% if alert.ip_blocking_info.blocked_by %} by {{ alert.ip_blocking_info.blocked_by }}{% endif %}">
+                                            BLOCKED
+                                        </span>
+                                    {% else %}
+                                        <span id="ip-status-{{ alert.id }}" class="badge bg-success ms-2">Not Blocked</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span id="ip-status-{{ alert.id }}" class="badge bg-secondary ms-2">N/A</span>
+                                {% endif %}
+                            </p>
+                            {% if alert.user %}
+                            <p><strong>User:</strong> {{ alert.user.username }}</p>
+                            {% endif %}
+                            {% if alert.user_agent %}
+                            <p><strong>User Agent:</strong> <code>{{ alert.user_agent }}</code>
+                                <span id="agent-status-{{ alert.id }}" class="badge bg-secondary ms-2">Checking...</span>
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Created:</strong> {{ alert.created_at|date:"M d, Y H:i:s" }}</p>
+                            {% if alert.resolved_at %}
+                            <p><strong>Resolved:</strong> {{ alert.resolved_at|date:"M d, Y H:i:s" }}</p>
+                            <p><strong>Resolved by:</strong> {{ alert.resolved_by.username }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if alert.user_agent %}
+                    <p><strong>User Agent:</strong> <small>{{ alert.user_agent|truncatechars:100 }}</small></p>
+                    {% endif %}
+                    
+                    {% if alert.details %}
+                    <div class="mt-3">
+                        <strong>Details:</strong>
+                        <pre class="bg-light p-2 rounded"><code>{{ alert.details|pprint }}</code></pre>
+                    </div>
+                    {% endif %}
+                    
+                    {% if alert.resolution_notes %}
+                    <div class="mt-3">
+                        <strong>Resolution Notes:</strong>
+                        <div class="alert alert-info">{{ alert.resolution_notes }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Resolve Modal -->
+        {% if alert.status == 'open' %}
+        <div class="modal fade" id="resolveModal{{ alert.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Resolve Alert</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="alert_id" value="{{ alert.id }}">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="action{{ alert.id }}" class="form-label">Action</label>
+                                <select class="form-select" id="action{{ alert.id }}" name="action" required>
+                                    <option value="resolve">Mark as Resolved</option>
+                                    <option value="false_positive">Mark as False Positive</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="notes{{ alert.id }}" class="form-label">Resolution Notes</label>
+                                <textarea class="form-control" id="notes{{ alert.id }}" name="notes" rows="3" 
+                                          placeholder="Enter resolution notes..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <h4>No security alerts found</h4>
+                <p>No security alerts match the current filters.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination would go here if needed -->
+    
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Function to check if IP is already blocked (for dynamic updates after blocking)
+    // Note: Status is now loaded server-side, so this is only used for real-time updates
+    function checkIPStatus(ipAddress, alertId) {
+        fetch(`/api/blocking/check-ip/${ipAddress}/`)
+        .then(response => response.json())
+        .then(data => {
+            const statusElement = document.getElementById(`ip-status-${alertId}`);
+            if (data.is_blocked) {
+                statusElement.className = 'badge bg-danger ms-2';
+                statusElement.textContent = 'BLOCKED';
+                if (data.blocked_ip && data.blocked_ip.reason) {
+                    statusElement.title = `Blocked: ${data.blocked_ip.reason}`;
+                }
+            } else {
+                statusElement.className = 'badge bg-success ms-2';
+                statusElement.textContent = 'Not Blocked';
+                statusElement.title = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking IP status:', error);
+            // Don't change the status on error - keep server-provided status
+        });
+    }
+
+    // Function to check if User Agent is blocked
+    function checkUserAgentStatus(userAgent, alertId) {
+        // For now, we'll assume user agents aren't blocked by default
+        // This can be enhanced when user agent blocking is implemented
+        const statusElement = document.getElementById(`agent-status-${alertId}`);
+        statusElement.className = 'badge bg-info ms-2';
+        statusElement.textContent = 'Not Blocked';
+    }
+
+    // Function to block IP from alert
+    function blockIPFromAlert(ipAddress) {
+        if (!confirm(`Are you sure you want to block IP address ${ipAddress}?`)) {
+            return;
+        }
+
+        // Show loading state
+        const originalText = event.target.innerHTML;
+        event.target.disabled = true;
+        event.target.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Blocking...';
+
+        fetch('/api/blocking/block-ip/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                ip_address: ipAddress,
+                reason: 'Blocked from security alert - suspicious activity detected'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`IP ${ipAddress} blocked successfully`, 'success');
+                
+                // Update all status indicators for this IP
+                document.querySelectorAll(`[id*="ip-status"]`).forEach(element => {
+                    if (element.closest('.card').textContent.includes(ipAddress)) {
+                        element.className = 'badge bg-danger ms-2';
+                        element.textContent = 'BLOCKED';
+                    }
+                });
+                
+                // Disable block button for this IP
+                event.target.disabled = true;
+                event.target.innerHTML = '<i class="fas fa-ban"></i> Blocked';
+                event.target.className = 'btn btn-sm btn-secondary';
+            } else {
+                showToast(data.error || 'Failed to block IP', 'error');
+                event.target.disabled = false;
+                event.target.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            showToast('Error blocking IP: ' + error.message, 'error');
+            event.target.disabled = false;
+            event.target.innerHTML = originalText;
+        });
+    }
+
+    // Function to block User Agent from alert
+    function blockUserAgentFromAlert(userAgent) {
+        if (!confirm(`Are you sure you want to block user agent "${userAgent}"?`)) {
+            return;
+        }
+
+        // Show loading state
+        const originalText = event.target.innerHTML;
+        event.target.disabled = true;
+        event.target.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Blocking...';
+
+        // For now, we'll show a message that this feature is coming soon
+        // This can be enhanced when user agent blocking is fully implemented
+        setTimeout(() => {
+            showToast('User Agent blocking feature is coming soon!', 'info');
+            event.target.disabled = false;
+            event.target.innerHTML = originalText;
+        }, 1000);
+    }
+
+    // Toast notification function
+    function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create toast element
+        const toastId = 'toast-' + Date.now();
+        const colorClass = type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info';
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white bg-${colorClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()" aria-label="Close">&times;</button>
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        // Show the toast
+        const toastElement = document.getElementById(toastId);
+        
+        // Check if Bootstrap is available
+        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: type === 'error' ? 5000 : 3000
+            });
+            toast.show();
+            
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                if (toastElement.parentNode) {
+                    toastElement.remove();
+                }
+            });
+        } else {
+            // Fallback: Manual show/hide
+            toastElement.style.display = 'block';
+            toastElement.style.opacity = '0';
+            
+            setTimeout(() => {
+                toastElement.style.transition = 'opacity 0.3s ease-in-out';
+                toastElement.style.opacity = '1';
+            }, 10);
+            
+            setTimeout(() => {
+                toastElement.style.opacity = '0';
+                setTimeout(() => {
+                    if (toastElement.parentNode) {
+                        toastElement.remove();
+                    }
+                }, 300);
+            }, type === 'error' ? 5000 : 3000);
+        }
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function getCSRFToken() {
+        // Try to get from cookie first
+        let token = getCookie('csrftoken');
+        
+        // If not found in cookie, try to get from form
+        if (!token) {
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfInput) {
+                token = csrfInput.value;
+            }
+        }
+        
+        return token;
+    }
+</script>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
+</body>
+</html>

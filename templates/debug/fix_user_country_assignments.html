@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Fix User Country Assignments{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Fix User Country Assignments</h2>
+    <p class="text-muted">This tool helps fix user assignments where individual AssetList records were assigned instead of proper country/portfolio assignments.</p>
+
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>User Assignment Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Role</th>
+                                    <th>Countries Count</th>
+                                    <th>Portfolios Count</th>
+                                    <th>Sites Count</th>
+                                    <th>Distinct Countries</th>
+                                    <th>Distinct Portfolios</th>
+                                    <th>Needs Fixing</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for analysis in user_analysis %}
+                                    <tr>
+                                        <td>{{ analysis.username }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if analysis.role == 'admin' %}danger{% elif analysis.role == 'om' %}warning{% elif analysis.role == 'customer' %}info{% elif analysis.role == 'management' %}primary{% else %}secondary{% endif %}">
+                                                {{ analysis.role }}
+                                            </span>
+                                        </td>
+                                        <td>{{ analysis.countries_count }}</td>
+                                        <td>{{ analysis.portfolios_count }}</td>
+                                        <td>{{ analysis.sites_count }}</td>
+                                        <td>
+                                            {% if analysis.distinct_countries %}
+                                                <small>{{ analysis.distinct_countries|join:", " }}</small>
+                                            {% else %}
+                                                <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if analysis.distinct_portfolios %}
+                                                <small>{{ analysis.distinct_portfolios|join:", " }}</small>
+                                            {% else %}
+                                                <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if analysis.needs_fixing %}
+                                                <span class="badge bg-warning">⚠️ Needs Fixing</span>
+                                            {% else %}
+                                                <span class="badge bg-success">✅ OK</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if analysis.needs_fixing %}
+                                                <form method="post" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="username" value="{{ analysis.username }}">
+                                                    <input type="hidden" name="action" value="fix">
+                                                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Fix assignments for {{ analysis.username }}?')">
+                                                        🔧 Fix
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <span class="text-muted">No action needed</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>How This Works</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Problem:</h6>
+                    <p>When you select countries in the user management interface, the system sometimes assigns individual AssetList records instead of proper country assignments. This causes:</p>
+                    <ul>
+                        <li>Display issues showing all asset codes instead of just countries</li>
+                        <li>Future sites in those countries won't be automatically accessible</li>
+                        <li>Inefficient database queries</li>
+                    </ul>
+
+                    <h6>Solution:</h6>
+                    <p>This tool fixes the assignments by:</p>
+                    <ul>
+                        <li>Identifying distinct countries from the assigned AssetList records</li>
+                        <li>Clearing the current assignments</li>
+                        <li>Assigning one representative AssetList record per country</li>
+                        <li>Doing the same for portfolios</li>
+                    </ul>
+
+                    <h6>Example:</h6>
+                    <p>Instead of having 50 individual AssetList records assigned (showing as "SG, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, JP, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, KR, TW"), it will show just the distinct countries: "SG, KR, JP, TW".</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

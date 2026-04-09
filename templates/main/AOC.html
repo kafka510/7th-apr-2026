@@ -1,0 +1,985 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- Make pages responsive -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { width:100%; height:100%; margin:0; padding:0; }
+  .container-fluid, .main-container, .dashboard-content, .main-content, .card-content {
+    display: flex; flex-direction: column; width: 100%; height: 100%;
+  }
+  /* Fluid charts and map containers */
+  [id$="Chart"], [id$="Line"], #mapid, .plotly-graph-div {
+    width: 100% !important; height: 100% !important; flex: 1;
+  }
+  /* Media-query tweaks */
+  @media (max-width: 1200px) {
+    /* adjust font-sizes or layout as needed */
+  }
+</style>
+
+  <meta charset="UTF-8">
+  <title>Areas of Concern</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #e6f1fc 0%, #f8fbff 100%);
+      color: #222;
+      font-size: 1.16rem;
+    }
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+      border: 1.5px solid #87ceeb;
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      overflow: visible;
+      height: 100%;
+    }
+    .filter-section {
+      min-height: 36px;
+      height: auto;
+      align-items: flex-start;
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+      padding: 0 1vw;
+      box-sizing: border-box;
+      margin: 0 0 8px 0;
+      background: white;
+      box-shadow: 0 8px 40px 0 rgba(0,0,0,0.09);
+      border-radius: 0;
+      border: none;
+      position: relative;
+      z-index: 10000;
+    }
+    .filter-section .flex {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 2rem;
+      width: 100%;
+      align-items: flex-end;
+    }
+    .filter-section .flex > div {
+      min-width: 180px;
+      max-width: 280px;
+      flex: 1 1 200px;
+    }
+    .filter-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #0072CE;
+      letter-spacing: 0.2px;
+    }
+    .filter-select {
+      background: rgba(255,255,255,0.95);
+      color: #222;
+      border-radius: 0.75rem;
+      border: none;
+      width: 100%;
+      height: 2.2rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      font-weight: 600;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+      transition: border 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .filter-select:focus {
+      border: 2px solid #0072CE;
+      box-shadow: 0 0 0 2px #0072CE;
+    }
+    
+    /* BestCalendar component styling */
+    .month-trigger-btn {
+      width: 100%;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid #0072CE;
+      border-radius: 0.75rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      color: #0072CE;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s, border-color 0.2s;
+      height: 2.2rem;
+      font-weight: 600;
+    }
+    
+    .month-trigger-btn:hover {
+      background: #e6f1fc;
+      border-color: #005a9e;
+    }
+    
+    /* Reset button styling */
+    .reset-btn {
+      background: #e60000;
+      border: 1px solid #e60000;
+      border-radius: 0.75rem;
+      padding: 0.1rem 0.8rem;
+      font-size: 1rem;
+      color: #ffffff;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      height: 2.2rem;
+      font-weight: 600;
+      min-width: 80px;
+    }
+    
+    .reset-btn:hover {
+      background: #cc0000;
+      border-color: #cc0000;
+      color: #ffffff;
+    }
+    
+    /* Ensure BestCalendar picker positioning works correctly */
+    .month-matrix-picker {
+      position: fixed !important;
+      z-index: 2147483647 !important;
+      margin-top: 4px !important;
+    }
+    
+    /* BestCalendar component specific overrides for AOC dashboard */
+    .bc-picker {
+      min-width: 280px !important;
+      max-width: 400px !important;
+      background: #ffffff !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 10px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      padding: 15px !important;
+    }
+    
+    /* Clean calendar styling */
+    #monthMatrixPicker.bc-picker {
+      position: fixed !important;
+      background: #ffffff !important;
+      border: 1px solid #b3d7f2 !important;
+      border-radius: 8px !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+      padding: 15px !important;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 2147483647 !important;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      min-width: 280px !important;
+      max-width: 400px !important;
+    }
+
+    #monthMatrixPicker.bc-picker.bc-visible {
+      display: flex !important; 
+      flex-direction: column !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      background: #ffffff !important;
+      border: 1px solid #b3d7f2 !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+    }
+    
+    .bc-trigger {
+      width: 100% !important;
+      background: #f8fbff !important;
+      border: 1px solid #b3d7f2 !important;
+      border-radius: 6px !important;
+      padding: 8px 12px !important;
+      font-size: 14px !important;
+      color: #0072CE !important;
+      cursor: pointer !important;
+      text-align: left !important;
+      transition: background 0.2s, border-color 0.2s !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      user-select: none !important;
+    }
+    
+    .bc-trigger:hover {
+      background: #e6f1fc !important;
+      border-color: #0072CE !important;
+    }
+
+    .remarks-box {
+      background: #fff;
+      border: 1.5px solid #0072CE;
+      border-radius: 12px;
+      min-height: 200px;
+      max-height: 600px;
+      overflow-y: auto;
+      padding: 0.7rem 0.8rem 0.7rem 0.8rem;
+      font-size: 1.3rem;
+      line-height: 1.5;
+      margin-top: 20px;
+      margin-bottom: 1.2rem;
+      white-space: pre-line;
+      color: #222;
+      box-shadow: 0 2px 12px rgba(0,114,206,0.08);
+    }
+    .remarks-box b {
+      color: #0072CE;
+    }
+    hr {
+      border-top: 1px dashed #0072CE !important;
+    }
+    @media (max-width: 900px) {
+      .filter-section .flex {
+        flex-direction: column !important;
+        gap: 2vh !important;
+      }
+      .filter-section .flex > div {
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+      .filter-label, .filter-select {
+        font-size: 1rem !important;
+      }
+
+      .remarks-box { padding: 0.7rem 0.6rem; font-size: 1.2rem; }
+    }
+    @media (min-width: 1200px) {
+      .filter-section {
+        margin-bottom: 8px !important;
+      }
+      .filter-section .flex {
+        gap: 2.5rem !important;
+      }
+      .filter-section .flex > div {
+        min-width: 200px !important;
+        max-width: 320px !important;
+        flex: 1 1 220px !important;
+      }
+      .filter-label { font-size: 0.9rem !important; }
+      .filter-select { font-size: 1.1rem !important; }
+
+      .remarks-box {
+        font-size: 1.2rem;
+        min-height: 1200px;
+        max-height: 1800px;
+        margin-top: 20px !important;
+      }
+    }
+    @media (min-width: 1440px) {
+      .filter-section {
+        margin-bottom: 8px !important;
+      }
+      .filter-section .flex {
+        gap: 3rem !important;
+      }
+      .filter-section .flex > div {
+        min-width: 220px !important;
+        max-width: 360px !important;
+        flex: 1 1 240px !important;
+      }
+      .filter-label { font-size: 1rem !important; }
+      .filter-select { font-size: 1.2rem !important; }
+
+      .remarks-box {
+        font-size: 1.3rem;
+        min-height: 1400px;
+        max-height: 2000px;
+        margin-top: 20px !important;
+      }
+    }
+    @media (min-width: 1600px) {
+      .filter-section {
+        margin-bottom: 8px !important;
+      }
+      .filter-section .flex {
+        gap: 3.5rem !important;
+      }
+      .filter-section .flex > div {
+        min-width: 240px !important;
+        max-width: 400px !important;
+        flex: 1 1 260px !important;
+      }
+      .filter-label { font-size: 1.1rem !important; }
+      .filter-select { font-size: 1.3rem !important; }
+
+      .remarks-box {
+        font-size: 1.4rem;
+        min-height: 1600px;
+        max-height: 2400px;
+        margin-top: 20px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!--
+    Main dashboard container
+    - Header: Dashboard title
+    - Filters: Period (BestCalendar), Country, Portfolio
+    - Remarks: Filtered remarks displayed as a numbered list
+  -->
+  <div class="container-fluid py-1">
+    <!-- Filter controls for year, month, country, and portfolio -->
+    <div class="filter-section">
+      <div class="flex flex-wrap gap-4 md:gap-8 items-end justify-start w-full">
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="countrySelect">Country</label>
+          <select id="countrySelect" class="filter-select"><option value="">All</option></select>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="portfolioSelect">Portfolio</label>
+          <select id="portfolioSelect" class="filter-select"><option value="">All</option></select>
+        </div>
+        <div class="flex flex-col" style="position: relative;">
+          <label class="filter-label mb-1" for="monthMatrixTrigger">Month</label>
+          <button id="monthMatrixTrigger" type="button" class="month-trigger-btn">
+            <span id="selectedMonthLabel">Select Period</span>
+          </button>
+          <div id="monthMatrixPicker" class="month-matrix-picker" style="display:none;"></div>
+        </div>
+        <div class="flex flex-col">
+          <label class="filter-label mb-1" for="resetBtn">&nbsp;</label>
+          <button id="resetBtn" type="button" class="reset-btn">Reset</button>
+        </div>
+      </div>
+    </div>
+    <!--
+      Remarks Section
+      - Box: Shows filtered remarks as a numbered list
+    -->
+    <div class="remarks-box" id="remarksBox">
+      Loading data...
+    </div>
+  </div>
+  <!--
+    PapaParse: Library for parsing CSV files in the browser
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <!-- BestCalendar Component -->
+  <script>
+    // BestCalendar Component - Embedded version
+    if (typeof window.BestCalendar === 'undefined') {
+      
+      // Inject CSS styles
+      const bestCalendarStyles = `
+        .bc-tabs { display: flex; justify-content: space-around; margin-bottom: 16px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px; width: 100%; background: #ffffff !important; }
+        .bc-tab-btn { border: none; background: none; padding: 8px 16px; cursor: pointer; font-size: 14px; color: #666; font-weight: 500; transition: color 0.2s; }
+        .bc-tab-btn.bc-active { color: #0072CE; font-weight: bold; border-bottom: 2px solid #0072CE; }
+        .bc-tab-btn:hover { color: #0072CE; }
+        .bc-content { width: 100%; background: #ffffff !important; }
+        .bc-month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; background: #ffffff !important; }
+        .bc-year-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; background: #ffffff !important; }
+        .bc-month-cell, .bc-year-cell { padding: 8px 4px; text-align: center; border: 1px solid #e0e0e0; border-radius: 4px; cursor: pointer; font-size: 12px; transition: all 0.2s; background: #ffffff !important; color: #333; }
+        .bc-month-cell:hover, .bc-year-cell:hover { background: #0072CE !important; color: white !important; border-color: #0072CE !important; }
+        .bc-month-cell.bc-selected, .bc-year-cell.bc-selected { background: #0072CE !important; color: white !important; border-color: #0072CE !important; }
+        .bc-month-cell.bc-disabled { background: #f5f5f5 !important; color: #ccc !important; cursor: not-allowed; }
+        .bc-hidden { display: none !important; }
+        .bc-visible { display: flex !important; flex-direction: column; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; background: #ffffff !important; }
+      `;
+      
+      // Inject styles
+      if (!document.getElementById('bestcalendar-styles')) {
+        const styleElement = document.createElement('style');
+        styleElement.id = 'bestcalendar-styles';
+        styleElement.textContent = bestCalendarStyles;
+        document.head.appendChild(styleElement);
+      }
+
+      class BestCalendar {
+        constructor({ triggerId, pickerId, labelId, data, options = {} }) {
+          this.triggerId = triggerId;
+          this.pickerId = pickerId;
+          this.labelId = labelId;
+          this.data = data || [];
+          this.options = Object.assign({
+            range: false,
+            autoCloseDelay: 1000,
+            onPeriodChange: null
+          }, options);
+
+          this.currentView = "month";
+          this.selectedMonth = null;
+          this.selectedYear = null;
+
+          this.trigger = null;
+          this.picker = null;
+          this.label = null;
+
+          this.init();
+        }
+
+        init() {
+          this.trigger = document.getElementById(this.triggerId);
+          this.picker = document.getElementById(this.pickerId);
+          this.label = document.getElementById(this.labelId);
+
+          if (!this.trigger || !this.picker || !this.label) {
+            return;
+          }
+
+
+          
+          this.trigger.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.togglePicker();
+          });
+
+          document.addEventListener("click", (e) => {
+            if (!this.picker.contains(e.target) && e.target !== this.trigger) {
+              this.hidePicker();
+            }
+          });
+
+          document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && this.picker.style.display !== 'none') {
+              this.hidePicker();
+            }
+          });
+
+          this.renderTabs();
+          this.renderPicker();
+          this.updateLabel();
+        }
+
+        togglePicker() {
+          const isVisible = this.picker.classList.contains("bc-visible");
+          if (isVisible) {
+            this.hidePicker();
+          } else {
+            this.showPicker();
+          }
+        }
+
+        showPicker() {
+          // showPicker called
+          // Position the picker directly below the trigger button
+          const triggerRect = this.trigger.getBoundingClientRect();
+          // Trigger rect logged
+          
+          this.picker.style.top = (triggerRect.bottom + 5) + 'px';   // 5px below trigger
+          this.picker.style.left = triggerRect.left + 'px';          // aligned with trigger
+          this.picker.style.width = triggerRect.width + 'px';
+          
+          // Picker styles set
+          
+          // Show the picker using CSS class
+          this.picker.classList.add("bc-visible");
+          this.picker.classList.remove("bc-hidden");
+          
+          // Picker classes and display style logged
+        }
+
+        hidePicker() {
+          this.picker.classList.remove("bc-visible");
+          this.picker.classList.add("bc-hidden");
+        }
+
+        renderTabs() {
+          if (this.picker.querySelector(".bc-content")) {
+            return;
+          }
+          
+          const tabsHTML = `
+            <div class="bc-tabs">
+              <span class="bc-tab-btn ${this.currentView === "month" ? "bc-active" : ""}" data-view="month">Month</span>
+              <span class="bc-tab-btn ${this.currentView === "year" ? "bc-active" : ""}" data-view="year">Year</span>
+            </div>
+            <div class="bc-content"></div>
+          `;
+          
+          this.picker.innerHTML = tabsHTML;
+
+          this.picker.querySelectorAll(".bc-tab-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              const view = btn.dataset.view;
+              this.currentView = view;
+              
+              this.renderTabs();
+              this.renderPicker();
+              this.updateLabel();
+            });
+          });
+        }
+
+        renderPicker() {
+          if (!this.picker) {
+            return;
+          }
+          
+          if (!this.picker.querySelector(".bc-content")) {
+            this.renderTabs();
+          }
+          
+          const content = this.picker.querySelector(".bc-content");
+          if (!content) {
+            return;
+          }
+
+          if (this.currentView === "month") {
+            this.renderMonthView(content);
+          } else if (this.currentView === "year") {
+            this.renderYearView(content);
+          }
+        }
+
+        renderMonthView(content) {
+          const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          const availableMonths = this.getAvailableMonths();
+          
+          const monthHTML = `
+            <div class="bc-month-grid">
+              ${months.map((m, i) => {
+                const monthNum = i + 1;
+                const isAvailable = availableMonths.includes(monthNum);
+                const isSelected = this.selectedMonth === monthNum;
+                const className = `bc-month-cell ${isSelected ? 'bc-selected' : ''} ${!isAvailable ? 'bc-disabled' : ''}`;
+                return `<div class="${className}" data-month="${monthNum}" ${!isAvailable ? 'data-disabled="true"' : ''}>${m}</div>`;
+              }).join("")}
+            </div>
+          `;
+          
+          content.innerHTML = monthHTML;
+
+          content.querySelectorAll(".bc-month-cell").forEach(cell => {
+            cell.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              if (cell.dataset.disabled) return;
+              
+              const month = parseInt(cell.dataset.month);
+              this.handleMonthSelection(month);
+            });
+          });
+        }
+
+                renderYearView(content) {
+          const source = window.remarksData || this.data;
+
+          // Only keep rows that are strictly a 4‑digit year like "2025"
+          const years = [...new Set(
+            source
+              .map(d => (d && typeof d.month === 'string' && /^\d{4}$/.test(d.month) ? parseInt(d.month, 10) : null))
+              .filter(y => y !== null)
+          )].sort((a, b) => a - b);
+
+          content.innerHTML = `
+            <div class="bc-year-grid">
+              ${years.map(y => {
+                const isSelected = this.selectedYear === y;
+                const className = `bc-year-cell ${isSelected ? 'bc-selected' : ''}`;
+                return `<div class="${className}" data-year="${y}">${y}</div>`;
+              }).join("")}
+            </div>
+          `;
+
+          content.querySelectorAll(".bc-year-cell").forEach(cell => {
+            cell.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const year = parseInt(cell.dataset.year, 10);
+              this.handleYearSelection(year);
+            });
+          });
+        }
+
+        getAvailableMonths() {
+          const source = window.remarksData || this.data;
+          if (!source || source.length === 0) return [];
+
+          // Get all available months from all years in the data
+          const months = [];
+          source.forEach(d => {
+            if (d && d.month && typeof d.month === 'string' && d.month.includes("-")) {
+              const [yy, monStr] = d.month.split("-");
+              if (yy && yy.length === 2) {
+                const year = parseInt("20" + yy);
+                const monthIndex = new Date(`${monStr} 1, ${year}`).getMonth();
+                if (monthIndex >= 0 && monthIndex <= 11) {
+                  months.push(monthIndex + 1);
+                }
+              }
+            }
+          });
+          
+          return [...new Set(months)].sort((a, b) => a - b);
+        }
+
+        handleMonthSelection(month) {
+          this.selectedMonth = month;
+          if (!this.selectedYear) {
+            this.selectedYear = new Date().getFullYear();
+          }
+          this.updateLabel();
+          this.hidePicker();
+          this.triggerCallback({ month: `${this.selectedYear}-${month.toString().padStart(2, '0')}`, year: this.selectedYear });
+        }
+
+        handleYearSelection(year) {
+          this.selectedYear = year;
+          this.updateLabel();
+          this.hidePicker();
+          this.triggerCallback({ month: null, year: year });
+        }
+
+        updateLabel() {
+          if (!this.label) return;
+          
+          if (this.selectedMonth) {
+            const year = this.selectedYear || new Date().getFullYear();
+            const monthName = new Date(year, this.selectedMonth - 1).toLocaleString("default", { month: "short" });
+            this.label.textContent = `${monthName} ${year}`;
+          } else if (this.selectedYear) {
+            this.label.textContent = `${this.selectedYear} (Year)`;
+          } else {
+            this.label.textContent = "Select Period";
+          }
+        }
+
+        triggerCallback(period) {
+          if (this.options.onPeriodChange) {
+            try {
+              this.options.onPeriodChange(period);
+            } catch (error) {
+              // Error in callback
+            }
+          }
+        }
+      }
+
+      window.BestCalendar = BestCalendar;
+    }
+  </script>
+  <script>
+    // -----------------------------
+    // Global variables and selectors
+    // -----------------------------
+    let allData = [];
+    let selectedPeriod = null;
+    let bestCalendar = null;
+
+    const countrySelect = document.getElementById('countrySelect');
+    const portfolioSelect = document.getElementById('portfolioSelect');
+    const remarksBox = document.getElementById('remarksBox');
+    
+    // Check if required elements exist
+    if (!countrySelect || !portfolioSelect || !remarksBox) {
+      console.error('Required DOM elements not found:', {
+        countrySelect: !!countrySelect,
+        portfolioSelect: !!portfolioSelect,
+        remarksBox: !!remarksBox
+      });
+    }
+
+    // -----------------------------
+    // Initialize BestCalendar
+    // -----------------------------
+    function initializeBestCalendar() {
+      if (typeof BestCalendar === 'undefined') {
+        return;
+      }
+      
+      // Preprocess data for BestCalendar - normalize to yyyy-mm format
+      const calendarData = allData.map(r => {
+        // Case 1: Month rows like "25-Jun"
+        if (r.month && r.month.includes("-")) {
+          const [yy, monStr] = r.month.split("-");
+          const year = "20" + yy; // "25" -> "2025"
+          const monthNum = new Date(`${monStr} 1, ${year}`).getMonth() + 1;
+          return { month: `${year}-${String(monthNum).padStart(2, "0")}`, year: parseInt(year) };
+        }
+        // Case 2: Year rows like "2025"
+        if (/^\d{4}$/.test(r.month)) {
+          return { year: parseInt(r.month) };
+        }
+        return null;
+      }).filter(Boolean);
+      
+      try {
+        // Initializing BestCalendar with data
+        bestCalendar = new BestCalendar({
+          triggerId: 'monthMatrixTrigger',
+          pickerId: 'monthMatrixPicker',
+          labelId: 'selectedMonthLabel',
+          data: calendarData,
+          options: {
+            range: false,
+            onPeriodChange: function(period) {
+              // Period changed
+              selectedPeriod = period;
+              updateRemarks(period);
+            }
+          }
+        });
+        
+        // Move picker to document body to avoid clipping issues
+        const pickerEl = document.getElementById("monthMatrixPicker");
+        if (pickerEl) {
+          document.body.appendChild(pickerEl);
+          pickerEl.style.zIndex = "2147483647";
+          pickerEl.style.position = "fixed";
+          // Picker moved to body successfully
+        } else {
+          // Picker element not found
+        }
+        
+        // BestCalendar initialized successfully
+      } catch (error) {
+        // Error initializing BestCalendar
+      }
+    }
+
+    // -----------------------------
+    // Get unique country list from data
+    // -----------------------------
+    function getCountryList(data) {
+      return [...new Set(
+        data.map(row => (row.country || '').trim())
+        .filter(val =>
+          Boolean(val) &&
+          val.toLowerCase() !== 'all countries' &&
+          val.toLowerCase() !== 'all country'
+        )
+      )].sort();
+    }
+
+    // -----------------------------
+    // Get unique portfolio list, optionally filtered by country
+    // -----------------------------
+    function getPortfolioList(data, filterCountry) {
+      return [...new Set(
+        data.filter(row => {
+          if (!row.portfolio || row.portfolio.toLowerCase() === 'all portfolio') return false;
+          if (filterCountry && filterCountry !== "__all__" && row.country !== filterCountry) return false;
+          return true;
+        }).map(row => row.portfolio.trim())
+      )].sort();
+    }
+
+    // -----------------------------
+    // Fill a dropdown with options
+    // -----------------------------
+    function fillDropdown(select, items, allLabel) {
+      select.innerHTML = '';
+      let allOpt = document.createElement('option');
+      allOpt.value = '__all__';
+      allOpt.textContent = allLabel;
+      select.appendChild(allOpt);
+      items.forEach(val => {
+        let opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        select.appendChild(opt);
+      });
+      select.value = '__all__';
+    }
+
+    // -----------------------------
+    // Populate all filters (called after data load)
+    // -----------------------------
+    function populateFilters() {
+      fillDropdown(countrySelect, getCountryList(allData), "All Countries");
+      fillDropdown(portfolioSelect, getPortfolioList(allData, "__all__"), "All Portfolio");
+    }
+
+    // -----------------------------
+    // Event listeners for cascading filters
+    // -----------------------------
+    // When country changes, update portfolio options
+    countrySelect.addEventListener('change', function() {
+      fillDropdown(portfolioSelect, getPortfolioList(allData, countrySelect.value), "All Portfolio");
+      updateRemarks();
+    });
+
+    portfolioSelect.addEventListener('change', updateRemarks);
+
+    // Reset button functionality
+    document.getElementById('resetBtn').addEventListener('click', function() {
+      // Reset period selection
+      selectedPeriod = null;
+      document.getElementById('selectedMonthLabel').textContent = 'Select Period';
+      
+      // Reset select dropdowns
+      countrySelect.value = '__all__';
+      portfolioSelect.value = '__all__';
+      
+      // Update portfolio options and remarks
+      fillDropdown(portfolioSelect, getPortfolioList(allData, "__all__"), "All Portfolio");
+      updateRemarks();
+      
+      // Hide calendar picker if open
+      if (bestCalendar && typeof bestCalendar.hidePicker === 'function') {
+        bestCalendar.hidePicker();
+      }
+    });
+
+    // -----------------------------
+    // Main function: filter data and update remarks display
+    // -----------------------------
+    function updateRemarks(selectedPeriodParam) {
+      if (!allData || allData.length === 0) {
+        document.title = "Areas of Concern";
+        remarksBox.textContent = "No data loaded.";
+        return;
+      }
+
+      const selectedCountry = countrySelect.value;
+      const selectedPortfolio = portfolioSelect.value;
+
+      // Check if any filters are selected
+      const hasCountrySelected = selectedCountry !== "__all__";
+      const hasPortfolioSelected = selectedPortfolio !== "__all__";
+      const hasPeriodSelected = selectedPeriodParam !== null;
+
+      // If no filters are selected, show the instruction message
+      if (!hasCountrySelected && !hasPortfolioSelected && !hasPeriodSelected) {
+        document.title = "AREAS OF CONCERN - Area of Concern";
+        remarksBox.innerHTML = "<div style='text-align: center; color: #666; font-style: italic; padding: 20px;'>PLEASE SELECT COUNTRY, PORTFOLIO AND PERIOD TO SEE THE AOC</div>";
+        return;
+      }
+
+      // Filter data based on current selections
+      let filtered = allData.filter(function(r) {
+        // Check period filter
+        let periodMatch = true;
+        if (selectedPeriodParam) {
+          if (selectedPeriodParam.month) {
+            // Normalize to "YY-MMM" format (e.g., "25-Jun")
+            const [year, monthNum] = selectedPeriodParam.month.split("-");
+            const yearShort = year.slice(-2);
+            const monthName = new Date(year, parseInt(monthNum) - 1)
+              .toLocaleString("default", { month: "short" });
+            const monthKey = `${yearShort}-${monthName}`;
+            periodMatch = (r.month === monthKey);
+          } else if (selectedPeriodParam.year) {
+            // Match year exactly
+            periodMatch = r.month === selectedPeriodParam.year.toString();
+          }
+        }
+
+        // Check country and portfolio filters
+        let countryMatch = selectedCountry === "__all__" || r.country === selectedCountry;
+        let portfolioMatch = selectedPortfolio === "__all__" || r.portfolio === selectedPortfolio;
+
+        return periodMatch && countryMatch && portfolioMatch;
+      });
+
+      // Set title to only "Areas of Concern"
+      document.title = "Areas of Concern";
+
+      // Show all remarks (numbered list, no headers)
+      if (filtered.length > 0) {
+        remarksBox.innerHTML = filtered.map(function(r, i) {
+          return `<b>${i+1}.</b> ${r.remarks || "(No remarks found for this entry)"}`;
+        }).join('<hr style="margin:1.1em 0;border-top:1px dashed #0072CE;">');
+      } else {
+        remarksBox.innerHTML = "(No remarks found for this filter)";
+      }
+    }
+
+    // -----------------------------
+    // Load CSV data and initialize dashboard
+    // -----------------------------
+    // On page load, use data passed from Django view
+    document.addEventListener("DOMContentLoaded", function() {
+      {% if error_message %}
+        // Error loading AOC data
+        remarksBox.textContent = "Error loading AOC data: {{ error_message }}";
+      {% elif aoc_data_json %}
+        const data = {{ aoc_data_json|safe }};
+        // Clean up keys and values for consistency
+        allData = data.map(row => {
+          const cleaned = {};
+          for (let key in row) {
+            cleaned[key.trim().toLowerCase()] = typeof row[key] === "string" ? row[key].trim() : row[key];
+          }
+          return cleaned;
+        });
+        
+        // Store data globally for BestCalendar access
+        window.remarksData = allData;
+        
+        populateFilters();
+        updateRemarks(); // This will set the initial page title
+        
+        // Initialize BestCalendar after data is loaded
+        initializeBestCalendar();
+      {% else %}
+        // No AOC data available
+        remarksBox.textContent = "No AOC data available. Please check your permissions.";
+      {% endif %}
+    });
+
+    // -----------------------------
+    // Helper: Responsive font size (for future enhancements)
+    // -----------------------------
+    function getResponsiveFontSize(base, max = 36, min = 10) {
+      const width = window.innerWidth;
+      return Math.min(Math.max(Math.round(base * (width / 1920)), min), max);
+    }
+  </script>
+
+<script>
+  // -----------------------------
+  // Responsive resize handler for charts/maps (future use)
+  // -----------------------------
+  function onResizeAll() {
+    if (window.barChart) barChart.resize();
+    if (window.cdChart) cdChart.resize();
+    if (window.socChart) socChart.resize();
+    if (window.rteChart) rteChart.resize();
+    if (window.Plotly) {
+      ['waterfall','breakdown'].forEach(id => {
+        const gd = document.getElementById(id);
+        if (gd && gd.data) Plotly.Plots.resize(gd);
+      });
+    }
+    if (window.map) map.invalidateSize();
+  }
+  window.addEventListener('resize', onResizeAll);
+  window.addEventListener('load', onResizeAll);
+</script>
+
+<script>
+function getBigFont(base = 16, max = 26, min = 10) {
+  const width = window.innerWidth;
+  return Math.max(min, Math.min(max, Math.round(base * (width / 1920))));
+}
+// Apply dynamic font sizes on load and resize
+function applyDynamicFontSizes() {
+  try {
+    // Update filter labels font size
+    document.querySelectorAll('.filter-label').forEach(el => {
+      if (el && el.style) {
+        el.style.fontSize = getBigFont(14, 20, 11) + 'px';
+      }
+    });
+    
+    // Update filter selects font size
+    document.querySelectorAll('.filter-select').forEach(el => {
+      if (el && el.style) {
+        el.style.fontSize = getBigFont(14, 20, 11) + 'px';
+      }
+    });
+    
+    // Update remarks box font size
+    const remarksBoxElement = document.querySelector('.remarks-box');
+    if (remarksBoxElement && remarksBoxElement.style) {
+      remarksBoxElement.style.fontSize = getBigFont(16, 22, 12) + 'px';
+    }
+  } catch (error) {
+    console.warn('Error applying dynamic font sizes:', error);
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  // Add a small delay to ensure all elements are fully rendered
+  setTimeout(applyDynamicFontSizes, 100);
+});
+window.addEventListener('resize', applyDynamicFontSizes);
+</script>
+</body>
+</html>

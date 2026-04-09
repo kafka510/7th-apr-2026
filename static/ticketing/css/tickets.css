@@ -1,0 +1,1343 @@
+/* ============================================================
+   TICKETING SYSTEM – IMPROVED UI STYLES (Bootstrap 5)
+   Applies to Create Ticket / Edit Ticket / Forms
+   Author: ChatGPT
+   ============================================================ */
+
+/* -------------------------
+   GLOBAL PAGE SPACING
+------------------------- */
+body {
+    background-color: #f5f7fa !important;
+}
+
+.card {
+    border-radius: 10px !important;
+    border: 1px solid #e4e7ec !important;
+}
+
+.card-header {
+    border-bottom: 1px solid #e6e8ed !important;
+}
+
+.card-header h5 {
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+}
+
+/* -------------------------
+   FORM FIELDS
+------------------------- */
+.form-label {
+    font-weight: 600 !important;
+    color: #333;
+}
+
+.form-select, 
+.form-control {
+    height: 42px !important;
+    padding: 6px 12px !important;
+    border-radius: 6px !important;
+}
+
+textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.15) !important;
+}
+
+/* -------------------------
+   DEVICE SELECTION BLOCK
+------------------------- */
+.device-selection-container {
+    padding-top: 5px;
+}
+
+.device-selection-group {
+    display: flex;
+    flex-direction: column;
+}
+
+select:disabled {
+    background-color: #f1f3f5 !important;
+    cursor: not-allowed;
+}
+
+/* To make dropdowns look unified */
+#asset-select, #device-type-select,
+#device-select, #sub-device-select {
+    border-radius: 6px !important;
+}
+
+/* -------------------------
+   BUTTONS
+------------------------- */
+.btn-primary {
+    padding: 10px 22px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+}
+
+.btn-outline-secondary {
+    padding: 10px 20px !important;
+    border-radius: 6px !important;
+}
+
+.btn-primary i,
+.btn-outline-secondary i {
+    margin-right: 3px;
+}
+
+/* -------------------------
+   HEADER ALIGNMENT
+------------------------- */
+h2 {
+    color: #1a2b49;
+    font-weight: 700 !important;
+}
+
+/* -------------------------
+   BREADCRUMB STYLING
+------------------------- */
+/* Breadcrumb Styling */
+.breadcrumb {
+    font-size: 0.92rem;
+    margin-bottom: 0;
+}
+
+.breadcrumb-item a {
+    color: #0d6efd;
+    font-weight: 500;
+}
+
+.breadcrumb-item.active {
+    color: #555;
+    font-weight: 600;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    color: #999;
+}
+
+/* Header card shadow + clean border */
+.card.shadow-sm.border-0.mb-4 {
+    border-radius: 10px !important;
+}
+
+.card-body {
+    padding-left: 1.2rem;
+    padding-right: 1.2rem;
+}
+
+/* Add slight fade-in animation */
+.card {
+    animation: fadeUp 0.35s ease;
+}
+
+@keyframes fadeUp {
+    from {
+        transform: translateY(6px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* -------------------------
+   RESPONSIVE OPTIMIZATIONS
+------------------------- */
+/* Two-column layout breathing space */
+@media (min-width: 1200px) {
+    .col-lg-5, .col-lg-7 {
+        margin-bottom: 0 !important;
+    }
+    form {
+        max-width: 1300px;
+        margin: auto;
+    }
+}
+
+/* On very large monitors */
+@media (min-width: 1440px) {
+    form {
+        max-width: 1400px;
+        margin: auto;
+    }
+}
+
+/* Increase card layout breathing space for large screens */
+@media (min-width: 1400px) {
+    .row .col-xl-4 {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+
+/* Tablets */
+@media (max-width: 992px) {
+    .btn-primary,
+    .btn-outline-secondary {
+        width: 100%;
+        margin-bottom: 12px;
+    }
+
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Mobile Phones - Enhanced Mobile Design */
+@media (max-width: 576px) {
+    /* Header sizing */
+    h2 {
+        font-size: 1.4rem;
+    }
+
+    .card-header h5 {
+        font-size: 1rem !important;
+    }
+
+    /* Reduce card padding for small screens */
+    .card-body {
+        padding: 0.9rem !important;
+    }
+
+    .card-header {
+        padding: 0.8rem 1rem !important;
+    }
+
+    /* Form labels slightly smaller */
+    .form-label {
+        font-size: 0.9rem;
+    }
+
+    /* Inputs full width and nicely spaced */
+    .form-control,
+    .form-select {
+        height: 44px !important;
+    }
+
+    /* Reduce top/bottom page padding */
+    form {
+        padding: 0 0.2rem;
+    }
+
+    /* Make buttons full-width on phones */
+    .d-flex.justify-content-between {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-primary,
+    .btn-outline-secondary {
+        width: 100% !important;
+    }
+
+    /* Improve dropdown usability on mobile */
+    select.form-select,
+    select.form-control {
+        font-size: 0.9rem;
+        padding: 8px 10px !important;
+    }
+
+    /* Adjust breadcrumb header on mobile */
+    .breadcrumb {
+        font-size: 0.85rem !important;
+    }
+
+    .card.shadow-sm.border-0.mb-4 {
+        margin-bottom: 0.8rem !important;
+    }
+
+    .breadcrumb-item.active {
+        font-weight: 500;
+    }
+
+    /* Larger tap targets for Choices.js / Dropdowns */
+    .choices__inner {
+        min-height: 44px !important;
+        padding: 6px 8px !important;
+    }
+
+    .choices__list--multiple .choices__item {
+        font-size: 0.8rem !important;
+        padding: 4px 8px !important;
+    }
+
+    /* Make ticket actions always visible on mobile */
+    .ticket-actions {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+        pointer-events: auto !important;
+    }
+}
+
+/* ============================================================
+   LEGACY TICKET SYSTEM STYLES
+   (Preserved for other pages: list, detail, dashboard, etc.)
+   ============================================================ */
+
+/* -------------------------------
+   Modern Ticket Card UI
+--------------------------------*/
+.ticket-card {
+    position: relative;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 18px;
+    border: 1px solid #e3e6ec;
+    transition: all 0.25s ease;
+    height: 100%;
+    margin-bottom: 8px;
+}
+
+.ticket-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+/* Ticket action buttons (hover icons) */
+.ticket-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: all 0.25s ease;
+    z-index: 10;
+}
+
+.ticket-card:hover .ticket-actions {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d6d9de;
+    color: #4a5568;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.action-btn:hover {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    transform: scale(1.05);
+}
+
+/* Ticket Number */
+.ticket-number {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.ticket-number:hover {
+    text-decoration: underline;
+}
+
+/* Title */
+.ticket-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 12px;
+    color: #1a2b49;
+}
+
+/* Description */
+.ticket-desc {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 15px;
+    line-height: 1.3rem;
+}
+
+/* Header */
+.ticket-card-header {
+    margin-bottom: 5px;
+}
+
+/* -------------------------------
+   MODERN STATUS & PRIORITY BADGES
+--------------------------------*/
+
+/* Common badge shape */
+.badge {
+    border-radius: 20px !important;
+    padding: 6px 12px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+/* STATUS COLORS */
+.status-Open, .status-raised {
+    background-color: #e3f2fd !important;
+    color: #0d47a1 !important;
+    border: 1px solid #90caf9 !important;
+}
+
+.status-InProgress, .status-in_progress {
+    background-color: #fff3e0 !important;
+    color: #e65100 !important;
+    border: 1px solid #ffb74d !important;
+}
+
+.status-Pending, .status-submitted, .status-waiting_for_approval {
+    background-color: #f5f5f5 !important;
+    color: #616161 !important;
+    border: 1px solid #cfcfcf !important;
+}
+
+.status-Resolved, .status-closed {
+    background-color: #e8f5e9 !important;
+    color: #1b5e20 !important;
+    border: 1px solid #81c784 !important;
+}
+
+.status-Closed {
+    background-color: #eeeeee !important;
+    color: #424242 !important;
+    border: 1px solid #bdbdbd !important;
+}
+
+.status-reopened {
+    background-color: #fce4ec !important;
+    color: #c2185b !important;
+    border: 1px solid #f48fb1 !important;
+}
+
+.status-cancelled {
+    background-color: #f5f5f5 !important;
+    color: #757575 !important;
+    border: 1px solid #cfcfcf !important;
+}
+
+/* PRIORITY COLORS */
+.priority-High, .priority-high, .priority-critical {
+    background-color: #ffebee !important;
+    color: #b71c1c !important;
+    border: 1px solid #ef9a9a !important;
+}
+
+.priority-Medium, .priority-medium {
+    background-color: #fff8e1 !important;
+    color: #9e7700 !important;
+    border: 1px solid #ffe082 !important;
+}
+
+.priority-Low, .priority-low {
+    background-color: #e8f5e9 !important;
+    color: #1b5e20 !important;
+    border: 1px solid #a5d6a7 !important;
+}
+
+/* Legacy support for old badge classes */
+.ticket-status-badge, .priority-badge {
+    border-radius: 20px !important;
+    padding: 6px 12px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+/* Ticket Meta - Modern Design */
+.ticket-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: #45526c;
+}
+
+.ticket-meta-item {
+    display: flex;
+    align-items: center;
+}
+
+.ticket-meta-item i {
+    color: #6c757d;
+    margin-right: 4px;
+}
+
+/* Activity Log */
+.activity-log {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    padding: 0.75rem;
+    border-left: 3px solid #007bff;
+    margin-bottom: 0.75rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+.activity-item .activity-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.activity-item .activity-user {
+    font-weight: 600;
+    color: #007bff;
+}
+
+.activity-item .activity-time {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+/* Comments */
+.comment-item {
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background-color: #fff;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: #007bff;
+}
+
+.comment-time {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.comment-internal {
+    border-left: 4px solid #ffc107;
+    background-color: #fffbf0;
+}
+
+/* Filters and Stats */
+.filter-section {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+/* Filter Panel Enhancements */
+.input-icon {
+    position: relative;
+}
+
+.input-icon i {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #6c757d;
+    z-index: 10;
+}
+
+.input-icon .form-select,
+.input-icon .form-control {
+    padding-left: 35px !important;
+}
+
+/* Collapsible smoothness */
+#filterPanel.collapse {
+    transition: all 0.25s ease-in-out;
+}
+
+/* Filter card spacing */
+.card.shadow-sm.border-0 {
+    border-radius: 10px !important;
+}
+
+/* Sticky Filter Bar */
+#sticky-filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #ffffff;
+    border-radius: 12px !important;
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+/* Enhanced shadow when scrolling */
+#sticky-filter-bar.sticky-shadow {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+    transform: translateY(-1px);
+}
+
+/* Form spacing */
+.filter-form .form-label {
+    font-weight: 600;
+    color: #33475b;
+}
+
+.filter-form input,
+.filter-form select {
+    border-radius: 8px;
+}
+
+/* Mobile sticky adjustment */
+@media (max-width: 576px) {
+    #sticky-filter-bar {
+        top: 0;
+        border-radius: 0 !important;
+    }
+}
+
+.stats-card {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card .stats-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #007bff;
+}
+
+.stats-card .stats-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+/* Dashboard specific styles */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Responsive adjustments for legacy components */
+@media (max-width: 768px) {
+    .ticket-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .ticket-meta {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ------------------------------
+   MODERN PAGINATION 
+--------------------------------*/
+.pagination-modern .page-link {
+    border-radius: 8px !important;
+    margin: 0 4px;
+    padding: 8px 14px;
+    color: #0d6efd;
+    border: 1px solid #dfe3e8;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination-modern .page-link:hover {
+    background-color: #e7f1ff;
+    border-color: #bcd4ff;
+    color: #084298;
+}
+
+.pagination-modern .page-item.active .page-link {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+.pagination-modern .page-link i {
+    font-size: 0.95rem;
+}
+
+/* Mobile friendly Pagination */
+@media (max-width: 576px) {
+    .pagination-modern .page-link {
+        padding: 6px 10px !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* ------------------------------
+   INFINITE SCROLL LOADER
+--------------------------------*/
+#load-more-container {
+    min-height: 60px;
+    animation: fadeIn 0.3s ease;
+}
+
+#load-more-container .spinner-border {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-top: 10px;
+    border-width: 0.3rem;
+}
+
+#load-more-container p {
+    font-size: 0.9rem;
+    margin-top: 8px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Smooth scroll behavior */
+html {
+    scroll-behavior: smooth;
+}
+
+/* ===========================
+   QUICK VIEW DRAWER + OVERLAY
+=========================== */
+
+/* Background overlay */
+#quickview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    z-index: 1040;
+}
+
+/* Drawer container */
+#quickview-drawer {
+    position: fixed;
+    top: 0;
+    right: -450px;   /* hidden by default */
+    width: 450px;
+    height: 100%;
+    background: #fff;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+    z-index: 1050;
+    transition: right 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Drawer Header */
+.drawer-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e6e6e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+}
+
+#drawer-title {
+    font-weight: 600;
+    color: #1a2b49;
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.drawer-header .btn-close {
+    padding: 0.5rem;
+}
+
+/* Drawer Content */
+#drawer-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+#drawer-content h6 {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+#drawer-content p {
+    margin-bottom: 8px;
+    color: #555;
+}
+
+#drawer-content strong {
+    font-weight: 600;
+    color: #333;
+}
+
+/* Active (visible) states */
+.drawer-open {
+    overflow: hidden;
+}
+
+.drawer-open #quickview-overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+.drawer-open #quickview-drawer {
+    right: 0;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    #quickview-drawer {
+        width: 90%;
+        right: -90%;
+    }
+}
+
+@media (max-width: 576px) {
+    #quickview-drawer {
+        width: 100%;
+        right: -100%;
+    }
+}
+
+/* ============================================================
+   CHOICES.JS CUSTOM STYLING (Multi-select Watchers)
+   ============================================================ */
+
+.choices__inner {
+    min-height: 48px !important;
+    border-radius: 6px !important;
+}
+
+.choices__list--multiple .choices__item {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+.choices__input {
+    background: transparent !important;
+}
+
+/* ============================
+   COMPACT LAYOUT OVERRIDES
+   Target: laptops (1366–1600px) and larger
+   ============================ */
+
+/* Remove all top spacing */
+body {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow-x: hidden;
+}
+
+/* Force full width for everything */
+html, body {
+    width: 100%;
+}
+
+/* Remove extra spacing from content block - ULTRA AGGRESSIVE */
+.content-wrapper,
+main,
+#content,
+.page-wrapper,
+.main-content,
+body > div,
+[role="main"] {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Target Django block content specifically */
+body > .container,
+body > .container-fluid,
+body > main > .container,
+body > main > .container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+}
+
+/* Override Bootstrap container padding - AGGRESSIVE */
+.container,
+.container-fluid,
+.container-lg,
+.container-md,
+.container-xl,
+.container-xxl {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 100% !important;
+}
+
+/* Remove all Bootstrap row negative margins */
+.row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Remove Bootstrap column padding */
+.row > * {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+/* Page header / breadcrumb – tighten vertical space */
+.card.shadow-sm.border-0.mb-4 {
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+}
+
+.card.shadow-sm.border-0.mb-4 .card-body {
+    padding: 6px 12px !important;
+}
+
+/* Sticky filter bar — slimmer */
+#sticky-filter-bar {
+    padding: 0 !important;
+    margin: 0 0 8px 0 !important;
+    border-radius: 10px !important;
+}
+
+#sticky-filter-bar .card-body {
+    padding: 8px 12px !important;
+}
+
+/* Reduce filter toggle section */
+#sticky-filter-bar .mb-3 {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Filters — tighter grid */
+.filter-form .form-label {
+    font-size: 13px !important;
+    margin-bottom: 4px !important;
+}
+
+.filter-form .col-md-3,
+.filter-form .col-md-6 {
+    margin-bottom: 6px !important;
+}
+
+.filter-form input,
+.filter-form select {
+    height: 36px !important;
+    padding: 6px 8px !important;
+    font-size: 0.92rem;
+}
+
+/* Reduce gap above ticket grid */
+#ticket-list {
+    margin-top: 8px;
+}
+
+/* Reduce card padding and spacing for a denser grid */
+.ticket-card {
+    padding: 12px 14px !important;
+    margin-bottom: 12px !important;
+    border-radius: 10px !important;
+}
+
+/* Make ticket title / description slightly smaller for density */
+.ticket-title {
+    font-size: 1.00rem !important;
+    margin-top: 8px !important;
+}
+
+.ticket-desc {
+    font-size: 0.82rem !important;
+    margin-bottom: 8px !important;
+    line-height: 1.15rem !important;
+}
+
+/* Tighten ticket meta icons/text */
+.ticket-meta {
+    gap: 8px !important;
+    font-size: 0.82rem !important;
+}
+
+.ticket-meta-item i {
+    font-size: 14px !important;
+    margin-right: 6px !important;
+}
+
+/* Ticket grid specific adjustments */
+#ticket-list.row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+#ticket-list > [class*="col-"] {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+/* Grid breakpoints — show more cards on wide laptops */
+@media (min-width: 1200px) and (max-width: 1439px) {
+    /* 3 columns for 1200–1439 (good for 1366 laptops) */
+    .col-xl-4 { 
+        flex: 0 0 33.3333%; 
+        max-width: 33.3333%; 
+    }
+    form { 
+        max-width: 1200px; 
+        margin: auto; 
+    }
+}
+
+@media (min-width: 1440px) and (max-width: 1599px) {
+    /* 3 columns but slightly tighter */
+    .col-xl-4 { 
+        flex: 0 0 33.3333%; 
+        max-width: 33.3333%; 
+    }
+    form { 
+        max-width: 1360px; 
+        margin: auto; 
+    }
+}
+
+/* Very wide screens: show 4 columns */
+@media (min-width: 1600px) {
+    .col-xl-4 { 
+        flex: 0 0 25%; 
+        max-width: 25%; 
+    }
+    form { 
+        max-width: 1600px; 
+        margin: auto; 
+    }
+}
+
+/* Compact breadcrumb typography */
+.breadcrumb {
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 0.88rem;
+    margin-bottom: 0.25rem !important;
+}
+
+/* Remove extra padding from Django's content blocks */
+[class*="content"],
+.page-content,
+section {
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+/* Make action buttons slightly smaller so they don't force height */
+.btn-primary, .btn-outline-secondary {
+    padding: 8px 14px !important;
+    font-size: 0.95rem !important;
+}
+
+/* Optional: compact mode toggle class (easy to enable if you want) */
+.compact-mode .ticket-card { 
+    padding: 10px 12px !important; 
+}
+
+.compact-mode .ticket-title { 
+    font-size: 0.98rem !important; 
+}
+
+.compact-mode .filter-form .form-label { 
+    font-size: 12.5px !important; 
+}
+
+/* Ensure the quickview drawer doesn't push content horizontally */
+#quickview-drawer { 
+    will-change: right; 
+}
+
+/* Final safety: slightly increase content density on laptops */
+@media (min-width: 1200px) {
+    .card-body { 
+        padding: 10px 12px !important; 
+    }
+}
+
+/* ============================
+   TICKET LIST TABLE STYLES
+   Clean Minimal UI (Laptop Optimized)
+============================ */
+.ticket-table th {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #495057;
+    border-bottom-width: 1px;
+}
+
+.ticket-table td {
+    font-size: 0.9rem;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+}
+
+.ticket-table tbody tr:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.ticket-table a {
+    text-decoration: none;
+}
+
+.table-responsive {
+    border-radius: 6px;
+    overflow: hidden;
+}
+/* ============================================================
+   LAPTOP-OPTIMIZED UI STYLES
+   Modern Pagination & Responsive Layout
+   ============================================================ */
+
+/* Laptop-friendly max width - removed for screens > 1220px to use 100% width */
+@media (min-width: 1200px) and (max-width: 1220px) {
+    #ticket-table-wrapper {
+        max-width: 1400px;
+        margin: auto;
+    }
+}
+
+/* Full width for screens wider than 1220px */
+@media (min-width: 1221px) {
+    #ticket-table-wrapper {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+    
+    #ticket-table-wrapper .card-body {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    #ticket-table-wrapper .table-responsive {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    #ticket-table-wrapper .ticket-table {
+        width: 100% !important;
+        max-width: 100% !important;
+        table-layout: auto;
+    }
+}
+
+/* Compact Row Height for Better Density */
+.table td, .table th {
+    padding: 10px 12px !important;
+}
+
+/* Row hover effect */
+.table-hover tbody tr:hover {
+    background-color: #f1f4f9 !important;
+}
+
+/* Sticky filter bar shadow on scroll */
+#sticky-filter-bar.sticky-shadow {
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12) !important;
+}
+
+/* Make action icons clean */
+.table-actions a {
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #0d6efd;
+    transition: all 0.2s ease;
+}
+
+.table-actions a:hover {
+    background: #eaf2ff;
+    color: #0a58ca;
+}
+
+/* Modern Pagination Styles */
+.pagination-modern {
+    margin-bottom: 0;
+}
+
+.pagination-modern .page-link {
+    color: #0d6efd;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    margin: 0 4px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.pagination-modern .page-link:hover {
+    background-color: #e9ecef;
+    color: #0a58ca;
+    border-color: #adb5bd;
+}
+
+.pagination-modern .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+    font-weight: 600;
+}
+
+/* Compact filter bar spacing */
+#sticky-filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: box-shadow 0.3s ease;
+}
+
+#sticky-filter-bar .form-control-sm,
+#sticky-filter-bar .form-select {
+    height: 38px !important;
+    font-size: 0.875rem;
+}
+
+#sticky-filter-bar .btn-sm {
+    padding: 8px 12px;
+    font-size: 0.875rem;
+}
+
+/* Responsive adjustments for smaller laptops */
+@media (max-width: 1440px) and (min-width: 1200px) {
+    .table td, .table th {
+        padding: 8px 10px !important;
+        font-size: 0.85rem;
+    }
+    
+    #sticky-filter-bar .col-md-2,
+    #sticky-filter-bar .col-md-3 {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+}
+
+/* Ensure breadcrumb stays compact */
+.breadcrumb {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: " \;
+ font-size: 1.1rem;
+}
+
+/* ============================================================
+   SORTABLE TABLE HEADERS
+   Professional Sorting UI
+   ============================================================ */
+
+/* Sortable column headers */
+thead th a {
+    color: #1a2b49 !important;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.2s ease;
+}
+
+thead th a:hover {
+    color: #0d6efd !important;
+}
+
+thead th a i {
+    font-size: 0.75rem;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+thead th a:hover i {
+    opacity: 1;
+}
+
+/* Active sort column */
+thead th a i.fa-sort-up,
+thead th a i.fa-sort-down {
+    color: #0d6efd;
+    opacity: 1;
+}
+
+/* Make sort icons slightly smaller and lighter when not active */
+thead th a i.fa-sort {
+    font-size: 0.7rem;
+}
+
+/* Ensure table header text doesn't wrap awkwardly */
+thead th {
+    white-space: nowrap;
+}
+
+/* Subtle hover effect on table rows */
+.ticket-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.ticket-table tbody tr:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+/* ============================================================
+   STICKY TABLE HEADER (Freeze on Scroll)
+   ============================================================ */
+
+/* Sticky table header */
+.table-sticky thead th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 5;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+/* Ensure header stays above content */
+.table-sticky thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}

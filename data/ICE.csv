@@ -1,0 +1,22 @@
+Month ,Japan ,,Korea- Blackwood,,Korea-Iceberg,,Korean-Sroof,,Singapore,,Total,
+, IC Approved , Expected , IC Approved , Expected , IC Approved , Expected , IC Approved , Expected , IC Approved , Expected , IC Approved , Expected 
+25-Jan,"2,073","2,019","5,863",5635,"7,514","7,332",0,0,85,85,"15,535","15,071"
+25-Feb,"2,294","2,160","6,318",6053,"9,262","9,038",0,0,88,88,"17,961","17,338"
+25-Mar,"3,252","3,067","8,225",7875,"13,320","12,998",0,0,101,101,"24,897","24,040"
+25-Apr,"2,887","2,765","8,550",8155,"13,942","13,605",0,0,91,91,"25,470","24,616"
+25-May,"3,464","3,371","9,198",8797,"15,028","14,664",77,78,90,90,"27,858","27,001"
+25-Jun,"2,373","2,339","7,658",7326,"12,994","12,680",140,142,84,84,"23,249","22,570"
+25-Jul,"3,452","3,310","7,061",6759,"12,224","11,928",130,132,89,89,"22,957","22,218"
+25-Aug,"3,833","3,673","7,674",7363,"13,350","13,027",136,138,91,91,"25,083","24,291"
+25-Sep,"3,125","3,005","6,883",6594,"11,967","11,678",116,117,91,91,"22,183","21,485"
+25-Oct,"2,569","2,506","7,467",7144,"11,661","11,379",125,126,90,90,"21,912","21,245"
+25-Nov,"1,920","1,846","5,646",5408,"8,176","7,978",97,98,80,80,"15,919","15,410"
+25-Dec,"2,093","1,975","5,193",4975,"6,458","6,301",93,94,80,80,"13,917","13,425"
+TOTAL ,"33,335","32,035","85,737","82,084","135,896","132,607",914,924,"1,060","1,060","256,942","248,710"
+,,,,,,,,,,,,
+Portfolio,IC Approved (MWh),Expected (PVsyst) )(MWh),Difference (%),Reasons,,,,,,,,
+Japan- Minamata,33335,32035,-4%,"Updated : Degradation Loss, IAM factor,Albedo. ",,,,,,,,
+Korea-Blackwood,85737,82084,-4%,Backup data for IC approved budget is not available to find actual reasons for the difference.,,,,,,,,
+Korea-Iceberg,135896,132607,-2%,Backup data for IC approved budget is not available to find actual reasons for the difference.,,,,,,,,
+Singapore,1060,1060,0%,NIL,,,,,,,,
+Korea-Sroof,914,924,1%,Updated : Tilt Angle as per as built diagram. ,,,,,,,,

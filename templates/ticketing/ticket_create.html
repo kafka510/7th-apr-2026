@@ -1,0 +1,1052 @@
+{% extends 'base.html' %}  {# Extends the base template to inherit common layout, navigation, and footer #}
+{% load static %}  {# Loads Django's static file handling template tag for referencing CSS/JS files #}
+
+{# Sets the page title that appears in the browser tab and page header #}
+{% block title %}Create Ticket - Ticketing System{% endblock %}
+
+{# Main content block where all page-specific content will be rendered #}
+{% block content %}
+{# Links the custom CSS file for ticketing-specific styles and layout #}
+<link rel="stylesheet" href="{% static 'ticketing/css/tickets.css' %}">
+
+<!-- Multi-select with checkbox styling -->
+<style>
+    /* Multi-select dropdown styling with checkboxes */
+    .multi-select-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        z-index: 1000;
+    }
+    
+    /* Higher z-index for left column to ensure dropdowns appear above cards */
+    .col-lg-5 .multi-select-container {
+        z-index: 10000;
+    }
+    
+    .multi-select-trigger {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 12px;
+        background: white !important;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: border-color 0.2s;
+        height: 42px;
+        position: relative;
+        z-index: 1001;
+    }
+    
+    .multi-select-trigger:hover {
+        border-color: #0d6efd;
+        background: white !important;
+    }
+    
+    .multi-select-trigger.active {
+        border-color: #0d6efd;
+        background: white !important;
+    }
+    
+    .multi-select-arrow {
+        font-size: 12px;
+        color: #0d6efd;
+        transition: transform 0.2s;
+    }
+    
+    .multi-select-trigger.active .multi-select-arrow {
+        transform: rotate(180deg);
+    }
+    
+    .multi-select-trigger.disabled {
+        background-color: #f1f3f5 !important;
+        cursor: not-allowed;
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .multi-select-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white !important;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+        z-index: 10001 !important;
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: none;
+        padding: 4px 0;
+        scrollbar-width: thin;
+        scrollbar-color: #0072CE #f1f1f1;
+        min-width: 100%;
+        margin-top: 2px;
+    }
+    
+    /* Ensure left column dropdowns have highest z-index */
+    .col-lg-5 .multi-select-dropdown {
+        z-index: 10002 !important;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb {
+        background: #0072CE;
+        border-radius: 3px;
+    }
+    
+    .multi-select-dropdown::-webkit-scrollbar-thumb:hover {
+        background: #0056b3;
+    }
+    
+    .multi-select-option {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        min-height: 20px;
+        background: white !important;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .multi-select-option:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    .multi-select-option.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.disabled:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .multi-select-option.select-all-option {
+        border-bottom: 1px solid #e0e0e0;
+        font-weight: 600;
+        color: #0d6efd;
+    }
+    
+    .multi-select-separator {
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 4px 0;
+    }
+    
+    /* Checkbox styling */
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        position: relative;
+        z-index: 2;
+        pointer-events: auto;
+    }
+    
+    .checkbox-container input[type="checkbox"] {
+        display: none;
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        width: 100%;
+        font-size: 14px;
+        color: #333;
+        pointer-events: auto;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .checkbox-custom {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ccc;
+        border-radius: 3px;
+        margin-right: 8px;
+        position: relative;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .checkbox-container input[type="checkbox"]:checked + .checkbox-label .checkbox-custom::after {
+        content: '✓';
+        position: absolute;
+        top: -2px;
+        left: 1px;
+        color: white;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .checkbox-container input[type="checkbox"][data-indeterminate="true"] + .checkbox-label .checkbox-custom::after {
+        content: '−';
+        position: absolute;
+        top: -2px;
+        left: 3px;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    
+    .checkbox-text {
+        flex: 1;
+    }
+    
+    .selected-items {
+        display: none; /* Hide selected items tags - only show count in placeholder */
+    }
+    
+    /* Ensure card containers don't interfere with dropdowns */
+    .card {
+        position: relative;
+        overflow: visible !important;
+    }
+    
+    .card-body {
+        position: relative;
+        overflow: visible !important;
+    }
+    
+    /* Ensure left column has proper stacking context */
+    .col-lg-5 {
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* When dropdown is open, ensure it's above everything */
+    .multi-select-dropdown[style*="display: block"] {
+        z-index: 10004 !important;
+        background: white !important;
+        opacity: 1 !important;
+    }
+    
+    /* Ensure dropdown options are clickable */
+    .multi-select-dropdown[style*="display: block"] .multi-select-option {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+    }
+    
+    /* Ensure checkbox containers are clickable */
+    .multi-select-dropdown[style*="display: block"] .checkbox-container,
+    .multi-select-dropdown[style*="display: block"] .checkbox-label {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+    }
+</style>
+{# Loads JavaScript file that handles dynamic device selection logic (cascading dropdowns) #}
+<script src="{% static 'ticketing/js/device_selection.js' %}"></script>
+
+<!-- =========================
+     PAGE HEADER
+=========================== -->
+<div class="card shadow-sm border-0 mb-1" style="margin-top: -1.5rem !important;">
+    <div class="card-body py-1 d-flex flex-column flex-md-row justify-content-end align-items-md-center">
+        <!-- Back Button -->
+        <a href="{% url 'ticketing:ticket_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to Tickets
+        </a>
+    </div>
+</div>
+
+{# Main form element with POST method, Bootstrap validation classes, and HTML5 validation disabled (using Bootstrap's) #}
+<form method="post" class="needs-validation" novalidate>
+    {% csrf_token %}  {# Django CSRF token for security protection against cross-site request forgery attacks #}
+    
+    <!-- Two-Column Responsive Layout -->  {# Comment describing the responsive grid layout #}
+    {# Bootstrap row container with gap spacing between columns (g-1 = 0.25rem gap) #}
+    <div class="row g-1">
+        <!-- LEFT COLUMN: Site & Device Selection -->  {# Comment for left column section #}
+        {# Left column taking 5/12 of width on large screens (col-lg-5) #}
+        <div class="col-lg-5">
+            {# Card container for site and device selection section with shadow and bottom margin #}
+            <div class="card shadow-sm mb-1">
+                {# Card header with light background, padding, and primary-colored heading #}
+                <div class="card-header bg-light py-1">
+                    {# Section heading with no bottom margin, semibold font weight, and primary text color #}
+                    <h5 class="mb-0 fw-semibold text-primary">
+                        {# Font Awesome map marker icon with right margin, followed by section title #}
+                        <i class="fas fa-map-marker-alt me-2"></i>Site & Device Selection
+                    </h5>
+                </div>
+                {# Card body container for form fields #}
+                <div class="card-body p-1">
+                    <!-- Site Selection -->  {# Comment for site selection field group #}
+                    {# Row container with gap spacing for form fields #}
+                    <div class="row g-1">
+                        {# Full-width column on medium+ screens for site dropdown #}
+                        <div class="col-md-12">
+                            {# Form label with semibold font weight and required field indicator (red asterisk) #}
+                            <label class="form-label fw-semibold">Site <span class="text-danger">*</span></label>
+                            {# Multi-select container with checkbox-style dropdown #}
+                            <div class="multi-select-container">
+                                {# Trigger button that displays selected count or placeholder #}
+                                <div id="siteFilterTrigger" class="multi-select-trigger">
+                                    {# Placeholder text showing selected count or default message #}
+                                    <span id="siteFilterPlaceholder" data-default="Select Site" class="text-muted">Select Site</span>
+                                    {# Dropdown arrow icon #}
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                {# Dropdown menu container for options #}
+                                <div id="siteFilterDropdown" class="multi-select-dropdown"></div>
+                                {# Hidden container for selected items display #}
+                                <div id="siteSelectedItems" class="selected-items"></div>
+                            </div>
+                            {# Hidden select element for device_selection.js compatibility and form submission #}
+                            <select name="asset_code" id="asset-select" class="d-none" required>
+                                <option value="">Select Site</option>
+                                {% for asset in form.asset_code.field.queryset %}
+                                    <option value="{{ asset.asset_code }}" {% if form.asset_code.value == asset.asset_code %}selected{% endif %}>
+                                        {{ asset.asset_name }} ({{ asset.asset_code }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                            <div id="siteHiddenInputs"></div>
+                            {# Conditional display of form validation errors for asset_code field in red text #}
+                            {% if form.asset_code.errors %}
+                                {# Error message container with small text and danger (red) color #}
+                                <div class="text-danger small">{{ form.asset_code.errors }}</div>
+                            {% endif %}  {# End of conditional error display #}
+                        </div>
+                    </div>
+                    
+                    <!-- Device Details -->  {# Comment for device-related fields section #}
+                    {# Row container with gap spacing and top margin for device selection fields #}
+                    <div class="row g-1 mt-1">
+                        {# Full-width column for device type dropdown #}
+                        <div class="col-md-12">
+                            {# Form label for device type with required field indicator #}
+                            <label class="form-label fw-semibold">Device Type <span class="text-danger">*</span></label>
+                            {# Multi-select container with checkbox-style dropdown #}
+                            <div class="multi-select-container">
+                                {# Trigger button that displays selected count or placeholder #}
+                                <div id="deviceTypeFilterTrigger" class="multi-select-trigger">
+                                    {# Placeholder text showing selected count or default message #}
+                                    <span id="deviceTypeFilterPlaceholder" data-default="Select site first" class="text-muted">Select site first</span>
+                                    {# Dropdown arrow icon #}
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                {# Dropdown menu container for options #}
+                                <div id="deviceTypeFilterDropdown" class="multi-select-dropdown"></div>
+                                {# Hidden container for selected items display #}
+                                <div id="deviceTypeSelectedItems" class="selected-items"></div>
+                            </div>
+                            {# Hidden select element for device_selection.js compatibility and form submission #}
+                            <select id="device-type-select" class="d-none" disabled required>
+                                <option value="">Select site first</option>
+                            </select>
+                            {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                            <div id="deviceTypeHiddenInputs"></div>
+                        </div>
+                        
+                        {# Full-width column for device name dropdown #}
+                        <div class="col-md-12">
+                            {# Form label for device name with required field indicator #}
+                            <label class="form-label fw-semibold">Device Name <span class="text-danger">*</span></label>
+                            {# Multi-select container with checkbox-style dropdown #}
+                            <div class="multi-select-container">
+                                {# Trigger button that displays selected count or placeholder #}
+                                <div id="deviceFilterTrigger" class="multi-select-trigger">
+                                    {# Placeholder text showing selected count or default message #}
+                                    <span id="deviceFilterPlaceholder" data-default="Select device type first" class="text-muted">Select device type first</span>
+                                    {# Dropdown arrow icon #}
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                {# Dropdown menu container for options #}
+                                <div id="deviceFilterDropdown" class="multi-select-dropdown"></div>
+                                {# Hidden container for selected items display #}
+                                <div id="deviceSelectedItems" class="selected-items"></div>
+                            </div>
+                            {# Hidden select element for device_selection.js compatibility and form submission #}
+                            <select id="device-select" class="d-none" disabled required>
+                                <option value="">Select device type first</option>
+                            </select>
+                            {# Hidden form field that stores the actual device ID value for form submission #}
+                            {{ form.device_id }}
+                            {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                            <div id="deviceHiddenInputs"></div>
+                            {# Conditional display of validation errors for device_id field #}
+                            {% if form.device_id.errors %}
+                                {# Error message display in red small text #}
+                                <div class="text-danger small">{{ form.device_id.errors }}</div>
+                            {% endif %}  {# End of error display conditional #}
+                        </div>
+                        
+                        {# Full-width column for sub-device dropdown (optional field) #}
+                        <div class="col-md-12">
+                            {# Form label for sub-device indicating it's optional (no asterisk) #}
+                            <label class="form-label fw-semibold">Sub Device (Optional)</label>
+                            {# Multi-select container with checkbox-style dropdown #}
+                            <div class="multi-select-container">
+                                {# Trigger button that displays selected count or placeholder #}
+                                <div id="subDeviceFilterTrigger" class="multi-select-trigger">
+                                    {# Placeholder text showing selected count or default message #}
+                                    <span id="subDeviceFilterPlaceholder" data-default="Select device name first" class="text-muted">Select device name first</span>
+                                    {# Dropdown arrow icon #}
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                {# Dropdown menu container for options #}
+                                <div id="subDeviceFilterDropdown" class="multi-select-dropdown"></div>
+                                {# Hidden container for selected items display #}
+                                <div id="subDeviceSelectedItems" class="selected-items"></div>
+                            </div>
+                            {# Hidden select element for device_selection.js compatibility and form submission #}
+                            <select id="sub-device-select" class="d-none" disabled>
+                                <option value="">Select device name first</option>
+                            </select>
+                            {# Hidden form field that stores the sub-device ID value for form submission #}
+                            {{ form.sub_device_id }}
+                            {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                            <div id="subDeviceHiddenInputs"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Hidden Fields -->  {# Comment for hidden form fields section #}
+                    {# Hidden form field storing device type value (populated by JavaScript) #}
+                    {{ form.device_type }}
+                    {# Hidden form field storing device sub-group value (populated by JavaScript) #}
+                    {{ form.device_sub_group }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- RIGHT COLUMN: Basic Information -->  {# Comment for right column section #}
+        {# Right column taking 7/12 of width on large screens (col-lg-7) #}
+        <div class="col-lg-7">
+            {# Card container for basic ticket information section with shadow and bottom margin #}
+            <div class="card shadow-sm mb-1">
+                {# Card header with light background, padding, and primary-colored heading #}
+                <div class="card-header bg-light py-1">
+                    {# Section heading with no bottom margin, semibold font weight, and primary text color #}
+                    <h5 class="mb-0 fw-semibold text-primary">
+                        {# Font Awesome info circle icon with right margin, followed by section title #}
+                        <i class="fas fa-info-circle me-2"></i>Basic Information
+                    </h5>
+                </div>
+                {# Card body container for form fields #}
+                <div class="card-body p-1">
+                    <!-- Title / Category / Priority -->  {# Comment for first row of fields #}
+                    {# Row container with gap spacing for title, category, and priority fields #}
+                    <div class="row g-1">
+                        {# Column taking 6/12 width on medium+ screens for title field #}
+                        <div class="col-md-6">
+                            {# Form label for ticket title with required field indicator #}
+                            <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                            {# Renders Django form field for ticket title (input element) #}
+                            {{ form.title }}
+                        </div>
+                        
+                        {# Column taking 3/12 width on medium+ screens for category field #}
+                        <div class="col-md-3">
+                            {# Form label for ticket category with required field indicator #}
+                            <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                            {# Multi-select container with checkbox-style dropdown #}
+                            <div class="multi-select-container">
+                                {# Trigger button that displays selected count or placeholder #}
+                                <div id="categoryFilterTrigger" class="multi-select-trigger">
+                                    {# Placeholder text showing selected count or default message #}
+                                    <span id="categoryFilterPlaceholder" data-default="Select Category" class="text-muted">Select Category</span>
+                                    {# Dropdown arrow icon #}
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                {# Dropdown menu container for options #}
+                                <div id="categoryFilterDropdown" class="multi-select-dropdown"></div>
+                                {# Hidden container for selected items display #}
+                                <div id="categorySelectedItems" class="selected-items"></div>
+                            </div>
+                            {# Hidden select element for form submission #}
+                            <select name="category" id="id_category" class="d-none" required>
+                                <option value="">Select Category</option>
+                                {% for value, label in form.category.field.choices %}
+                                    {% if value %}
+                                        <option value="{{ value }}" {% if form.category.value == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                            <div id="categoryHiddenInputs"></div>
+                        </div>
+                        
+                        {# Column taking 3/12 width on medium+ screens for priority field #}
+                        <div class="col-md-3">
+                            {# Form label for ticket priority with required field indicator #}
+                            <label class="form-label fw-semibold">Priority <span class="text-danger">*</span></label>
+                            {# Multi-select container with checkbox-style dropdown #}
+                            <div class="multi-select-container">
+                                {# Trigger button that displays selected count or placeholder #}
+                                <div id="priorityFilterTrigger" class="multi-select-trigger">
+                                    {# Placeholder text showing selected count or default message #}
+                                    <span id="priorityFilterPlaceholder" data-default="Select Priority" class="text-muted">Select Priority</span>
+                                    {# Dropdown arrow icon #}
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                {# Dropdown menu container for options #}
+                                <div id="priorityFilterDropdown" class="multi-select-dropdown"></div>
+                                {# Hidden container for selected items display #}
+                                <div id="prioritySelectedItems" class="selected-items"></div>
+                            </div>
+                            {# Hidden select element for form submission #}
+                            <select name="priority" id="id_priority" class="d-none" required>
+                                <option value="">Select Priority</option>
+                                {% for value, label in form.priority.field.choices %}
+                                    {% if value %}
+                                        <option value="{{ value }}" {% if form.priority.value == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                            <div id="priorityHiddenInputs"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Description -->  {# Comment for description field section #}
+                    {# Container div with top margin for description textarea field #}
+                    <div class="mt-1">
+                        {# Form label for ticket description with required field indicator #}
+                        <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+                        {# Renders Django form field for ticket description (textarea element) #}
+                        {{ form.description }}
+                    </div>
+                    
+                    <!-- Loss / Assign / Loss Category -->  {# Comment for loss and assignment fields section #}
+                    {# Row container with gap spacing and top margin for loss category, loss value, and assign to fields #}
+                    <div class="row g-1 mt-1">
+                        {# Column taking 4/12 width on medium+ screens for loss category field #}
+                        <div class="col-md-4">
+                            {# Form label for loss category indicating it's optional (no asterisk) #}
+                            <label class="form-label fw-semibold">Loss Category (Optional)</label>
+                            {# Renders Django form field for loss category (select dropdown) #}
+                            {{ form.loss_category }}
+                        </div>
+                        
+                        {# Column taking 4/12 width on medium+ screens for loss value field #}
+                        <div class="col-md-4">
+                            {# Form label for loss value indicating it's optional (no asterisk) #}
+                            <label class="form-label fw-semibold">Loss Value (Optional)</label>
+                            {# Renders Django form field for loss value (number input) #}
+                            {{ form.loss_value }}
+                        </div>
+                        
+                        {# Column taking 4/12 width on medium+ screens for assign to field #}
+                        <div class="col-md-4">
+                            {# Form label for assign to field indicating it's optional (no asterisk) #}
+                            <label class="form-label fw-semibold">Assign To (Optional)</label>
+                            {# Multi-select container with checkbox-style dropdown #}
+                            <div class="multi-select-container">
+                                {# Trigger button that displays selected count or placeholder #}
+                                <div id="assignToFilterTrigger" class="multi-select-trigger">
+                                    {# Placeholder text showing selected count or default message #}
+                                    <span id="assignToFilterPlaceholder" data-default="Select User" class="text-muted">Select User</span>
+                                    {# Dropdown arrow icon #}
+                                    <span class="multi-select-arrow">▼</span>
+                                </div>
+                                {# Dropdown menu container for options #}
+                                <div id="assignToFilterDropdown" class="multi-select-dropdown"></div>
+                                {# Hidden container for selected items display #}
+                                <div id="assignToSelectedItems" class="selected-items"></div>
+                            </div>
+                            {# Hidden select element for form submission #}
+                            <select name="assigned_to" id="id_assigned_to" class="d-none">
+                                <option value="">Select User</option>
+                                {% for user in form.assigned_to.field.queryset %}
+                                    <option value="{{ user.id }}" {% if form.assigned_to.value == user.id %}selected{% endif %}>{{ user.username }}</option>
+                                {% endfor %}
+                            </select>
+                            {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                            <div id="assignToHiddenInputs"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Watchers -->  {# Comment for watchers/collaborators field section #}
+                    {# Container div with top margin for watchers multi-select field #}
+                    <div class="mt-1">
+                        {# Form label for watchers field indicating it's optional (no asterisk) #}
+                        <label class="form-label fw-semibold">Watchers / Collaborators (Optional)</label>
+                        {# Multi-select container with checkbox-style dropdown #}
+                        <div class="multi-select-container">
+                            {# Trigger button that displays selected count or placeholder #}
+                            <div id="watchersFilterTrigger" class="multi-select-trigger">
+                                {# Placeholder text showing selected count or default message #}
+                                <span id="watchersFilterPlaceholder" data-default="Select watchers" class="text-muted">Select watchers</span>
+                                {# Dropdown arrow icon #}
+                                <span class="multi-select-arrow">▼</span>
+                            </div>
+                            {# Dropdown menu container for options #}
+                            <div id="watchersFilterDropdown" class="multi-select-dropdown"></div>
+                            {# Hidden container for selected items display (not used, kept for compatibility) #}
+                            <div id="watchersSelectedItems" class="selected-items"></div>
+                        </div>
+                        {# Hidden inputs container for form submission - will be populated by JavaScript #}
+                        <div id="watchersHiddenInputs"></div>
+                        {# Helper text in muted color explaining how to use the watchers field #}
+                        <small class="text-muted">Search and select multiple users</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ==========================
+         ACTION BUTTONS
+    =========================== -->  {# Section header comment for form action buttons #}
+    {# Flexbox container with end alignment and gap for cancel and submit buttons #}
+    <div class="d-flex justify-content-end gap-2 mt-1">
+        {# Cancel button styled as secondary outline button linking back to ticket list #}
+        <a href="{% url 'ticketing:ticket_list' %}" class="btn btn-outline-secondary">
+            {# Font Awesome times/X icon with right margin, followed by Cancel text #}
+            <i class="fas fa-times me-2"></i>Cancel
+        </a>
+        {# Submit button styled as primary button with extra horizontal padding for form submission #}
+        <button type="submit" class="btn btn-primary px-4">
+            {# Font Awesome save icon with right margin, followed by Create Ticket text #}
+            <i class="fas fa-save me-2"></i>Create Ticket
+        </button>
+    </div>
+</form>  {# End of main form element #}
+
+<!-- Multi-Select JavaScript -->  {# Comment indicating custom multi-select script import #}
+{# Loads custom multi-select JavaScript for checkbox-style multi-select functionality #}
+<script src="{% static 'js/multi-select.js' %}"></script>
+
+<!-- Bootstrap 5 Validation Script -->  {# Comment for Bootstrap form validation script #}
+{# JavaScript code block for Bootstrap 5 form validation functionality #}
+<script>
+// Immediately Invoked Function Expression (IIFE) to avoid global scope pollution
+(() => {
+    // Enables strict mode for better JavaScript error checking and performance
+    'use strict';
+    // Selects all forms with the 'needs-validation' class for validation handling
+    const forms = document.querySelectorAll('.needs-validation');
+    // Converts NodeList to Array and iterates through each form element
+    Array.from(forms).forEach(form => {
+        // Adds submit event listener to each form for validation checking
+        form.addEventListener('submit', event => {
+            // Checks if form is valid using HTML5 validation API
+            if (!form.checkValidity()) {
+                // Prevents default form submission if validation fails
+                event.preventDefault();
+                // Stops event propagation to prevent other handlers from executing
+                event.stopPropagation();
+            }
+            // Adds 'was-validated' class to show validation feedback styles (Bootstrap requirement)
+            form.classList.add('was-validated');
+        }, false);  // Event listener uses bubbling phase (false)
+    });
+})();  // Immediately invokes the function expression
+</script>
+
+<!-- Initialize Multi-Select for All Fields -->  {# Comment for multi-select initialization script #}
+{# JavaScript code block to initialize custom multi-select components on all filter fields #}
+<script>
+// Waits for DOM to be fully loaded before executing initialization code
+document.addEventListener("DOMContentLoaded", function () {
+    // Function to ensure dropdowns have proper z-index when open
+    function ensureDropdownZIndex() {
+        // Use MutationObserver to watch for dropdown display changes
+        const dropdowns = document.querySelectorAll('.multi-select-dropdown');
+        dropdowns.forEach(dropdown => {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const isOpen = dropdown.style.display === 'block';
+                        const container = dropdown.closest('.multi-select-container');
+                        
+                        if (isOpen) {
+                            // When open, set very high z-index
+                            dropdown.style.zIndex = '10005';
+                            dropdown.style.background = 'white';
+                            dropdown.style.opacity = '1';
+                            if (container) {
+                                container.style.zIndex = '10006';
+                            }
+                            // Ensure all child elements are clickable
+                            const options = dropdown.querySelectorAll('.multi-select-option, .checkbox-container, .checkbox-label');
+                            options.forEach(opt => {
+                                opt.style.pointerEvents = 'auto';
+                                opt.style.cursor = 'pointer';
+                            });
+                        } else {
+                            // When closed, reset z-index
+                            if (container) {
+                                const isLeftColumn = container.closest('.col-lg-5');
+                                container.style.zIndex = isLeftColumn ? '10000' : '1000';
+                            }
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(dropdown, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+        });
+    }
+    
+    // Call the z-index manager
+    ensureDropdownZIndex();
+    
+    // Patch MultiSelect toggleDropdown to ensure proper z-index
+    if (typeof MultiSelect !== 'undefined') {
+        const originalToggle = MultiSelect.prototype.toggleDropdown;
+        MultiSelect.prototype.toggleDropdown = function() {
+            const result = originalToggle.call(this);
+            if (this.isOpen()) {
+                // When dropdown opens, ensure it's above everything
+                this.dropdown.style.zIndex = '10005';
+                this.dropdown.style.background = 'white';
+                this.dropdown.style.opacity = '1';
+                const container = this.dropdown.closest('.multi-select-container');
+                if (container) {
+                    container.style.zIndex = '10006';
+                }
+                // Ensure all options are clickable
+                const options = this.dropdown.querySelectorAll('.multi-select-option, .checkbox-container, .checkbox-label');
+                options.forEach(opt => {
+                    opt.style.pointerEvents = 'auto';
+                    opt.style.cursor = 'pointer';
+                    opt.style.background = 'transparent';
+                });
+            }
+            return result;
+        };
+        
+        // Also patch closeDropdown to reset z-index
+        const originalClose = MultiSelect.prototype.closeDropdown;
+        MultiSelect.prototype.closeDropdown = function() {
+            const result = originalClose.call(this);
+            const container = this.dropdown.closest('.multi-select-container');
+            if (container) {
+                const isLeftColumn = container.closest('.col-lg-5');
+                container.style.zIndex = isLeftColumn ? '10000' : '1000';
+            }
+            return result;
+        };
+    }
+    
+    // Function to update hidden inputs for form submission
+    function updateHiddenInputs(containerId, selectedValues, paramName, hiddenSelectId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        selectedValues.forEach(value => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = paramName;
+            input.value = value;
+            container.appendChild(input);
+        });
+        
+        // Sync with hidden select element for device_selection.js compatibility
+        if (hiddenSelectId) {
+            const hiddenSelect = document.getElementById(hiddenSelectId);
+            if (hiddenSelect) {
+                // Update the hidden select's value (take first selected value for single-select compatibility)
+                if (selectedValues.length > 0) {
+                    hiddenSelect.value = selectedValues[0];
+                    // Trigger change event for device_selection.js
+                    hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    hiddenSelect.value = '';
+                    hiddenSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+        }
+    }
+    
+    // Function to sync multi-select with hidden select when hidden select changes (for device_selection.js)
+    function syncMultiSelectFromHiddenSelect(multiSelectInstance, hiddenSelectId, placeholderId) {
+        const hiddenSelect = document.getElementById(hiddenSelectId);
+        if (hiddenSelect && multiSelectInstance) {
+            const observer = new MutationObserver(function() {
+                const value = hiddenSelect.value;
+                if (value) {
+                    multiSelectInstance.setSelectedValues([value]);
+                } else {
+                    multiSelectInstance.setSelectedValues([]);
+                }
+            });
+            
+            // Watch for value changes
+            hiddenSelect.addEventListener('change', function() {
+                const value = hiddenSelect.value;
+                if (value) {
+                    multiSelectInstance.setSelectedValues([value]);
+                } else {
+                    multiSelectInstance.setSelectedValues([]);
+                }
+            });
+        }
+    }
+    
+    // Initialize Site multi-select
+    const siteOptions = [
+        {% for asset in form.asset_code.field.queryset %}
+        { value: '{{ asset.asset_code }}', label: '{{ asset.asset_name }} ({{ asset.asset_code }})' },
+        {% endfor %}
+    ];
+    let siteMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && siteOptions.length > 0) {
+        siteMultiSelect = new MultiSelect(
+            'siteFilterTrigger',
+            'siteFilterDropdown',
+            'siteFilterPlaceholder',
+            'siteSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('siteHiddenInputs', selectedValues, 'asset_code', 'asset-select');
+            }
+        );
+        siteMultiSelect.setOptions(siteOptions);
+        {% if form.asset_code.value %}
+        siteMultiSelect.setSelectedValues(['{{ form.asset_code.value }}']);
+        {% endif %}
+        syncMultiSelectFromHiddenSelect(siteMultiSelect, 'asset-select', 'siteFilterPlaceholder');
+    }
+    
+    // Initialize Category multi-select
+    const categoryOptions = [
+        {% for value, label in form.category.field.choices %}
+        {% if value %}{ value: '{{ value }}', label: '{{ label }}' },{% endif %}
+        {% endfor %}
+    ];
+    let categoryMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && categoryOptions.length > 0) {
+        categoryMultiSelect = new MultiSelect(
+            'categoryFilterTrigger',
+            'categoryFilterDropdown',
+            'categoryFilterPlaceholder',
+            'categorySelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('categoryHiddenInputs', selectedValues, 'category', 'id_category');
+            }
+        );
+        categoryMultiSelect.setOptions(categoryOptions);
+        {% if form.category.value %}
+        categoryMultiSelect.setSelectedValues(['{{ form.category.value }}']);
+        {% endif %}
+    }
+    
+    // Initialize Priority multi-select
+    const priorityOptions = [
+        {% for value, label in form.priority.field.choices %}
+        {% if value %}{ value: '{{ value }}', label: '{{ label }}' },{% endif %}
+        {% endfor %}
+    ];
+    let priorityMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && priorityOptions.length > 0) {
+        priorityMultiSelect = new MultiSelect(
+            'priorityFilterTrigger',
+            'priorityFilterDropdown',
+            'priorityFilterPlaceholder',
+            'prioritySelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('priorityHiddenInputs', selectedValues, 'priority', 'id_priority');
+            }
+        );
+        priorityMultiSelect.setOptions(priorityOptions);
+        {% if form.priority.value %}
+        priorityMultiSelect.setSelectedValues(['{{ form.priority.value }}']);
+        {% endif %}
+    }
+    
+    // Initialize Assign To multi-select
+    const assignToOptions = [
+        {% for user in form.assigned_to.field.queryset %}
+        { value: '{{ user.id }}', label: '{{ user.username }}' },
+        {% endfor %}
+    ];
+    let assignToMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && assignToOptions.length > 0) {
+        assignToMultiSelect = new MultiSelect(
+            'assignToFilterTrigger',
+            'assignToFilterDropdown',
+            'assignToFilterPlaceholder',
+            'assignToSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('assignToHiddenInputs', selectedValues, 'assigned_to', 'id_assigned_to');
+            }
+        );
+        assignToMultiSelect.setOptions(assignToOptions);
+        {% if form.assigned_to.value %}
+        assignToMultiSelect.setSelectedValues(['{{ form.assigned_to.value }}']);
+        {% endif %}
+    }
+    
+    // Initialize Device Type multi-select (will be populated dynamically)
+    let deviceTypeMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined') {
+        deviceTypeMultiSelect = new MultiSelect(
+            'deviceTypeFilterTrigger',
+            'deviceTypeFilterDropdown',
+            'deviceTypeFilterPlaceholder',
+            'deviceTypeSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('deviceTypeHiddenInputs', selectedValues, 'device_type', 'device-type-select');
+            }
+        );
+        deviceTypeMultiSelect.setOptions([]);
+        // Initially disable the trigger
+        const deviceTypeTrigger = document.getElementById('deviceTypeFilterTrigger');
+        if (deviceTypeTrigger) {
+            deviceTypeTrigger.classList.add('disabled');
+            deviceTypeTrigger.style.pointerEvents = 'none';
+        }
+        syncMultiSelectFromHiddenSelect(deviceTypeMultiSelect, 'device-type-select', 'deviceTypeFilterPlaceholder');
+        // Expose to global scope for device_selection.js
+        window.deviceTypeMultiSelect = deviceTypeMultiSelect;
+        if (window.deviceSelection && typeof window.deviceSelection.applyMultiSelectState === 'function') {
+            window.deviceSelection.applyMultiSelectState('deviceTypeMultiSelect');
+        }
+    }
+    
+    // Initialize Device Name multi-select (will be populated dynamically)
+    let deviceMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined') {
+        deviceMultiSelect = new MultiSelect(
+            'deviceFilterTrigger',
+            'deviceFilterDropdown',
+            'deviceFilterPlaceholder',
+            'deviceSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('deviceHiddenInputs', selectedValues, 'device_id', 'device-select');
+                // Also update the hidden device_id field
+                const hiddenDeviceId = document.querySelector("input[name='device_id']");
+                if (hiddenDeviceId && selectedValues.length > 0) {
+                    hiddenDeviceId.value = selectedValues[0];
+                    // Update device type and sub group from the selected device option
+                    const hiddenSelect = document.getElementById('device-select');
+                    if (hiddenSelect) {
+                        const selectedOption = Array.from(hiddenSelect.options).find(opt => opt.value === selectedValues[0]);
+                        if (selectedOption) {
+                            const hiddenDeviceType = document.querySelector("input[name='device_type']");
+                            const hiddenDeviceGroup = document.querySelector("input[name='device_sub_group']");
+                            if (selectedOption.dataset.deviceType && hiddenDeviceType) {
+                                hiddenDeviceType.value = selectedOption.dataset.deviceType;
+                            }
+                            if (selectedOption.dataset.deviceSubGroup && hiddenDeviceGroup) {
+                                hiddenDeviceGroup.value = selectedOption.dataset.deviceSubGroup;
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        deviceMultiSelect.setOptions([]);
+        // Initially disable the trigger
+        const deviceTrigger = document.getElementById('deviceFilterTrigger');
+        if (deviceTrigger) {
+            deviceTrigger.classList.add('disabled');
+            deviceTrigger.style.pointerEvents = 'none';
+        }
+        syncMultiSelectFromHiddenSelect(deviceMultiSelect, 'device-select', 'deviceFilterPlaceholder');
+        // Expose to global scope for device_selection.js
+        window.deviceMultiSelect = deviceMultiSelect;
+        if (window.deviceSelection && typeof window.deviceSelection.applyMultiSelectState === 'function') {
+            window.deviceSelection.applyMultiSelectState('deviceMultiSelect');
+        }
+    }
+    
+    // Initialize Sub Device multi-select (will be populated dynamically)
+    let subDeviceMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined') {
+        subDeviceMultiSelect = new MultiSelect(
+            'subDeviceFilterTrigger',
+            'subDeviceFilterDropdown',
+            'subDeviceFilterPlaceholder',
+            'subDeviceSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('subDeviceHiddenInputs', selectedValues, 'sub_device_id', 'sub-device-select');
+                // Also update the hidden sub_device_id field
+                const hiddenSubDeviceId = document.querySelector("input[name='sub_device_id']");
+                if (hiddenSubDeviceId && selectedValues.length > 0) {
+                    hiddenSubDeviceId.value = selectedValues[0];
+                }
+            }
+        );
+        subDeviceMultiSelect.setOptions([]);
+        // Initially disable the trigger
+        const subDeviceTrigger = document.getElementById('subDeviceFilterTrigger');
+        if (subDeviceTrigger) {
+            subDeviceTrigger.classList.add('disabled');
+            subDeviceTrigger.style.pointerEvents = 'none';
+        }
+        syncMultiSelectFromHiddenSelect(subDeviceMultiSelect, 'sub-device-select', 'subDeviceFilterPlaceholder');
+        // Expose to global scope for device_selection.js
+        window.subDeviceMultiSelect = subDeviceMultiSelect;
+        if (window.deviceSelection && typeof window.deviceSelection.applyMultiSelectState === 'function') {
+            window.deviceSelection.applyMultiSelectState('subDeviceMultiSelect');
+        }
+    }
+    
+    // Initialize Watchers multi-select
+    const watchersOptions = [
+        {% for user in form.watchers.field.queryset %}
+        { value: '{{ user.id }}', label: '{{ user.username }}' },
+        {% endfor %}
+    ];
+    let watchersMultiSelect = null;
+    if (typeof MultiSelect !== 'undefined' && watchersOptions.length > 0) {
+        watchersMultiSelect = new MultiSelect(
+            'watchersFilterTrigger',
+            'watchersFilterDropdown',
+            'watchersFilterPlaceholder',
+            'watchersSelectedItems',
+            function(selectedValues) {
+                updateHiddenInputs('watchersHiddenInputs', selectedValues, 'watchers', null);
+            }
+        );
+        watchersMultiSelect.setOptions(watchersOptions);
+        {% if form.watchers.value %}
+        const initialValues = [
+            {% for user_id in form.watchers.value %}
+            '{{ user_id }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+        if (initialValues.length > 0) {
+            watchersMultiSelect.setSelectedValues(initialValues);
+        }
+        {% endif %}
+    }
+});
+
+// Send title update to parent if in iframe
+if (window.parent !== window.self) {
+    const pageTitle = document.title || 'Create Ticket - Ticketing System';
+    window.parent.postMessage({
+        type: 'update_title',
+        title: pageTitle
+    }, '*');
+}
+</script>
+{% endblock %}  {# End of content block #}
+

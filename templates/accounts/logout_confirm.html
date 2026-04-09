@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Logout | Peak Energy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            background-image: linear-gradient(180deg, rgba(0, 20, 40, 0.55), rgba(0, 20, 40, 0.15));
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .auth-wrapper { min-height: 100vh; }
+        .auth-card {
+            max-width: 420px;
+            margin: 40px auto;
+            border-radius: 14px;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+            backdrop-filter: blur(6px);
+            background: rgba(255,255,255,0.92);
+        }
+        .auth-logo { max-width: 120px; max-height: 80px; margin-bottom: 6px; }
+        .illustration-wrap { width: 100%; padding: 40px 32px; }
+        .illustration-image { width: 100%; height: auto; border-radius: 16px; box-shadow: 0 24px 60px rgba(0,0,0,0.35); outline: 1px solid rgba(255,255,255,0.08); }
+    </style>
+</head>
+<body>
+    <div class="container-fluid auth-wrapper d-flex align-items-center">
+        <div class="row g-0 flex-grow-1">
+            <div class="col-lg-7 d-none d-lg-flex align-items-center">
+                <div class="illustration-wrap w-100">
+                    <img src="{% static 'solar-bg.jpg' %}" alt="Solar farm" class="illustration-image">
+                </div>
+            </div>
+            <div class="col-lg-5 d-flex align-items-center justify-content-center">
+                <div class="card auth-card p-4 p-md-5 w-100 mx-auto">
+                    <div class="text-center mb-4">
+                        <img src="{% static 'PEAK_LOGO.jpg' %}" alt="Logo" class="auth-logo">
+                        <h3 class="mb-2">Confirm Logout</h3>
+                        <p class="text-muted mb-0">Are you sure you want to logout?</p>
+                    </div>
+                    <div class="d-flex justify-content-center gap-3">
+                        <form method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">Yes, Logout</button>
+                        </form>
+                        <a href="{% url 'main:dashboard' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Prevent going back to protected pages after logout
+        window.history.forward();
+        function noBack() {
+            window.history.forward();
+        }
+    </script>
+</body>
+</html>

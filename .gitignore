@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+*.env
+.env
+
+# Django
+*.sqlite3
+/media
+/venv
+/staticfiles
+
+# Docker
+*.log
+*.pid
+*.db
+*.sock
+docker-compose.override.yml
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Certbot SSL certs
+certbot/
+
+nginx/
+
+docker-compose.yml

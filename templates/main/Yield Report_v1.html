@@ -1,0 +1,1868 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yield Report</title>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="{% static "bestcalendar.js" %}"></script>
+  <script>
+    // Check if BestCalendar loaded properly
+    if (typeof BestCalendar === 'undefined') {
+      console.error('BestCalendar failed to load from static/bestcalendar.js');
+      // Try alternative path
+      const script = document.createElement('script');
+      script.src = "{% static "bestcalendar.js" %}";
+      script.onload = () => {
+        console.log('BestCalendar loaded from alternative path');
+        // Re-check if BestCalendar is now available
+        if (typeof BestCalendar !== 'undefined') {
+          console.log('BestCalendar is now available');
+        }
+      };
+      script.onerror = () => console.error('BestCalendar failed to load from alternative path');
+      document.head.appendChild(script);
+    } else {
+      console.log('BestCalendar loaded successfully');
+    }
+  </script>
+  <style>
+/* ----------------------------------
+   DASHBOARD GLOBAL VARIABLES
+---------------------------------- */
+:root {
+  --primary-color: #0072CE;
+  --secondary-color: #87ceeb;
+  --success-color: #4CAF50;
+  --danger-color: #FF4136;
+  --warning-color: #FF7043;
+  --text-color: #222;
+  --bg-color: #f8fbff;
+  --card-bg: #fff;
+  --border-radius: 10px;
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ----------------------------------
+   BASE STYLES
+---------------------------------- */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html {
+  font-size: calc(12px + 0.3vw);
+  height: 100%;
+}
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background: linear-gradient(135deg, #e6f1fc 0%, var(--bg-color) 100%);
+  color: var(--text-color);
+  line-height: 1.5;
+  min-height: 100%;
+  padding: 8px;
+}
+
+h1, h2, h3 {
+  color: var(--primary-color);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.dashboard-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  letter-spacing: 1px;
+  background: var(--card-bg);
+  border-radius: 0 0 24px 24px;
+  padding: 12px 16px 6px 16px;
+  margin-bottom: 4px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  border: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.dashboard-title span {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.title-left-spacer {
+  width: 180px; /* Match the approximate width of the export button */
+  visibility: hidden;
+}
+
+.title-export-btn {
+  background: linear-gradient(135deg, var(--primary-color) 0%, #0056a3 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 114, 206, 0.3);
+}
+
+.title-export-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 114, 206, 0.4);
+}
+
+.title-export-btn i {
+  font-size: 0.9rem;
+}
+
+/* ----------------------------------
+   LAYOUT WRAPPERS
+---------------------------------- */
+.main-container {
+  max-width: 2400px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+  overflow: visible;
+}
+
+.dashboard-charts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+  max-width: 100vw;
+  overflow: visible;
+}
+
+.chart-card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  border: 1.5px solid var(--secondary-color);
+  flex: 1 1 420px;
+  min-width: 340px;
+  max-width: 100%;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  max-height: 100vh;
+  overflow: visible;
+  z-index: 1;
+}
+
+.plotly-graph-div {
+  width: 100% !important;
+  min-height: 500px;
+  max-height: 100vh;
+  overflow: visible;
+  z-index: 1;
+}
+
+/* ----------------------------------
+   FILTERS + KPIS
+---------------------------------- */
+.filter-kpi-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: 100%;
+  gap: 0;
+  align-items: stretch;
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  border: 1.5px solid var(--secondary-color);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 10;
+}
+
+.filter-half {
+  flex: 0 0 55%;
+  max-width: 55%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.kpi-half {
+  flex: 0 0 45%;
+  max-width: 45%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.filter-section, .kpi-row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.filter-row.single-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  width: 100%;
+  gap: 12px;
+}
+
+.filter-pill {
+  position: relative;
+  z-index: 20;
+  flex: 1 1 0;
+  min-width: 120px;
+  max-width: 260px;
+  height: 36px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  background: var(--card-bg);
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.filter-pill label {
+  font-weight: 500;
+  color: var(--primary-color);
+  margin-right: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.filter-pill select,
+.filter-pill input[type="text"] {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-weight: 500;
+  color: var(--text-color);
+  outline: none;
+  cursor: pointer;
+}
+
+.kpi-card {
+  flex: 1;
+  min-width: 100px;
+  padding: 8px 16px;
+  background: #e6f1fc;
+  border-radius: 6px;
+  border: 1px solid #b3d7f2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  font-size: 0.65rem;
+  font-weight: bold;
+}
+
+.kpi-icon-block {
+  display: flex;
+  align-items: left;
+  justify-content: left;
+  min-width: 32px;
+  margin-right: 8px;
+}
+
+.kpi-icon {
+  margin: 0;
+  color: #0072CE;
+  font-size: 0.35rem;
+}
+
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.kpi-value {
+  font-size: 1.1rem;
+  font-weight: bold;
+  white-space: nowrap;
+  margin-top: 2px;
+  color: var(--text-color);
+}
+
+/* ----------------------------------
+   UTILITIES & COMPONENTS
+---------------------------------- */
+#resetFiltersBtn {
+  margin-left: auto;
+  min-width: 40px;
+  font-size: 0.675rem;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--danger-color);
+  color: #fff;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  height: 24px;
+  transition: background 0.2s;
+  display: inline-block;
+}
+#resetFiltersBtn:hover {
+  background: #e60000;
+}
+
+.choices {
+  width: 100% !important;
+}
+.choices__inner {
+  padding: 4px 8px !important;
+  font-size: 0.9rem !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+.choices__list--dropdown {
+  min-width: 250px !important;
+  font-size: 0.9rem !important;
+  background-color: absolute !important;
+}
+
+/* ----------------------------------
+   EXPORT BUTTONS & CHART HEADERS
+---------------------------------- */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px 8px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 8px;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  letter-spacing: 0.5px;
+}
+
+
+
+
+
+/* ----------------------------------
+   RESPONSIVE BREAKPOINTS
+---------------------------------- */
+@media (max-width: 1440px) {
+  .filter-half {
+    flex: 0 0 58%;
+    max-width: 58%;
+  }
+  .kpi-half {
+    flex: 0 0 42%;
+    max-width: 42%;
+  }
+  .chart-card {
+    min-height: 260px;
+    padding: 6px;
+  }
+  .plotly-graph-div {
+    min-height: 180px;
+    max-height: 50vh;
+  }
+}
+
+@media (max-width: 1200px) {
+  .filter-row.single-row {
+    display: flex !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+  #resetFiltersBtn {
+    width: auto;
+    margin-left: auto;
+    margin-top: 0;
+  }
+  .filter-kpi-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-half,
+  .kpi-half,
+  .filter-section,
+  .kpi-row,
+  .filter-row.single-row {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
+  .filter-row.single-row {
+    gap: 4px !important;
+  }
+  .filter-pill {
+    width: 120px !important;
+    min-width: 0 !important;
+    max-width: 120px !important;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .kpi-row {
+    gap: 4px !important;
+  }
+  .kpi-card {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: left !important;
+  }
+  .kpi-content {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    text-align: center !important;
+    align-items: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: left !important;
+  }
+  .filter-section {
+    margin-bottom: 16px !important;
+  }
+  .filter-half {
+    margin-bottom: 16px;
+  }
+  .dashboard-charts {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .chart-card {
+    min-height: 500px;
+    padding: 4px;
+  }
+  .plotly-graph-div {
+    min-height: 500px;
+    max-height: none;
+  }
+}
+@media (max-width: 1024px) {
+  .kpi-card {
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 767px) {
+  body {
+    padding: 4px;
+  }
+  .filter-kpi-container {
+    flex-direction: column !important;
+  }
+  .filter-half,
+  .kpi-half {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .kpi-card {
+    min-width: calc(33.3% - 8px);
+    height: 56px;
+  }
+  .choices__list--dropdown {
+    min-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+    padding: 0;
+    font-size: 10pt;
+  }
+  .filter-bar, #resetFiltersBtn {
+    display: none;
+  }
+  .dashboard-charts {
+    flex-direction: column;
+    height: auto;
+    gap: 12px;
+  }
+  .chart-card {
+    page-break-inside: avoid;
+    height: auto;
+    min-height: 500px;
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+  .plotly-graph-div {
+    height: 500px !important;
+  }
+}
+</style>
+<style>
+    /* BestCalendar positioning fixes */
+    .filter-date {
+      position: relative;
+    }
+    
+    .month-matrix-picker {
+      position: absolute !important;
+      z-index: 9999 !important;
+      top: 100% !important;
+      left: 0 !important;
+      right: 0 !important;
+      background: white !important;
+      border: 1px solid #ccc !important;
+      border-radius: 8px !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+      margin-top: 4px !important;
+    }
+    
+    .month-trigger-btn {
+      width: 100%;
+      background: #f8fbff;
+      border: 1px solid #b3d7f2;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 1rem;
+      color: #0072CE;
+      cursor: pointer;
+      text-align: left;
+    }
+    
+
+    
+
+    .filter-pill {
+      position: relative;
+      display: inline-block;
+    }
+</style>
+<style>
+.kpi-icon {
+  margin-right: 8px;
+  color: #0072CE;
+  font-size: 1.3rem;
+  vertical-align: middle;
+}
+</style>
+<style>
+.kpi-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+.kpi-icon-block {
+  display: flex;
+  align-items: left;
+  justify-content: flex-start;
+  min-width: 0;
+  margin-right: 10px;
+}
+.kpi-icon {
+  margin: 0;
+  color: #0072CE;
+  font-size: 1.0rem;
+  vertical-align: middle;
+}
+.kpi-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+</style>
+<style>
+  /* Default (desktop) */
+  /* 1440px and below */
+  @media (max-width: 1440px) {
+    #breakdown {
+      max-height: 320px;
+    }
+  }
+  /* 1200px and below */
+  @media (max-width: 1200px) {
+    #breakdown {
+      max-height: 250px;
+    }
+  }
+  /* 767px and below (mobile) */
+  @media (max-width: 767px) {
+    #breakdown {
+      max-height: 180px;
+    }
+  }
+  @media (max-width: 1200px) {
+  .kpi-content, .kpi-content * {
+    white-space: normal !important;
+    word-break: break-word !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    text-align: center !important;
+  }
+}
+/* Wider month picker filter pill for desktop */
+.filter-row.single-row .filter-pill:first-child {
+  min-width: 220px;
+  max-width: 260px;
+  width: 220px;
+}
+
+/* Wider month picker button */
+.month-trigger-btn {
+  min-width: 120px;
+  width: auto;
+  max-width: 180px;
+}
+</style>
+<style>
+.breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 0.75em;
+  table-layout: fixed; /* Ensures fixed column widths */
+}
+
+.breakdown-table th.failure-col,
+.breakdown-table td.breakdown-bar-cell {
+  width: 110px; /* Adjust as needed for your content */
+  min-width: 90px;
+  max-width: 140px;
+  box-sizing: border-box;
+}
+/* Blue shades for breakdown table rows */
+.breakdown-table tr.country-row {
+  background: #1565c0;
+  color: #fff;
+}
+.breakdown-table tr.portfolio-row {
+  background: #42a5f5;
+  color: #fff;
+}
+.breakdown-table tr.asset-row {
+  background: #e3f2fd;
+  color: #222;
+}
+.breakdown-table th, .breakdown-table td {
+  border: 1px solid #b3d7f2;
+  padding: 6px 10px;
+  text-align: center;
+}
+.breakdown-table th {
+  background: #e6f1fc;
+  color: #0072CE;
+  text-align: center;
+}
+/* Keep first column (Country) left-aligned */
+.breakdown-table td:first-child, .breakdown-table th:first-child {
+  text-align: left;
+}
+/* Center align grand total row */
+.grand-total-row td {
+  text-align: center !important;
+}
+/* Remove row-wide background, apply only to first column */
+.breakdown-table tr.country-row td:first-child {
+  background: #1565c0 !important;
+  color: #fff !important;
+}
+.breakdown-table tr.portfolio-row td:first-child {
+  background: #42a5f5 !important;
+  color: #fff !important;
+}
+.breakdown-table tr.asset-row td:first-child {
+  background: #e3f2fd !important;
+  color: #222 !important;
+}
+.breakdown-table tr.country-row, .breakdown-table tr.portfolio-row, .breakdown-table tr.asset-row {
+  background: none !important;
+  color: inherit !important;
+}
+.breakdown-table .accordion-btn {
+  margin-right: 6px;
+  margin-left: 0;
+  float: left;
+}
+
+/*@media (min-width: 1440px) {
+  .dashboard-charts > .chart-card:last-child {
+    height: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  #breakdown, #breakdown-table {
+    height: 80% !important;
+    max-height: 80% !important;
+  }
+}*/
+</style>
+<style>
+.bar-indicator {
+  display: inline-block;
+  height: 12px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.bar-value {
+  font-weight: bold;
+  vertical-align: middle;
+}
+</style>
+<style>
+.breakdown-bar-cell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 60px;
+  min-height: 28px;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  vertical-align: middle;
+  overflow: hidden;
+}
+.bar-indicator-bg {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  height: 100%;
+  border-radius: 6px;
+  opacity: 0.5;
+  border: 1px solid #b3b3b3;
+  z-index: 1;
+  transition: width 0.3s;
+}
+.bar-indicator-value {
+  position: relative;
+  z-index: 2;
+  font-weight: bold;
+  color: #222;
+  font-size: 1em;
+  line-height: 28px;
+}
+</style>
+</head>
+<body>
+  <div class="main-container">
+    <div class="dashboard-title">
+      <div class="title-left-spacer"></div>
+      <span>YIELD REPORT</span>
+      <button class="title-export-btn" onclick="exportFullPage()" title="Export Full Report as PDF">
+        <i class="fas fa-file-pdf"></i> Export Full Report (PDF)
+      </button>
+    </div>
+    
+    <!-- Combined filter and KPI container -->
+    <div class="filter-kpi-container">
+      <div class="filter-half">
+        <div class="filter-section">
+          <div class="filter-row single-row">
+            <div class="filter-pill filter-date">
+              <label for="monthPicker">Month</label>
+              <button id="monthMatrixTrigger" type="button" class="month-trigger-btn">
+                <span id="selectedMonthLabel">Select Period</span>
+              </button>
+              <div id="monthMatrixPicker" class="month-matrix-picker"></div>
+            </div>
+            <div class="filter-pill">
+              <label for="countrySelect">Country</label>
+              <select id="countrySelect" multiple></select>
+            </div>
+            <div class="filter-pill">
+              <label for="portfolioSelect">Portfolio</label>
+              <select id="portfolioSelect" multiple></select>
+            </div>
+            <div class="filter-pill">
+              <label for="assetSelect">Asset No</label>
+              <select id="assetSelect" multiple></select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="kpi-half">
+        <div class="kpi-row">
+          <div class="kpi-card dc">
+            <div class="kpi-icon-block"><span class="kpi-icon"><i class="fas fa-solar-panel"></i></span></div>
+            <div class="kpi-content">PV Capacity (MWp)<br><span class="kpi-value">228.93</span></div>
+          </div>
+          <div class="kpi-card ac">
+            <div class="kpi-icon-block"><span class="kpi-icon"><i class="fas fa-bolt"></i></span></div>
+            <div class="kpi-content">AC Capacity (MW)<br><span class="kpi-value">205.75</span></div>
+          </div>
+          <div class="kpi-card bess">
+            <div class="kpi-icon-block"><span class="kpi-icon"><i class="fas fa-battery-full"></i></span></div>
+            <div class="kpi-content">BESS Capacity (MWh)<br><span class="kpi-value">33.79</span></div>
+          </div>
+          <button id="resetFiltersBtn" type="button">Reset</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dashboard-charts">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title" id="waterfall-chart-title">Waterfall Chart</div>
+        </div>
+        <div id="waterfall" class="plotly-graph-div"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Breakdown by Asset/Portfolio/Country</div>
+        </div>
+        <div id="breakdown-table"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    let allData = [];
+    let selectedMonth = null;
+    let selectedYear = null;
+    const countrySelect = document.getElementById('countrySelect');
+    const portfolioSelect = document.getElementById('portfolioSelect');
+    const assetSelect = document.getElementById('assetSelect');
+
+    // Remove YTD toggle button from HTML
+    // Remove this block from the filter-pill:
+    // <div class="ytd-toggle">
+    //   <input type="checkbox" id="ytdToggle">
+    //   <label for="ytdToggle">YTD</label>
+    // </div>
+
+    // BestCalendar month picker logic
+    let yieldCalendar = null;
+    const monthMatrixTrigger = document.getElementById('monthMatrixTrigger');
+    const monthMatrixPicker = document.getElementById('monthMatrixPicker');
+    const selectedMonthLabel = document.getElementById('selectedMonthLabel');
+
+    function populateDropdown(select, values, prevSelected=[]) {
+      // Destroy Choices instance before updating options
+      if (select.choicesInstance) {
+        select.choicesInstance.destroy();
+        select.choicesInstance = null;
+      }
+      select.innerHTML = '';
+      const allOpt = document.createElement('option');
+      allOpt.value = '__all__';
+      allOpt.textContent = 'All';
+      select.appendChild(allOpt);
+      values.forEach(val => {
+        const opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = val;
+        select.appendChild(opt);
+      });
+      if (prevSelected && prevSelected.length) {
+        Array.from(select.options).forEach(opt => {
+          if (prevSelected.includes(opt.value)) opt.selected = true;
+        });
+      }
+      // Re-initialize Choices and store the instance
+      const instance = new Choices(select, {
+        removeItemButton: true,
+        searchEnabled: true,
+        shouldSort: false,
+        placeholder: true,
+        renderSelectedChoices: 'always',
+        duplicateItemsAllowed: false,
+        // Hide selected items from dropdown
+        addItemFilter: (value) => {
+          return !Array.from(select.selectedOptions).map(opt => opt.value).includes(value);
+        }
+      });
+      select.choicesInstance = instance;
+
+      // If nothing is selected, show 'All' as a pill
+      if (select.selectedOptions.length === 0 || (select.selectedOptions.length === 1 && select.selectedOptions[0].value === '__all__')) {
+        instance.setChoiceByValue('__all__');
+      }
+
+      // If only one real option (besides 'Select All'), select it and show as pill
+      const realOptions = Array.from(select.options).filter(opt => opt.value !== '__all__');
+      if (realOptions.length === 1) {
+        instance.setChoiceByValue(realOptions[0].value);
+        select.value = realOptions[0].value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      // If all options are selected, show 'Select All' as the pill
+      const allSelected = realOptions.every(opt => opt.selected);
+      if (allSelected && realOptions.length > 1) {
+        instance.removeActiveItems();
+        instance.setChoiceByValue('__all__');
+        select.value = '__all__';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    function clearDropdowns(dropdowns) {
+      dropdowns.forEach(select => {
+        select.innerHTML = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = '__all__';
+        allOpt.textContent = 'All';
+        select.appendChild(allOpt);
+      });
+    }
+
+    function getSelectedValues(select) {
+      const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__') || selected.length === Array.from(select.options).length - 1) {
+        return [];
+      }
+      return selected.filter(v => v !== '__all__');
+    }
+
+    function getUnique(data, key) {
+      return [...new Set(data.map(row => {
+        let val = row[key];
+        if (typeof val === 'string') return val.trim();
+        if (val !== undefined && val !== null) return String(val).trim();
+        return '';
+      }).filter(Boolean))].sort((a, b) => a.toString().localeCompare(b.toString()));
+    }
+
+    function formatLabel(value, expected) {
+      const percent = expected && expected !== 0 ? Math.round((value / expected) * 100) : 0;
+      return `${formatNumber(value)} (${percent}%)`;
+    }
+
+    function formatNumber(val) {
+      return typeof val === "number" ? val.toLocaleString('en-US', { maximumFractionDigits: 0 }) : val;
+    }
+
+    // Update formatMonthLabel to be robust
+    function formatMonthLabel(ym) {
+      if (!ym) return '';
+      const [y, m] = ym.split('-');
+      if (!y || !m) return ym; // fallback for year-only or invalid
+      const date = new Date(Number(y), Number(m) - 1, 1);
+      return date.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+    }
+
+    // --- Robust Cascading Filter Logic (like Portfolio Map) ---
+    const filterFieldMap = [
+      { id: 'countrySelect', col: 'country' },
+      { id: 'portfolioSelect', col: 'portfolio' },
+      { id: 'assetSelect', col: 'assetno' }
+    ];
+    const filterSelectors = {
+      countrySelect: countrySelect,
+      portfolioSelect: portfolioSelect,
+      assetSelect: assetSelect
+    };
+    function getActiveFilters(excludeId = null) {
+      const filters = {};
+      filterFieldMap.forEach(({id, col}) => {
+        if (id !== excludeId) {
+          const vals = getSelectedValues(filterSelectors[id]);
+          if (vals.length > 0) filters[col] = vals;
+        }
+      });
+      return filters;
+    }
+    function updateAllFiltersAndDropdowns(changedId = null) {
+      filterFieldMap.forEach(({id, col}) => {
+        const sel = filterSelectors[id];
+        // Store previous selection
+        const prev = getSelectedValues(sel);
+
+        // Get valid options for THIS dropdown based on all the other filters
+        const filters = getActiveFilters(id);
+        const options = [...new Set(
+          allData
+            .filter(row => Object.entries(filters).every(([c, vals]) =>
+              vals.map(v => String(v).trim().toLowerCase()).includes(row[c + '_norm'])
+            ))
+            .map(row => row[col])
+            .filter(Boolean)
+        )].sort((a, b) => a.toString().localeCompare(b.toString()));
+
+        // Remove Choices instance before updating options
+        if (sel.choicesInstance) {
+          sel.choicesInstance.destroy();
+          sel.choicesInstance = null;
+        }
+        sel.innerHTML = '';
+        const allOpt = document.createElement('option');
+        allOpt.value = '__all__';
+        allOpt.textContent = 'All';
+        sel.appendChild(allOpt);
+        options.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          sel.appendChild(opt);
+        });
+
+        // Restore previous selection if possible
+        if (prev && prev.length) {
+          Array.from(sel.options).forEach(opt => {
+            if (prev.includes(opt.value)) opt.selected = true;
+          });
+        }
+
+        // Re-initialize Choices and store the instance
+        sel.choicesInstance = new Choices(sel, {
+          removeItemButton: true,
+          searchEnabled: true,
+          shouldSort: false,
+          placeholder: true,
+          renderSelectedChoices: 'always',
+          duplicateItemsAllowed: false,
+          // Hide selected items from dropdown
+          addItemFilter: (value) => {
+            return !Array.from(sel.selectedOptions).map(opt => opt.value).includes(value);
+          }
+        });
+
+        // If 'Select All' was previously selected, select all options except '__all__'
+        if (prev.includes('__all__')) {
+          Array.from(sel.options).forEach(opt => {
+            if (opt.value !== '__all__') opt.selected = true;
+          });
+          sel.options[0].selected = false;
+          sel.choicesInstance.setValue(Array.from(sel.options).filter(opt => opt.value !== '__all__').map(opt => ({ value: opt.value, label: opt.textContent })));
+        }
+      });
+      updateChart();
+    }
+
+    function handleSelectAllUI(selectEl) {
+      const allValues = Array.from(selectEl.options)
+        .filter(opt => opt.value !== '__all__')
+        .map(opt => opt.value);
+      const selectedValues = Array.from(selectEl.selectedOptions)
+        .map(opt => opt.value)
+        .filter(v => v !== '__all__');
+      if (selectedValues.length === allValues.length) {
+        // All selected, show only 'Select All'
+        if (selectEl.choicesInstance) {
+          selectEl.choicesInstance.removeActiveItems();
+          // Add a custom tag for 'Select All'
+          selectEl.choicesInstance._addItem({
+            value: '__all__',
+            label: 'Select All',
+            choiceId: 'select-all-custom',
+            groupId: -1,
+            customProperties: null,
+            placeholder: false,
+            keyCode: null
+          });
+        }
+      }
+    }
+
+    countrySelect.addEventListener("change", function () {
+      const selected = Array.from(countrySelect.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__')) {
+        // Select all options in the <select> for filtering
+        Array.from(countrySelect.options).forEach(opt => {
+          if (opt.value !== '__all__') opt.selected = true;
+        });
+        // Show only 'Select All' in the Choices.js UI
+        if (countrySelect.choicesInstance) {
+          countrySelect.choicesInstance.removeActiveItems();
+          countrySelect.choicesInstance.setChoiceByValue('__all__');
+        }
+        updateAllFiltersAndDropdowns('countrySelect');
+        return;
+      }
+      updateAllFiltersAndDropdowns('countrySelect');
+      handleSelectAllUI(countrySelect);
+    });
+    portfolioSelect.addEventListener("change", function () {
+      const selected = Array.from(portfolioSelect.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__')) {
+        Array.from(portfolioSelect.options).forEach(opt => {
+          if (opt.value !== '__all__') opt.selected = true;
+        });
+        if (portfolioSelect.choicesInstance) {
+          portfolioSelect.choicesInstance.removeActiveItems();
+          portfolioSelect.choicesInstance.setChoiceByValue('__all__');
+        }
+        updateAllFiltersAndDropdowns('portfolioSelect');
+        return;
+      }
+      updateAllFiltersAndDropdowns('portfolioSelect');
+      handleSelectAllUI(portfolioSelect);
+    });
+    assetSelect.addEventListener("change", function () {
+      const selected = Array.from(assetSelect.selectedOptions).map(opt => opt.value);
+      if (selected.includes('__all__')) {
+        Array.from(assetSelect.options).forEach(opt => {
+          if (opt.value !== '__all__') opt.selected = true;
+        });
+        if (assetSelect.choicesInstance) {
+          assetSelect.choicesInstance.removeActiveItems();
+          assetSelect.choicesInstance.setChoiceByValue('__all__');
+        }
+        updateAllFiltersAndDropdowns('assetSelect');
+        return;
+      }
+      updateAllFiltersAndDropdowns('assetSelect');
+      handleSelectAllUI(assetSelect);
+    });
+
+
+
+    function updateChart() {
+      const countries = getSelectedValues(countrySelect);
+      const portfolios = getSelectedValues(portfolioSelect);
+      const assets = getSelectedValues(assetSelect);
+      const availableMonths = [...new Set(allData.map(row => row.month))].sort();
+
+      // Determine if a month is selected
+      const monthSelected = !!selectedMonth;
+      // Determine if any filters are selected
+      const filtersSelected = countries.length > 0 || portfolios.length > 0 || assets.length > 0;
+
+      let filteredRows;
+      if (monthSelected) {
+        // Month selected: show only that month for everything
+        filteredRows = allData.filter(r => r.month === selectedMonth &&
+          (countries.length === 0 || countries.includes(r.country)) &&
+          (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+          (assets.length === 0 || assets.includes(String(r.assetno)))
+        );
+      } else if (selectedYear) {
+        // Year selected but no specific month: show all months for that year
+        filteredRows = allData.filter(r => {
+          const [rowYear] = r.month.split('-');
+          return rowYear === selectedYear.toString() &&
+            (countries.length === 0 || countries.includes(r.country)) &&
+            (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+            (assets.length === 0 || assets.includes(String(r.assetno)));
+        });
+      } else {
+        // No month or year selected: show YTD (Jan to latest month), with or without filters
+        const latestMonth = availableMonths.length > 0 ? availableMonths[availableMonths.length - 1] : null;
+        if (latestMonth) {
+          const [selectedYearYTD, selectedMonthNumYTD] = latestMonth.split('-');
+          filteredRows = allData.filter(r => {
+            const [rowYear, rowMonth] = r.month.split('-');
+            return rowYear === selectedYearYTD && rowMonth <= selectedMonthNumYTD &&
+              (countries.length === 0 || countries.includes(r.country)) &&
+              (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+              (assets.length === 0 || assets.includes(String(r.assetno)));
+          });
+        } else {
+          filteredRows = [];
+        }
+      }
+
+      // --- Helper for budget sum including zero values ---
+      function sumBudget(key) {
+        const sum = filteredRows.reduce((acc, r) => {
+          return acc + (+r[key] || 0);
+        }, 0);
+        
+        // Debug: Log the sum calculation
+        
+        return sum;
+      }
+      // --- END ---
+
+      const sum = key => filteredRows.reduce((acc, r) => acc + (+r[key] || 0), 0);
+      const steps = [
+        { name: "IC<br>Approved<br>Budget", value: sumBudget('ic_approved_budget'), type: "absolute" },
+        { name: "Expected<br>Budget", value: sumBudget('expected_budget'), type: "absolute" },
+        { name: "Weather<br>Loss<br>or<br>Gain", value: sum('weather_loss_or_gain'), type: "relative" },
+        { name: "Grid<br>Curtailment", value: sum('grid_curtailment'), type: "relative" },
+        { name: "Grid<br>Outage", value: sum('grid_outage'), type: "relative" },
+        { name: "Operation<br>Budget", value: sumBudget('operation_budget'), type: "absolute" },
+        { name: "Breakdown<br>Loss", value: sum('breakdown_loss'), type: "relative" },
+        { name: "Unclassified<br>Loss", value: sum('unclassified_loss'), type: "relative" },
+        { name: "Actual<br>Generation", value: sum('actual_generation'), type: "absolute" }
+      ];
+
+      const colors = ["#4CAF50"].concat(steps.slice(1).map(s => {
+        if (s.name === "Actual<br>Generation") return "#1976D2";
+        if (s.type === "relative") return s.value < 0 ? "#FF4136" : "#8BC34A";
+        return "#1976D2";
+      }));
+
+      let monthsForTitle = [];
+      if (selectedMonth) {
+        if (countries.length === 0 && portfolios.length === 0 && assets.length === 0) {
+          // If no filters are selected, show YTD for the latest month
+          const allMonths = [...new Set(filteredRows.map(r => r.month).filter(Boolean))].sort();
+          if (allMonths.length === 1) {
+            monthsForTitle = [formatMonthLabel(allMonths[0])];
+          } else if (allMonths.length > 1) {
+            monthsForTitle = [formatMonthLabel(allMonths[0]) + ' – ' + formatMonthLabel(allMonths[allMonths.length - 1])];
+          } else {
+            // fallback to just the year
+            const year = selectedMonth.split('-')[0];
+            monthsForTitle = [year];
+          }
+        } else {
+          monthsForTitle = [selectedMonth];
+        }
+      } else if (selectedYear) {
+        // Year selected but no specific month
+        monthsForTitle = [selectedYear.toString() + ' (Full Year)'];
+      }
+      
+      let chartType = 'Waterfall Chart';
+      if (selectedYear && !selectedMonth) {
+        chartType = 'Waterfall Chart (Full Year)';
+      } else if (countries.length === 0 && portfolios.length === 0 && assets.length === 0) {
+        chartType = 'Waterfall Chart (YTD)';
+      }
+      
+      const waterfallTitle = buildChartTitle(
+        chartType,
+        monthsForTitle,
+        countries,
+        portfolios,
+        assets,
+        getUnique(allData, 'country'),
+        getUnique(allData, 'portfolio')
+      );
+
+      // Update the dynamic waterfall chart title
+      const waterfallTitleElement = document.getElementById('waterfall-chart-title');
+      if (waterfallTitleElement) {
+        waterfallTitleElement.textContent = waterfallTitle;
+      }
+
+      // Responsive Waterfall Chart Height
+      let waterfallHeight = 340 * 1.50; // default
+      if (window.innerWidth <= 1200) {
+        waterfallHeight = 340 * 1.65;
+      } else if (window.innerWidth <= 1440) {
+        waterfallHeight = 340 * 1.50;
+      } else if (window.innerWidth > 2000) {
+        waterfallHeight = 420 * 1.50;
+      }
+
+      // Create the trace first
+      const trace = {
+        type: "waterfall",
+        orientation: "v",
+        measure: steps.map(s => s.type),
+        x: steps.map(s => s.name),
+        y: steps.map(s => s.value),
+        text: steps.map(s => s.value === 0 ? "0" : formatNumber(s.value)),
+        textposition: "outside",
+        textfont: { 
+          size: getResponsiveFontSize(12, 16, 8), 
+          color: "#222", 
+          family: "Arial, sans-serif", 
+          weight: "bold" 
+        },
+        texttemplate: "%{text}",
+        textinfo: "text",
+        hoverinfo: "x+y+text",
+        showlegend: false,
+        marker: {
+          color: colors,
+          line: {
+            width: 3, // Thicker border
+            color: "#225184" // Dark blue border
+          },
+          gradient: {
+            type: "vertical",
+            color: "#00000022" // subtle black shadow
+          },
+          pattern: {
+            shape: "",
+            size: 10,
+            solidity: 0.1
+          }
+        },
+        connector: { line: { color: "white" } }
+      };
+
+      // Then create the layout
+      const yMax = Math.max(...steps.map(s => s.value), 1) * 1.15; // Ensure minimum height for zero values
+      const layout = {
+        xaxis: {
+          title: {
+            font: { size: getResponsiveFontSize(12, 18, 8), family: "Arial Black, Arial, sans-serif", color: "#222" }
+          },
+          tickfont: { size: getResponsiveFontSize(12, 16, 8), family: "Arial, sans-serif", color: "#222", weight: "bold" },
+          tickangle: 0,
+          automargin: true
+        },
+        yaxis: {
+          title: {
+            text: "Energy (MWh)",
+            font: { size: getResponsiveFontSize(12, 18, 8) }
+          },
+          tickfont: { size: getResponsiveFontSize(12, 16, 8) },
+          zeroline: true,
+          range: [0, yMax]
+        },
+        autosize: true,
+        height: waterfallHeight,
+        margin: { t: 50, b: 50, l: 50, r: 20 } // Reduced top margin for better chart height
+      };
+
+      // Add percentage annotations
+      const maxY = Math.max(...steps.map(s => Math.abs(s.value)));
+      const percentY = maxY * 0.10;
+      const xLabels = steps.map(s => s.name);
+      const percentages = steps.map(s => {
+        return steps[1].value && steps[1].value !== 0 ? ((s.value / steps[1].value) * 100) : 0;
+      });
+
+      layout.annotations = steps.map((s, i) => ({
+        x: xLabels[i],
+        y: percentY,
+        text: `<b>${Math.round(percentages[i])}%</b>`,
+        showarrow: false,
+        font: { 
+          size: getResponsiveFontSize(12, 16, 8), 
+          color: '#000', 
+          family: 'Arial, sans-serif', 
+          weight: 'bold' 
+        },
+        xanchor: 'center',
+        yanchor: 'middle',
+        align: 'center',
+      }));
+
+      // Finally, create the plot
+      Plotly.newPlot("waterfall", [trace], layout, { 
+        responsive: true,
+        useResizeHandler: true,
+        displayModeBar: false
+      }).then(() => {
+        const waterfallDiv = document.getElementById('waterfall');
+        if (waterfallDiv) {
+          waterfallDiv.style.height = waterfallHeight + 'px';
+          setTimeout(() => {
+            Plotly.Plots.resize(waterfallDiv);
+          }, 100);
+        }
+      });
+
+      renderBreakdownAccordionTable(filteredRows);
+      updateKpiCards(allData, filteredRows, !monthSelected, selectedMonth, assets);
+    }
+
+    function renderBreakdownAccordionTable(filteredRows) {
+      const failureTypes = [
+        { key: 'string failure', label: 'String Failure (MWh)' },
+        { key: 'inverter failure', label: 'Inverter Failure (MWh)' },
+        { key: 'ac_failure', label: 'AC Failure (MWh)' }
+      ];
+      // Group by Country > Portfolio > Asset
+      const groups = {};
+      filteredRows.forEach(row => {
+        const country = row.country || 'Unknown';
+        const portfolio = row.portfolio || 'Unknown';
+        const asset = row.assetno || 'Unknown';
+        if (!groups[country]) groups[country] = {};
+        if (!groups[country][portfolio]) groups[country][portfolio] = {};
+        if (!groups[country][portfolio][asset]) groups[country][portfolio][asset] = { total: 0 };
+        failureTypes.forEach(ft => {
+          groups[country][portfolio][asset][ft.key] = (groups[country][portfolio][asset][ft.key] || 0) + (Number(row[ft.key]) || 0);
+          groups[country][portfolio][asset].total += (Number(row[ft.key]) || 0);
+        });
+      });
+      // Calculate max abs value for each failure type
+      const maxFailure = {};
+      failureTypes.forEach(ft => {
+        let max = 0;
+        Object.entries(groups).forEach(([country, portfolios]) => {
+          Object.values(portfolios).forEach(assets => {
+            Object.values(assets).forEach(vals => {
+              max = Math.max(max, Math.abs(vals[ft.key] || 0));
+            });
+          });
+        });
+        maxFailure[ft.key] = max;
+      });
+      // Build table HTML
+      let html = '<table class="breakdown-table"><thead><tr><th>Country</th><th>Portfolio</th><th>Asset</th>';
+      failureTypes.forEach(ft => html += `<th class="failure-col">${ft.label}</th>`);
+      html += '<th>Total (MWh)</th></tr></thead><tbody>';
+
+      // Grand total row
+      let grandTotal = { 'string failure': 0, 'inverter failure': 0, 'ac_failure': 0, total: 0 };
+      Object.entries(groups).forEach(([country, portfolios]) => {
+        Object.values(portfolios).forEach(assets => {
+          Object.values(assets).forEach(vals => {
+            failureTypes.forEach(ft => grandTotal[ft.key] += vals[ft.key] || 0);
+            grandTotal.total += vals.total;
+          });
+        });
+      });
+      html += `<tr class="grand-total-row"><td><b>All Countries</b></td><td><b>All Portfolios</b></td><td><b>All Assets</b></td>`;
+      failureTypes.forEach(ft => html += `<td><b>${Math.round(grandTotal[ft.key])}</b></td>`);
+      html += `<td><b>${Math.round(grandTotal.total)}</b></td></tr>`;
+
+      // Country row
+      Object.entries(groups).forEach(([country, portfolios], cIdx) => {
+        // Country row
+        const countryId = `country-${cIdx}`;
+        let countryTotal = { 'string failure': 0, 'inverter failure': 0, 'ac_failure': 0, total: 0 };
+        Object.values(portfolios).forEach(assets => {
+          Object.values(assets).forEach(vals => {
+            failureTypes.forEach(ft => countryTotal[ft.key] += vals[ft.key] || 0);
+            countryTotal.total += vals.total;
+          });
+        });
+        html += `<tr class="country-row" data-toggle="${countryId}"><td><button class="accordion-btn" data-target="${countryId}">+</button> ${country}</td><td></td><td></td>`;
+        failureTypes.forEach(ft => html += `<td>${Math.round(countryTotal[ft.key])}</td>`);
+        html += `<td>${Math.round(countryTotal.total)}</td></tr>`;
+        // Portfolio rows
+        Object.entries(portfolios).forEach(([portfolio, assets], pIdx) => {
+          const portfolioId = `${countryId}-portfolio-${pIdx}`;
+          let portfolioTotal = { 'string failure': 0, 'inverter failure': 0, 'ac_failure': 0, total: 0 };
+          Object.values(assets).forEach(vals => {
+            failureTypes.forEach(ft => portfolioTotal[ft.key] += vals[ft.key] || 0);
+            portfolioTotal.total += vals.total;
+          });
+          html += `<tr class="portfolio-row" data-parent="${countryId}" data-toggle="${portfolioId}" style="display:none"><td></td><td><button class="accordion-btn" data-target="${portfolioId}">+</button> ${portfolio}</td><td></td>`;
+          failureTypes.forEach(ft => html += `<td>${Math.round(portfolioTotal[ft.key])}</td>`);
+          html += `<td>${Math.round(portfolioTotal.total)}</td></tr>`;
+          // Asset rows
+          Object.entries(assets).forEach(([asset, vals]) => {
+            html += `<tr class="asset-row" data-parent="${portfolioId}" style="display:none"><td></td><td></td><td>${asset}</td>`;
+            failureTypes.forEach(ft => {
+              const value = Math.round(vals[ft.key]);
+              let width = maxFailure[ft.key] ? Math.abs(value) / maxFailure[ft.key] * 100 : 0; // 0-100% width
+              width = Math.max(width, value > 0 ? 10 : 0); // Minimum 10% width for nonzero values
+              let color = '#90caf9'; // light blue
+              if (ft.key.includes('inverter')) color = '#b3c6f7'; // lighter blue
+              else if (ft.key.includes('ac')) color = '#ffccbc'; // light orange
+              else if (ft.key.includes('string')) color = '#bbdefb'; // very light blue
+              html += `<td class="breakdown-bar-cell failure-col">
+                <div class="bar-indicator-bg" style="width:${width}%;background:${color}"></div>
+                <span class="bar-indicator-value">${value}</span>
+              </td>`;
+            });
+            html += `<td>${Math.round(vals.total)}</td></tr>`;
+          });
+        });
+      });
+      html += '</tbody></table>';
+      document.getElementById('breakdown-table').innerHTML = html;
+      // Accordion logic
+      document.querySelectorAll('.accordion-btn').forEach(btn => {
+        btn.onclick = function() {
+          const target = this.getAttribute('data-target');
+          const rows = document.querySelectorAll(`[data-parent='${target}']`);
+          const expanded = this.textContent === '-';
+          this.textContent = expanded ? '+' : '-';
+          rows.forEach(row => {
+            row.style.display = expanded ? 'none' : '';
+            // Collapse all children if collapsing
+            if (expanded) {
+              row.querySelectorAll('.accordion-btn').forEach(childBtn => { childBtn.textContent = '+'; });
+              const childRows = document.querySelectorAll(`[data-parent='${row.getAttribute('data-toggle')}']`);
+              childRows.forEach(childRow => childRow.style.display = 'none');
+            }
+          });
+        };
+      });
+    }
+
+    // --- DYNAMIC KPI CARDS ---
+    function updateKpiCards(yieldData, filteredRows, isYTD, selectedMonth, filteredAssets) {
+      const countries = getSelectedValues(countrySelect);
+      const portfolios = getSelectedValues(portfolioSelect);
+      const assets = getSelectedValues(assetSelect);
+      const availableMonths = [...new Set(yieldData.map(row => row.month))].sort();
+
+      let kpiRows;
+      if (!selectedMonth && countries.length === 0 && portfolios.length === 0 && assets.length === 0) {
+        // No filters, no month: show latest month capacities
+        const latestMonth = availableMonths.length > 0 ? availableMonths[availableMonths.length - 1] : null;
+        kpiRows = yieldData.filter(r => r.month === latestMonth);
+      } else if (selectedMonth) {
+        // Month selected: show only that month
+        kpiRows = yieldData.filter(r => r.month === selectedMonth &&
+          (countries.length === 0 || countries.includes(r.country)) &&
+          (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+          (assets.length === 0 || assets.includes(String(r.assetno)))
+        );
+      } else {
+        // Filters selected, no month: use latest month
+        const latestMonth = availableMonths.length > 0 ? availableMonths[availableMonths.length - 1] : null;
+        kpiRows = yieldData.filter(r => r.month === latestMonth &&
+          (countries.length === 0 || countries.includes(r.country)) &&
+          (portfolios.length === 0 || portfolios.includes(r.portfolio)) &&
+          (assets.length === 0 || assets.includes(String(r.assetno)))
+        );
+      }
+      // Sum up the capacities
+      let dc = 0, ac = 0, bess = 0;
+      kpiRows.forEach(row => {
+        dc += Number(row.dc_capacity_mw) || 0;
+        ac += Number(row.ac_capacity_mw) || 0;
+        bess += Number(row.bess_capacity_mwh) || 0;
+      });
+      // Update the card values in the DOM
+      const dcCard = document.querySelector('.kpi-card.dc .kpi-value');
+      const acCard = document.querySelector('.kpi-card.ac .kpi-value');
+      const bessCard = document.querySelector('.kpi-card.bess .kpi-value');
+      if (dcCard) dcCard.textContent = dc.toFixed(2);
+      if (acCard) acCard.textContent = ac.toFixed(2);
+      if (bessCard) bessCard.textContent = bess.toFixed(2);
+    }
+
+    document.getElementById('resetFiltersBtn').addEventListener('click', function() {
+      // Reset month picker and filters
+      selectedMonth = null;
+      selectedYear = null;
+      
+      // Reset BestCalendar if available
+      if (yieldCalendar && typeof yieldCalendar.reset === 'function') {
+        yieldCalendar.reset();
+      }
+      
+      [countrySelect, portfolioSelect, assetSelect].forEach(select => {
+        Array.from(select.options).forEach(opt => opt.selected = false);
+        if (select.options.length > 0) select.options[0].selected = true;
+      });
+      updateAllFiltersAndDropdowns();
+    });
+
+    function buildChartTitle(prefix, months, countries, portfolios, assetNos, allCountries, allPortfolios) {
+      let monthTitle = 'YTD';
+      if (months.length === 1) {
+        // If the string is just a year (e.g., '2025'), use it directly
+        if (/^\d{4}$/.test(months[0])) {
+          monthTitle = months[0];
+        } else {
+          monthTitle = formatMonthLabel(months[0]);
+        }
+      } else if (months.length > 1) {
+        monthTitle = formatMonthLabel(months[0]) + ' – ' + formatMonthLabel(months[months.length - 1]);
+      }
+
+      let countryTitle = 'All Countries';
+      if (countries.length === 1) {
+        countryTitle = countries[0];
+      } else if (countries.length > 1 && countries.length < allCountries.length) {
+        countryTitle = 'Multiple Countries';
+      }
+
+      let portfolioTitle = 'All Portfolios';
+      if (portfolios.length === 1) {
+        portfolioTitle = portfolios[0];
+      } else if (portfolios.length > 1 && portfolios.length < allPortfolios.length) {
+        portfolioTitle = 'Multiple Portfolios';
+      }
+
+      let assetTitle = 'All Assets';
+      if (assetNos.length === 1) {
+        assetTitle = 'Asset ' + assetNos[0];
+      } else if (assetNos.length > 1 && assetNos.length < allCountries.length) {
+        assetTitle = 'Multiple Assets';
+      }
+
+      return `${prefix}: ${countryTitle} - ${portfolioTitle} - ${monthTitle} - ${assetTitle}`;
+    }
+
+    // On window resize, re-render or resize charts
+    window.addEventListener('resize', function() {
+      if (window.Plotly) {
+        Plotly.Plots.resize(document.getElementById('waterfall'));
+      }
+    });
+
+    // Function to resize all charts
+    function resizeAllCharts() {
+      if (window.Plotly) {
+        const waterfallChart = document.getElementById('waterfall');
+        
+        if (waterfallChart && waterfallChart.data) {
+          Plotly.Plots.resize(waterfallChart);
+        }
+      }
+    }
+
+    // Responsive font size helper for charts
+    function getResponsiveFontSize(base, max = 22, min = 8) {
+      const width = window.innerWidth;
+      return Math.min(Math.max(Math.round(base * (width / 1920)), min), max);
+    }
+
+    // Call resize on page load
+    window.addEventListener('load', function() {
+      setTimeout(resizeAllCharts, 500);
+    });
+
+    // Also call resize after data loads
+    document.addEventListener("DOMContentLoaded", function () {
+    {% if error_message %}
+      console.error('Error loading yield data:', '{{ error_message }}');
+      showError('Error loading yield data: {{ error_message }}');
+      allData = [];
+    {% elif yield_data_json %}
+      const data = {{ yield_data_json|safe }};
+      console.log('Parsed data:', data);
+      console.log('Data type:', typeof data);
+      console.log('Is array:', Array.isArray(data));
+      allData = data.map(row => {
+        const cleaned = {};
+        for (let key in row) {
+          const normKey = key.trim().toLowerCase();
+          let val = row[key];
+          if (typeof val === 'string') val = val.trim();
+          cleaned[normKey] = val;
+
+          if (["country", "portfolio", "assetno"].includes(normKey)) {
+            cleaned[normKey + '_norm'] = String(val).trim().toLowerCase();
+          }
+        }
+        if ('assetno' in cleaned) cleaned.assetno = String(cleaned.assetno).trim();
+        return cleaned;
+      });
+    {% else %}
+      console.error('No yield data available');
+      showError('No yield data available. Please check your permissions.');
+      allData = [];
+    {% endif %}
+
+    // Populate dropdowns
+    populateDropdown(countrySelect, getUnique(allData, 'country'), []);
+    populateDropdown(portfolioSelect, getUnique(allData, 'portfolio'), []);
+    populateDropdown(assetSelect, getUnique(allData, 'assetno'), []);
+
+    // Initialize BestCalendar
+    function initializeBestCalendar() {
+      if (typeof BestCalendar === 'undefined') return false;
+
+      yieldCalendar = new BestCalendar({
+        triggerId: 'monthMatrixTrigger',
+        pickerId: 'monthMatrixPicker',
+        labelId: 'selectedMonthLabel',
+        onPeriodChange: function (period) {
+          selectedMonth = period.month;
+          selectedYear = period.year;
+          updateChart();
+        }
+      });
+
+      window.currentBestCalendar = yieldCalendar;
+
+      const availableMonths = [...new Set(allData.map(row => row.month).filter(Boolean))];
+
+      let convertedMonths = [];
+      if (availableMonths.length > 0 && availableMonths[0].includes('-')) {
+        const firstMonth = availableMonths[0];
+        if (/^\d{4}-\d{2}$/.test(firstMonth)) {
+          convertedMonths = availableMonths;
+        } else {
+          convertedMonths = availableMonths.map(monthStr => {
+            const [year, month] = monthStr.split('-');
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthIndex = monthNames.indexOf(month);
+            const fullYear = '20' + year;
+            const monthNum = String(monthIndex + 1).padStart(2, '0');
+            return `${fullYear}-${monthNum}`;
+          });
+        }
+      }
+
+      yieldCalendar.setData(convertedMonths.map(month => ({ month, value: 1 })));
+
+      const picker = document.getElementById('monthMatrixPicker');
+      if (picker) picker.innerHTML = '';
+
+      yieldCalendar.hidePicker();
+
+      const trigger = document.getElementById('monthMatrixTrigger');
+      if (trigger) {
+        trigger.addEventListener('click', function () {
+          if (typeof yieldCalendar.renderPicker === 'function') {
+            yieldCalendar.renderPicker();
+          }
+        });
+      }
+
+      return true;
+    }
+
+    // Init calendar
+    initializeBestCalendar();
+
+    // Refresh UI
+    updateAllFiltersAndDropdowns();
+    updateChart();
+
+    setTimeout(resizeAllCharts, 1000);
+    setTimeout(() => {
+      document.getElementById('resetFiltersBtn')?.click();
+    }, 120);
+  });
+    // ----------------------------------
+    // EXPORT FUNCTIONS
+    // ----------------------------------
+
+    // Export full page as PDF
+    function exportFullPage() {
+      const { jsPDF } = window.jspdf;
+      const mainContainer = document.querySelector('.main-container');
+      
+      if (!mainContainer) {
+        alert('Page content not available for export');
+        return;
+      }
+
+      // Show loading message
+      const loadingDiv = document.createElement('div');
+      loadingDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-size: 16px;
+      `;
+      loadingDiv.textContent = 'Generating PDF... Please wait.';
+      document.body.appendChild(loadingDiv);
+
+      // Temporarily hide title export button for cleaner PDF
+      const titleExportBtn = document.querySelector('.title-export-btn');
+      if (titleExportBtn) {
+        titleExportBtn.style.display = 'none';
+      }
+
+      html2canvas(mainContainer, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        width: mainContainer.scrollWidth,
+        height: mainContainer.scrollHeight
+      }).then(canvas => {
+        // Restore title export button
+        if (titleExportBtn) {
+          titleExportBtn.style.display = 'flex';
+        }
+        document.body.removeChild(loadingDiv);
+
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Use landscape orientation for better fit
+        const pdf = new jsPDF('l', 'mm', 'a4'); // 'l' for landscape
+        
+        // A4 landscape dimensions: 297mm x 210mm
+        const pageWidth = 297; // A4 landscape width
+        const pageHeight = 210; // A4 landscape height
+        
+        // Calculate dimensions to fit content properly
+        const imgWidth = pageWidth - 20; // Leave 10mm margin on each side
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        let heightLeft = imgHeight;
+        let position = 10; // Start with 10mm top margin
+
+        // Add title page
+        pdf.setFontSize(24);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Yield Report', 148.5, 30, { align: 'center' }); // Center in landscape
+        
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'normal');
+        const timestamp = new Date().toLocaleString();
+        pdf.text(`Generated on: ${timestamp}`, 148.5, 45, { align: 'center' });
+        
+        // Add current filter information
+        const waterfallTitle = document.getElementById('waterfall-chart-title');
+        if (waterfallTitle && waterfallTitle.textContent) {
+          pdf.setFontSize(12);
+          pdf.text(`Report Scope: ${waterfallTitle.textContent}`, 148.5, 60, { align: 'center' });
+        }
+        
+        pdf.addPage();
+
+        // Add content pages with better fitting
+        if (imgHeight <= pageHeight - 20) {
+          // Content fits on one page
+          pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        } else {
+          // Content spans multiple pages
+          pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+          heightLeft -= (pageHeight - 20);
+
+          while (heightLeft >= 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= (pageHeight - 20);
+          }
+        }
+
+        const timestamp2 = new Date().toISOString().slice(0, 10);
+        const filename = `yield_report_${timestamp2}.pdf`;
+        pdf.save(filename);
+      }).catch(error => {
+        // Restore title export button on error
+        if (titleExportBtn) {
+          titleExportBtn.style.display = 'flex';
+        }
+        document.body.removeChild(loadingDiv);
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF. Please try again.');
+      });
+    }
+  </script>
+  <script>
+    function setBreakdownTableTitleFont() {
+      var div = document.getElementById('breakdown-table-title');
+      if (!div) return;
+      var size = getResponsiveFontSize(20, 24, 12);
+      div.style.fontSize = size + 'px';
+      div.style.fontFamily = 'Arial, sans-serif';
+      div.style.fontWeight = '700';
+      div.style.color = '#225184';
+      div.style.textAlign = 'center';
+    }
+    window.addEventListener('resize', setBreakdownTableTitleFont);
+    document.addEventListener('DOMContentLoaded', setBreakdownTableTitleFont);
+    setTimeout(setBreakdownTableTitleFont, 1000);
+  </script>
+</body>
+</html>

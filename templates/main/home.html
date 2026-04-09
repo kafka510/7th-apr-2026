@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2 text-center">
+        <h1>Welcome to Django Web App</h1>
+        <p class="lead">A complete user management system with multiple apps.</p>
+        
+        {% if user.is_authenticated %}
+            <div class="mt-4">
+                <a href="{% url 'main:dashboard' %}" class="btn btn-primary me-2">Go to Dashboard</a>
+                
+            </div>
+        {% else %}
+            <div class="mt-4">
+                <a href="{% url 'accounts:login' %}" class="btn btn-primary me-2">Login</a>
+                <a href="{% url 'accounts:register' %}" class="btn btn-outline-primary">Register</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

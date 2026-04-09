@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Manage Features{% endblock %}
+
+{% block body_class %}light-page{% endblock %}
+{% block content_area_class %}light-theme{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+  <div>
+    <h1 class="h3 mb-1">Manage Features</h1>
+    <p class="text-muted mb-0">Define the dashboard pages and areas that roles can access.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary" href="{% url 'main:unified_operations_dashboard' %}">Back to Dashboard</a>
+    <a class="btn btn-outline-secondary" href="{% url 'accounts:role_list' %}">Manage Roles</a>
+    <a class="btn btn-primary" href="{% url 'accounts:feature_create' %}">Add Feature</a>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th scope="col" style="width: 20%;">Key</th>
+        <th scope="col" style="width: 25%;">Name</th>
+        <th scope="col" style="width: 15%;">Category</th>
+        <th scope="col" style="width: 10%;">Active</th>
+        <th scope="col" style="width: 10%;">Order</th>
+        <th scope="col" style="width: 20%;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for feature in features %}
+        <tr>
+          <td><code>{{ feature.key }}</code></td>
+          <td>{{ feature.name }}</td>
+          <td>{{ feature.category|default:"—" }}</td>
+          <td>
+            {% if feature.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td>{{ feature.ordering }}</td>
+          <td>
+            <div class="d-flex gap-2">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:feature_update' key=feature.key %}">Edit</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'accounts:feature_delete' key=feature.key %}">Delete</a>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">
+            No features have been defined yet.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+

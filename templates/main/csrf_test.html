@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSRF Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .info { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #f8d7da; color: #721c24; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>CSRF Token Test</h1>
+    
+    <div class="info">
+        <h3>Debug Information:</h3>
+        <p><strong>Current user:</strong> {{ request.user.username|default:"Anonymous" }}</p>
+        <p><strong>Is authenticated:</strong> {{ request.user.is_authenticated }}</p>
+        <p><strong>Session ID:</strong> {{ request.session.session_key|default:"No session" }}</p>
+        <p><strong>CSRF Token:</strong> {{ csrf_token|default:"No token" }}</p>
+        <p><strong>Request Method:</strong> {{ request.method }}</p>
+    </div>
+    
+    <form method="post" id="csrfForm">
+        {% csrf_token %}
+        <button type="submit">Test CSRF Token</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('csrfForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            fetch('', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('result').innerHTML = 
+                    '<div class="success">Success! CSRF token is working: ' + data.message + '</div>';
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = 
+                    '<div class="error">Error: ' + error.message + '</div>';
+            });
+        });
+    </script>
+</body>
+</html> 

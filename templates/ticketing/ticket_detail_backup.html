@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ticket {{ ticket.ticket_number }} - Ticketing System{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'ticketing/css/tickets.css' %}">
+<script src="{% static 'ticketing/js/image_paste.js' %}"></script>
+
+<!-- Breadcrumb + Header -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body py-3">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{% url 'ticketing:ticket_dashboard' %}" class="text-decoration-none">Ticketing System</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="{% url 'ticketing:ticket_list' %}" class="text-decoration-none">Tickets</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">
+                    {{ ticket.ticket_number }}
+                </li>
+            </ol>
+        </nav>
+        
+        <!-- Header with Actions -->
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">Ticket: {{ ticket.ticket_number }}</h2>
+                <p class="text-muted mb-0">{{ ticket.title }}</p>
+            </div>
+            <div>
+                <a href="{% url 'ticketing:ticket_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Tickets
+                </a>
+                {% if can_edit %}
+                <a href="{% url 'ticketing:ticket_edit' ticket.pk %}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Edit
+                </a>
+                {% endif %}
+                {% if request.user.is_superuser %}
+                <a href="{% url 'ticketing:ticket_delete' ticket.pk %}" class="btn btn-danger ms-1">
+                    <i class="fas fa-trash-alt"></i> Delete
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Ticket Details -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Ticket Details</h5>
+                <div>
+                    <span class="ticket-status-badge status-{{ ticket.status }}">
+                        {{ ticket.get_status_display }}
+                    </span>
+                    <span class="priority-badge priority-{{ ticket.priority }} ms-2">
+                        {{ ticket.get_priority_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Category:</strong> {{ ticket.category.name }}
+                    </div>
+                    <div class="col-md-6">
+                        {% if ticket.loss_category %}
+                        <strong>Loss Category:</strong> {{ ticket.loss_category.name }}
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Site:</strong> {{ ticket.asset_code.asset_name }} ({{ ticket.asset_code.asset_code }})
+                    </div>
+                    <div class="col-md-6">
+                        {% if ticket.device_id %}
+                        <strong>Device:</strong> {{ ticket.device_id.device_name }} ({{ ticket.device_id.device_code }})<br>
+                        <small class="text-muted">
+                            S/N: {{ ticket.device_id.device_serial|default:"N/A" }} | 
+                            {{ ticket.device_id.device_make|default:"N/A" }} {{ ticket.device_id.device_model|default:"N/A" }}
+                        </small>
+                        {% else %}
+                        <strong>Device:</strong> Not specified
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p class="mt-2">{{ ticket.description|linebreaks }}</p>
+                </div>
+                
+                {% if ticket.resolution_notes %}
+                <div class="mb-3">
+                    <strong>Resolution Notes:</strong>
+                    <p class="mt-2">{{ ticket.resolution_notes|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Comments -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Comments</h5>
+            </div>
+            <div class="card-body">
+                {% if can_comment or is_assigned_user %}
+                <form method="post" action="{% url 'ticketing:ticket_comment' ticket.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ comment_form.comment }}
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ comment_form.is_internal }}
+                            <label class="form-check-label" for="{{ comment_form.is_internal.id_for_label }}">
+                                Internal Note
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-comment"></i> Add Comment
+                    </button>
+                </form>
+                {% endif %}
+                
+                <hr class="my-4">
+                
+                {% if comments %}
+                <div class="comments-list">
+                    {% for comment in comments %}
+                    <div class="comment-item {% if comment.is_internal %}comment-internal{% endif %}">
+                        <div class="comment-header">
+                            <span class="comment-author">{{ comment.user.username }}</span>
+                            <span class="comment-time">{{ comment.created_at|date:"M d, Y H:i" }}</span>
+                        </div>
+                        {% if comment.is_internal %}
+                        <span class="badge bg-warning text-dark mb-2">Internal</span>
+                        {% endif %}
+                        <p class="mb-0">{{ comment.comment|linebreaks }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">No comments yet.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Activity Log -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Activity Log</h5>
+            </div>
+            <div class="card-body">
+                <div class="activity-log">
+                    {% if activities %}
+                    {% for activity in activities %}
+                    <div class="activity-item">
+                        <div class="activity-header">
+                            <span class="activity-user">{{ activity.user.username }}</span>
+                            <span class="activity-time">{{ activity.timestamp|date:"M d, Y H:i" }}</span>
+                        </div>
+                        <div>
+                            <strong>{{ activity.get_action_type_display }}</strong>
+                            {% if activity.field_changed %}
+                            - {{ activity.field_changed }}
+                            {% endif %}
+                        </div>
+                        {% if activity.notes %}
+                        <div class="mt-1 small text-muted">{{ activity.notes }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted">No activity recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Ticket Info Sidebar -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Ticket Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Created:</strong><br>
+                    <small class="text-muted">{{ ticket.created_at|date:"M d, Y H:i" }}</small><br>
+                    <small class="text-muted">by {{ ticket.created_by.username }}</small>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Last Updated:</strong><br>
+                    <small class="text-muted">{{ ticket.updated_at|date:"M d, Y H:i" }}</small>
+                </div>
+                
+                {% if ticket.assigned_to %}
+                <div class="mb-3">
+                    <strong>Assigned To:</strong><br>
+                    <span>{{ ticket.assigned_to.username }}</span>
+                </div>
+                {% else %}
+                <div class="mb-3">
+                    <strong>Assigned To:</strong><br>
+                    <span class="text-muted">Unassigned</span>
+                </div>
+                {% endif %}
+                
+        <div class="mb-3">
+            <strong>Watchers/Collaborators:</strong><br>
+            {% with ticket.watchers.all as watcher_list %}
+                {% if watcher_list|length %}
+                    {% for watcher in watcher_list %}
+                        <span class="badge bg-info me-1">{{ watcher.username }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="text-muted">None</span>
+                {% endif %}
+            {% endwith %}
+        </div>
+        {% if watcher_form %}
+        <div class="mb-3">
+            <form method="post" action="{% url 'ticketing:ticket_update_watchers' ticket.pk %}">
+                {% csrf_token %}
+                <label class="form-label small" for="watchers-select">Update Watchers:</label>
+                {{ watcher_form.watchers }}
+                <div class="d-flex justify-content-end mt-2">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-user-friends"></i> Save Watchers
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+                
+                {% if ticket.closed_at %}
+                <div class="mb-3">
+                    <strong>Closed:</strong><br>
+                    <small class="text-muted">{{ ticket.closed_at|date:"M d, Y H:i" }}</small><br>
+                    <small class="text-muted">by {{ ticket.closed_by.username }}</small>
+                </div>
+                {% if ticket.time_to_close %}
+                <div class="mb-3">
+                    <strong>Time to Close:</strong><br>
+                    <small class="text-muted">
+                        {{ ticket.time_to_close.days }} days, 
+                        {{ ticket.time_to_close.seconds|floatformat:0|slice:":2" }} hours
+                    </small>
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Actions</h5>
+            </div>
+            <div class="card-body">
+                <!-- Status Change Form (for all users with ticketing access, but non-admin cannot close) -->
+                {% if can_change_status %}
+                <form method="post" action="{% url 'ticketing:ticket_status_change' ticket.pk %}" class="mb-3">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label for="status-select" class="form-label small">Change Status:</label>
+                        <select name="status" id="status-select" class="form-select form-select-sm">
+                            {% for status_value, status_label in status_form.status.field.choices %}
+                                {% if status_value != '' %}
+                                    {% if status_value == 'closed' and not can_close %}
+                                        {# Non-admin users cannot select 'closed' #}
+                                    {% else %}
+                                    <option value="{{ status_value }}" {% if ticket.status == status_value %}selected{% endif %}>
+                                        {{ status_label }}
+                                    </option>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <textarea name="notes" class="form-control form-control-sm" rows="2" 
+                                  placeholder="Optional notes about status change..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-sync"></i> Update Status
+                    </button>
+                </form>
+                {% endif %}
+                
+                {% if can_assign or is_assigned_user %}
+                <form method="post" action="{% url 'ticketing:ticket_assign' ticket.pk %}" class="mb-3">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label for="assign-select" class="form-label small">Assign To:</label>
+                        {{ assign_form.assigned_to }}
+                    </div>
+                    <div class="mb-2">
+                        <textarea name="notes" class="form-control form-control-sm" rows="2" 
+                                  placeholder="Optional notes about assignment..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="fas fa-user-plus"></i> Assign
+                    </button>
+                </form>
+                {% endif %}
+                
+                {% if ticket.status != 'closed' and can_close %}
+                <form method="post" action="{% url 'ticketing:ticket_close' ticket.pk %}" class="mb-3">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <textarea name="resolution_notes" class="form-control form-control-sm" rows="3" 
+                                  placeholder="Resolution notes (optional)"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-success w-100">
+                        <i class="fas fa-check"></i> Close Ticket
+                    </button>
+                </form>
+                {% endif %}
+                
+                {% if ticket.status == 'closed' %}
+                <form method="post" action="{% url 'ticketing:ticket_reopen' ticket.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-warning w-100">
+                        <i class="fas fa-redo"></i> Reopen Ticket
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Attachments -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Attachments</h5>
+            </div>
+            <div class="card-body">
+                {% if can_edit or is_assigned_user %}
+                <form method="post" action="{% url 'ticketing:ticket_attachment_upload' ticket.pk %}" enctype="multipart/form-data" class="mb-3" id="attachment-upload-form">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label for="file-input" class="form-label small">Upload File:</label>
+                        <input type="file" name="file" id="file-input" class="form-control form-control-sm" accept="image/*,application/pdf,.doc,.docx">
+                        <small class="text-muted d-block mt-1">Max file size: 10MB</small>
+                    </div>
+                    <div class="mb-2">
+                        <div class="paste-image-area border border-dashed p-3 text-center" style="min-height: 100px; cursor: pointer; background-color: #f8f9fa;">
+                            <i class="fas fa-image"></i> <strong>Paste image here</strong> (Ctrl+V or Cmd+V) or drag & drop
+                            <div class="paste-preview mt-2"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="pasted_image" id="pasted-image-input">
+                    <button type="submit" class="btn btn-sm btn-primary w-100">
+                        <i class="fas fa-upload"></i> Upload File
+                    </button>
+                </form>
+                <hr>
+                {% endif %}
+                
+                {% if attachments %}
+                <div class="attachments-list">
+                {% for attachment in attachments %}
+                    <div class="d-flex justify-content-between align-items-start mb-2 p-2 border rounded">
+                        <div class="flex-grow-1">
+                    <a href="{{ attachment.file.url }}" target="_blank" class="text-decoration-none">
+                        <i class="fas fa-file"></i> {{ attachment.file_name }}
+                    </a>
+                            <div class="small text-muted">
+                                <div>{{ attachment.uploaded_by.username }} - {{ attachment.uploaded_at|date:"M d, Y H:i" }}</div>
+                                <div>{{ attachment.file_size|filesizeformat }}</div>
+                            </div>
+                        </div>
+                        {% if can_edit or attachment.uploaded_by == request.user %}
+                        <div>
+                            <form method="post" action="{% url 'ticketing:ticket_attachment_delete' ticket.pk attachment.id %}" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this file?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger" title="Delete file">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+                {% else %}
+                <p class="text-muted mb-0">No attachments yet.</p>
+        {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

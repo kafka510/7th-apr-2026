@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Generate API Key{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="fas fa-key text-info"></i> Generate API Key</h2>
+                    <p class="text-muted">Generate a new API key for a user</p>
+                </div>
+                <a href="{% url 'api:api_config_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-key"></i> API Key Generation</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.user.id_for_label }}" class="form-label">
+                                <i class="fas fa-user"></i> Select User *
+                            </label>
+                            {{ form.user }}
+                            {% if form.user.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.user.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Choose the user to generate an API key for</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                <i class="fas fa-tag"></i> Key Name *
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.name.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Descriptive name for this API key (e.g., "Production App", "Mobile App")</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.expires_in_days.id_for_label }}" class="form-label">
+                                <i class="fas fa-calendar"></i> Expiration (Optional)
+                            </label>
+                            {{ form.expires_in_days }}
+                            {% if form.expires_in_days.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.expires_in_days.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Number of days until the key expires (leave empty for no expiration)</div>
+                        </div>
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'api:api_config_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-key"></i> Generate API Key
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Important Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Security Notice:</strong> The generated API key will be shown only once. Make sure to save it securely.
+                    </div>
+                    
+                    <h6>What happens after generation:</h6>
+                    <ol>
+                        <li>API key will be generated and displayed</li>
+                        <li>User can use this key to authenticate API requests</li>
+                        <li>Key will be hashed and stored securely in the database</li>
+                        <li>User can manage their keys from their dashboard</li>
+                    </ol>
+                    
+                    <h6>Security Best Practices:</h6>
+                    <ul>
+                        <li>Use descriptive names for keys</li>
+                        <li>Set expiration dates for temporary access</li>
+                        <li>Monitor key usage in the logs</li>
+                        <li>Revoke keys that are no longer needed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control, .form-select {
+    border-radius: 0.375rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.alert {
+    border-radius: 0.375rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load django_vite %}
+{% load waffle_tags %}
+
+{% block title %}Areas of Concern{% endblock %}
+
+{% block extra_head %}
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  {% if DJANGO_VITE_DEV_MODE %}
+    {% vite_hmr_client %}
+  {% endif %}
+{% endblock %}
+
+{% block content_area_class %}light-theme{% endblock %}
+{% block content %}
+<style>
+  /* Override base template styles for Areas of Concern page */
+  .content-area.light-theme {
+    background: linear-gradient(135deg, #e6f1fc 0%, #f8fbff 100%) !important;
+    color: #212529 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+  
+  #react-root.js-react-areas-of-concern {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+    background: linear-gradient(135deg, #e6f1fc 0%, #f8fbff 100%);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Ensure iframe compatibility */
+  iframe[sandbox] ~ * #react-root.js-react-areas-of-concern,
+  iframe #react-root.js-react-areas-of-concern {
+    height: 100%;
+    min-height: 100%;
+  }
+</style>
+<div id="react-root" 
+     data-app="areas-of-concern" 
+     class="js-react-areas-of-concern">
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  {% vite_asset 'src/main.tsx' %}
+{% endblock %}
+

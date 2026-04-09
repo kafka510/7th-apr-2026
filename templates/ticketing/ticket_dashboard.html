@@ -1,0 +1,1131 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block title %}Ticket Dashboard - Ticketing System{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'ticketing/css/dashboard.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<style>
+  /* Override base.html container constraints for full width */
+  .dashboard-wrapper.container-fluid {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-top: 0 !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Position buttons at top right */
+  .top-actions {
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Remove ALL spacing before filter bar and after */
+  #sticky-filter-bar {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+  
+  /* Remove spacing from form inside filter bar */
+  #sticky-filter-bar form {
+    margin-bottom: 0 !important;
+  }
+  
+  /* Remove spacing between filter bar and main content */
+  #sticky-filter-bar + main,
+  .dashboard-wrapper > main {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+  
+  /* Remove any Bootstrap container-fluid default padding */
+  .container-fluid {
+    padding-top: 0 !important;
+  }
+  
+  /* Ensure parent containers don't constrain width */
+  body > .container,
+  body > .container-fluid,
+  #content,
+  main {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  /* Optimize filter bar layout for wide screens */
+  @media (min-width: 1200px) {
+    #sticky-filter-bar .col-md-auto {
+      min-width: 130px;
+      max-width: 13.5%;
+    }
+  }
+  
+  @media (min-width: 1440px) {
+    #sticky-filter-bar .col-md-auto {
+      min-width: 140px;
+      max-width: 14%;
+    }
+  }
+  
+  @media (min-width: 1800px) {
+    #sticky-filter-bar .col-md-auto {
+      min-width: 150px;
+      max-width: 14.5%;
+    }
+  }
+  
+  /* Responsive adjustments for smaller laptops */
+  @media (max-width: 1440px) and (min-width: 1200px) {
+    #sticky-filter-bar .col-md-auto {
+      padding-left: 6px;
+      padding-right: 6px;
+    }
+  }
+</style>
+
+<div class="dashboard-wrapper container-fluid">
+  <!-- Horizontal Filter Bar -->
+  <div id="sticky-filter-bar" class="p-2 shadow-sm border bg-white rounded" style="margin-bottom: 0 !important;">
+    <form class="row g-2 align-items-end filter-form" id="dashboard-filter-form">
+      <div class="col-md-auto col-sm-6 col-12">
+        <select id="f-status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          {% for s in status_choices %}
+            <option value="{{ s.0 }}">{{ s.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto col-sm-6 col-12">
+        <select id="f-priority" class="form-select form-select-sm">
+          <option value="">All Priorities</option>
+          {% for p in priority_choices %}
+            <option value="{{ p.0 }}">{{ p.1 }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto col-sm-6 col-12">
+        <select id="f-category" class="form-select form-select-sm">
+          <option value="">All Categories</option>
+          {% for c in categories %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto col-sm-6 col-12">
+        <select id="f-site" class="form-select form-select-sm">
+          <option value="">All Sites</option>
+          {% for site in sites %}
+            <option value="{{ site.id }}">{{ site.asset_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-auto col-sm-6 col-12 position-relative">
+        <input type="text" id="f-date-range" class="form-control form-control-sm" placeholder="Select Date Range" readonly>
+      </div>
+      <div class="col-md-auto col-sm-6 col-12 d-grid">
+        <button type="button" id="applyFilters" class="btn btn-primary btn-sm">
+          <i class="fa-solid fa-filter"></i> Apply Filters
+        </button>
+      </div>
+      <div class="col-md-auto col-sm-6 col-12 d-grid">
+        <button type="button" id="clearFilters" class="btn btn-outline-secondary btn-sm">
+          <i class="fa-solid fa-times"></i> Clear
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Main: content -->
+  <main style="margin-top: 0 !important; padding-top: 0 !important;">
+      <!-- KPI Row -->
+      <div class="row kpi-row g-3" style="margin-top: 0 !important; margin-bottom: 4px !important;">
+        <div class="col-6 col-sm-6 col-md-3">
+          <div class="kpi-card">
+            <div class="kpi-icon bg-primary"><i class="fa-solid fa-ticket"></i></div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="kpi-total">{{ total_tickets|default:"0" }}</div>
+              <div class="kpi-label">Total Tickets</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-6 col-md-3">
+          <div class="kpi-card">
+            <div class="kpi-icon bg-success"><i class="fa-solid fa-folder-open"></i></div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="kpi-open">{{ open_tickets|default:"0" }}</div>
+              <div class="kpi-label">Open Tickets</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-6 col-md-3">
+          <div class="kpi-card">
+            <div class="kpi-icon bg-warning"><i class="fa-solid fa-user-check"></i></div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="kpi-unassigned">{{ unassigned_tickets|default:"0" }}</div>
+              <div class="kpi-label">Unassigned</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-6 col-md-3">
+          <div class="kpi-card">
+            <div class="kpi-icon bg-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kpi-content">
+              <div class="kpi-value" id="kpi-overdue">{{ overdue_tickets|default:"0" }}</div>
+              <div class="kpi-label">Overdue</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top charts -->
+      <div class="row g-3 mb-3">
+        <div class="col-lg-4">
+          <div class="card widget-card">
+            <div class="card-header">
+              <strong>Status</strong>
+              <small class="text-muted"> &bullet; distribution</small>
+            </div>
+            <div class="card-body">
+              <canvas id="statusChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card widget-card">
+            <div class="card-header"><strong>Priority</strong> <small class="text-muted"> &bullet; by count</small></div>
+            <div class="card-body">
+              <canvas id="priorityChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card widget-card">
+            <div class="card-header"><strong>Category</strong> <small class="text-muted"> &bullet; by count</small></div>
+            <div class="card-body">
+              <canvas id="categoryChart" height="220"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent tickets (wide) -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>Recent Tickets</strong>
+          <div class="d-flex align-items-center gap-2">
+            <small class="text-muted">Latest 10</small>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#recentTicketsContainer" aria-expanded="false" aria-controls="recentTicketsContainer">
+              <i class="fas fa-chevron-right caret"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div id="recentTicketsContainer" style="display: none;">
+            {% if recent_tickets %}
+            <div class="table-responsive">
+              <table class="table table-hover table-dashboard mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Ticket #</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Site</th>
+                    <th>Created</th>
+                    <th class="text-end">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTicketsBody">
+                  {% for ticket in recent_tickets %}
+                  <tr>
+                    <td><a href="{% url 'ticketing:ticket_detail' ticket.pk %}">{{ ticket.ticket_number }}</a></td>
+                    <td class="title-col">{{ ticket.title|truncatewords:12 }}</td>
+                    <td><span class="badge status-{{ ticket.status }}">{{ ticket.get_status_display }}</span></td>
+                    <td><span class="badge priority-{{ ticket.priority }}">{{ ticket.get_priority_display }}</span></td>
+                    <td>{{ ticket.asset_code.asset_name }}</td>
+                    <td>{{ ticket.created_at|date:"M d, Y" }}</td>
+                    <td class="text-end">
+                      <a href="{% url 'ticketing:ticket_detail' ticket.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+              <div class="p-3 text-muted">No recent tickets found.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Smart Analytics Widget -->
+      <div class="card mb-3" id="analyticsWidgetCard">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="analytics-title">
+            <strong>Analytics</strong>
+            <small class="text-muted ms-2">Switch metric & see details</small>
+          </div>
+          <div class="d-flex align-items-center analytics-controls">
+            <select id="analyticsViewSelect" class="form-select form-select-sm">
+              <option value="device_tickets" selected>Device - Tickets</option>
+              <option value="device_loss">Device - Loss Value</option>
+              <option value="category_tickets">Category - Tickets</option>
+              <option value="category_loss">Category - Loss Value</option>
+              <option value="make_tickets">Make - Tickets</option>
+              <option value="model_tickets">Model - Tickets</option>
+            </select>
+            <select id="analyticsTopN" class="form-select form-select-sm">
+              <option value="5">Top 5</option>
+              <option value="10" selected>Top 10</option>
+              <option value="20">Top 20</option>
+              <option value="50">Top 50</option>
+            </select>
+            <select id="analyticsTrendDays" class="form-select form-select-sm">
+              <option value="7" selected>7 days</option>
+              <option value="30">30 days</option>
+            </select>
+            <button id="analyticsRefresh" class="btn btn-outline-secondary btn-sm">Refresh</button>
+            <div class="btn-group">
+              <a id="exportWidgetCSV" href="#" class="btn btn-sm btn-outline-secondary" title="Export CSV"><i class="fa-solid fa-file-csv"></i></a>
+              <a id="exportWidgetExcel" href="#" class="btn btn-sm btn-outline-secondary" title="Export Excel"><i class="fa-solid fa-file-excel"></i></a>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary" data-toggle="collapse" data-target="#analyticsContainer" aria-expanded="false" aria-controls="analyticsContainer">
+              <i class="fas fa-chevron-right caret"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="analyticsContainer" style="display: none;">
+            <div id="analyticsBody">
+              <div class="row g-3">
+                <div class="col-lg-6">
+                  <div id="analyticsTableContainer" class="overflow-auto">
+                    {# Table will be loaded via AJAX #}
+                    <div class="p-3 text-muted text-center">Loading...</div>
+                  </div>
+                </div>
+                <div class="col-lg-6">
+                  <div class="chart-wrap" style="height:320px;">
+                    <canvas id="analyticsMiniChart"></canvas>
+                  </div>
+                  <!-- pagination controls -->
+                  <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div id="analyticsPager" class="small text-muted"></div>
+                    <div>
+                      <button id="pgPrev" class="btn btn-sm btn-light me-1">Prev</button>
+                      <button id="pgNext" class="btn btn-sm btn-light">Next</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </main>
+</div>
+
+<!-- Charts script -->
+<script>
+  // Chart instances
+  let statusChart = null;
+  let priorityChart = null;
+  let categoryChart = null;
+
+  // Helper: collect labels & values from Django context safely
+  const statusLabels = [{% for item in status_breakdown %}'{{ item.status|title }}',{% endfor %}];
+  const statusValues = [{% for item in status_breakdown %}{{ item.count }},{% endfor %}];
+  const priorityLabels = [{% for item in priority_breakdown %}'{{ item.priority|title }}',{% endfor %}];
+  const priorityValues = [{% for item in priority_breakdown %}{{ item.count }},{% endfor %}];
+  const categoryLabels = [{% for item in category_breakdown %}'{{ item.category__name }}',{% endfor %}];
+  const categoryValues = [{% for item in category_breakdown %}{{ item.count }},{% endfor %}];
+
+  // Initialize charts
+  function initCharts(statusData, priorityData, categoryData) {
+    // Destroy existing charts if they exist
+    if (statusChart) statusChart.destroy();
+    if (priorityChart) priorityChart.destroy();
+    if (categoryChart) categoryChart.destroy();
+
+    // Status donut
+    statusChart = new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: statusData.labels,
+        datasets: [{
+          data: statusData.values,
+          backgroundColor: ['#0d6efd','#198754','#ffc107','#dc3545','#6c757d','#6610f2'],
+          borderWidth: 0
+        }]
+      },
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { 
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.label + ': ' + Math.round(context.parsed);
+              }
+            }
+          },
+          datalabels: {
+            color: '#fff',
+            font: {
+              weight: 'bold',
+              size: 12
+            },
+            formatter: function(value, context) {
+              return value;
+            },
+            display: function(context) {
+              return context.dataset.data[context.dataIndex] > 0;
+            }
+          }
+        } 
+      },
+      plugins: [ChartDataLabels]
+    });
+
+    // Priority bar
+    priorityChart = new Chart(document.getElementById('priorityChart'), {
+      type: 'bar',
+      data: {
+        labels: priorityData.labels,
+        datasets: [{
+          data: priorityData.values,
+          backgroundColor: ['#198754','#fd7e14','#ff5722','#dc3545'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true, 
+        maintainAspectRatio: false,
+        scales: { 
+          y: { 
+            beginAtZero: true, 
+            ticks: { 
+              stepSize: 1,
+              callback: function(value) {
+                return Math.round(value);
+              }
+            } 
+          } 
+        },
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return Math.round(context.parsed.y);
+              }
+            }
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'top',
+            color: '#333',
+            font: {
+              weight: 'bold',
+              size: 11
+            },
+            formatter: function(value, context) {
+              return value;
+            },
+            display: function(context) {
+              return context.dataset.data[context.dataIndex] > 0;
+            }
+          }
+        }
+      },
+      plugins: [ChartDataLabels]
+    });
+
+    // Category pie
+    categoryChart = new Chart(document.getElementById('categoryChart'), {
+      type: 'pie',
+      data: {
+        labels: categoryData.labels,
+        datasets: [{
+          data: categoryData.values,
+          backgroundColor: ['#0d6efd','#6f42c1','#20c997','#ffc107','#adb5bd'],
+          borderWidth: 0
+        }]
+      },
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        plugins: { 
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.label + ': ' + Math.round(context.parsed);
+              }
+            }
+          },
+          datalabels: {
+            color: '#fff',
+            font: {
+              weight: 'bold',
+              size: 12
+            },
+            formatter: function(value, context) {
+              return value;
+            },
+            display: function(context) {
+              return context.dataset.data[context.dataIndex] > 0;
+            }
+          }
+        } 
+      },
+      plugins: [ChartDataLabels]
+    });
+  }
+
+  // Initialize charts on page load
+  initCharts(
+    { labels: statusLabels, values: statusValues },
+    { labels: priorityLabels, values: priorityValues },
+    { labels: categoryLabels, values: categoryValues }
+  );
+
+  // Sticky filter bar effect
+  const filterBar = document.getElementById('sticky-filter-bar');
+  if (filterBar) {
+    function checkSticky() {
+      if (window.scrollY > 100) {
+        filterBar.classList.add('sticky-shadow');
+      } else {
+        filterBar.classList.remove('sticky-shadow');
+      }
+    }
+    window.addEventListener('scroll', checkSticky);
+  }
+
+  // Initialize Flatpickr date range picker
+  let dateRangePicker;
+  document.addEventListener('DOMContentLoaded', function() {
+    const dateRangeInput = document.getElementById('f-date-range');
+    if (dateRangeInput) {
+      dateRangePicker = flatpickr(dateRangeInput, {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "M j, Y",
+        placeholder: "Select Date Range",
+        allowInput: false,
+        clickOpens: true,
+        theme: "light"
+      });
+    }
+  });
+
+  // Clear filters button
+  document.getElementById('clearFilters')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    ['f-status','f-priority','f-category','f-site'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.tagName === 'SELECT') el.selectedIndex = 0;
+      else el.value = '';
+    });
+    
+    // Clear date range picker
+    if (dateRangePicker) {
+      dateRangePicker.clear();
+    }
+    
+    // Apply empty filters to reset dashboard
+    applyFilters();
+  });
+
+  // Helper function to format date as YYYY-MM-DD for API
+  function formatDateForAPI(date) {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Apply filters via AJAX
+  function applyFilters() {
+    // Extract date range from Flatpickr
+    let dateFrom = '';
+    let dateTo = '';
+    if (dateRangePicker && dateRangePicker.selectedDates.length > 0) {
+      const selectedDates = dateRangePicker.selectedDates;
+      if (selectedDates.length >= 1) {
+        dateFrom = formatDateForAPI(selectedDates[0]);
+      }
+      if (selectedDates.length >= 2) {
+        dateTo = formatDateForAPI(selectedDates[1]);
+      } else if (selectedDates.length === 1) {
+        // If only one date selected, use it as both start and end
+        dateTo = formatDateForAPI(selectedDates[0]);
+      }
+    }
+    
+    const filters = {
+      status: document.getElementById('f-status')?.value || '',
+      priority: document.getElementById('f-priority')?.value || '',
+      category: document.getElementById('f-category')?.value || '',
+      site: document.getElementById('f-site')?.value || '',
+      date_from: dateFrom,
+      date_to: dateTo
+    };
+
+    // Show loading state
+    const applyBtn = document.getElementById('applyFilters');
+    const originalText = applyBtn.innerHTML;
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+
+    // Make AJAX request
+    fetch('{% url "ticketing:dashboard_api" %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCookie('csrftoken')
+      },
+      body: JSON.stringify(filters)
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Update KPIs
+      document.getElementById('kpi-total').textContent = data.kpis.total_tickets || 0;
+      document.getElementById('kpi-open').textContent = data.kpis.open_tickets || 0;
+      document.getElementById('kpi-unassigned').textContent = data.kpis.unassigned_tickets || 0;
+      document.getElementById('kpi-overdue').textContent = data.kpis.overdue_tickets || 0;
+
+      // Update charts
+      initCharts(
+        { labels: data.charts.status.labels, values: data.charts.status.values },
+        { labels: data.charts.priority.labels, values: data.charts.priority.values },
+        { labels: data.charts.category.labels, values: data.charts.category.values }
+      );
+
+      // Update recent tickets table
+      updateRecentTickets(data.recent_tickets);
+
+      // Update devices list
+      updateDevicesList(data.tickets_by_device);
+
+      // Update loss by category
+      updateLossByCategory(data.loss_by_category);
+
+      // Update loss by device
+      updateLossByDevice(data.loss_by_device);
+    })
+    .catch(error => {
+      console.error('Error applying filters:', error);
+      alert('Error applying filters. Please try again.');
+    })
+    .finally(() => {
+      applyBtn.disabled = false;
+      applyBtn.innerHTML = originalText;
+    });
+  }
+
+  // Helper function to get CSRF token
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // Update recent tickets table
+  function updateRecentTickets(tickets) {
+    const tbody = document.getElementById('recentTicketsBody');
+    const container = document.getElementById('recentTicketsContainer');
+    
+    if (!tickets || tickets.length === 0) {
+      container.innerHTML = '<div class="p-3 text-muted">No recent tickets found.</div>';
+      return;
+    }
+
+    let html = '<div class="table-responsive"><table class="table table-hover table-dashboard mb-0">';
+    html += '<thead class="table-light"><tr><th>Ticket #</th><th>Title</th><th>Status</th><th>Priority</th><th>Site</th><th>Created</th><th class="text-end">Action</th></tr></thead>';
+    html += '<tbody>';
+    
+    tickets.forEach(ticket => {
+      html += `<tr>
+        <td><a href="/ticketing/${ticket.id}/">${ticket.ticket_number}</a></td>
+        <td class="title-col">${ticket.title}</td>
+        <td><span class="badge status-${ticket.status}">${ticket.status_display}</span></td>
+        <td><span class="badge priority-${ticket.priority}">${ticket.priority_display}</span></td>
+        <td>${ticket.site_name}</td>
+        <td>${ticket.created_at}</td>
+        <td class="text-end"><a href="/ticketing/${ticket.id}/" class="btn btn-sm btn-outline-primary">View</a></td>
+      </tr>`;
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+  }
+
+  // Update devices list
+  function updateDevicesList(devices) {
+    const container = document.getElementById('devicesContainer');
+    
+    if (!devices || devices.length === 0) {
+      container.innerHTML = '<div class="p-3 text-muted">No device data</div>';
+      return;
+    }
+
+    let html = '<ul class="list-group list-group-flush">';
+    devices.forEach(device => {
+      html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <div class="fw-bold">${device.device_name || 'N/A'}</div>
+          <small class="text-muted">${device.device_serial || 'N/A'}</small>
+        </div>
+        <div class="text-end">
+          <div class="fw-bold">${device.count}</div>
+          <small class="text-muted">tickets</small>
+        </div>
+      </li>`;
+    });
+    html += '</ul>';
+    container.innerHTML = html;
+  }
+
+  // Update loss by category
+  function updateLossByCategory(lossData) {
+    const container = document.getElementById('lossCategoryContainer');
+    
+    if (!lossData || lossData.length === 0) {
+      container.innerHTML = '<div class="p-3 text-muted">No loss data</div>';
+      return;
+    }
+
+    let html = '<table class="table table-sm mb-0"><thead><tr><th>Category</th><th class="text-end">Total Loss</th><th class="text-end">Tickets</th></tr></thead><tbody>';
+    lossData.forEach(item => {
+      html += `<tr>
+        <td>${item.category_name}</td>
+        <td class="text-end text-danger">${parseFloat(item.total_loss).toFixed(2)}</td>
+        <td class="text-end">${item.count}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  }
+
+  // Update loss by device
+  function updateLossByDevice(devices) {
+    const tbody = document.getElementById('lossByDeviceBody');
+    const card = document.getElementById('lossByDeviceCard');
+    
+    if (!tbody || !card) return;
+    
+    if (!devices || devices.length === 0) {
+      card.style.display = 'none';
+      return;
+    }
+
+    card.style.display = 'block';
+    let html = '';
+    devices.forEach(device => {
+      html += `<tr>
+        <td>${device.device_name || 'N/A'}</td>
+        <td>${device.device_make || 'Unknown'}</td>
+        <td>${device.device_model || 'Unknown'}</td>
+        <td class="text-end text-danger">${parseFloat(device.total_loss).toFixed(2)}</td>
+        <td class="text-end">${device.count}</td>
+      </tr>`;
+    });
+    tbody.innerHTML = html;
+  }
+
+  // Apply filters button click handler
+  document.getElementById('applyFilters')?.addEventListener('click', applyFilters);
+</script>
+
+<!-- Send title update to parent if in iframe -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're in an iframe
+    if (window.parent !== window.self) {
+        // Send title update to parent
+        const pageTitle = document.title || 'Ticket Dashboard - Ticketing System';
+        window.parent.postMessage({
+            type: 'update_title',
+            title: pageTitle
+        }, '*');
+        
+        // Also update title when buttons are clicked (navigation happens)
+        document.querySelectorAll('a[href*="ticket_list"], a[href*="ticket_create"]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Extract page name from URL
+                const href = this.getAttribute('href');
+                let title = 'Ticketing System';
+                
+                if (href.includes('ticket_list') || href.includes('tickets/') && !href.includes('create')) {
+                    title = 'Tickets - Ticketing System';
+                } else if (href.includes('ticket_create') || href.includes('create/')) {
+                    title = 'Create Ticket - Ticketing System';
+                }
+                
+                // Send title update immediately
+                window.parent.postMessage({
+                    type: 'update_title',
+                    title: title
+                }, '*');
+            });
+        });
+    }
+
+    // Collapse toggle for Recent Tickets and Analytics sections
+    document.querySelectorAll('[data-toggle="collapse"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const target = document.querySelector(this.getAttribute('data-target'));
+            if (!target) return;
+            const isHidden = target.style.display === 'none' || window.getComputedStyle(target).display === 'none';
+            target.style.display = isHidden ? 'block' : 'none';
+            // Rotate caret icon - check if target is now visible
+            const caret = this.querySelector('.caret');
+            if (caret) {
+                const willBeVisible = isHidden; // target will be visible if it was hidden
+                if (willBeVisible) {
+                    // Expand: rotate chevron-right 90deg to point down
+                    caret.style.transform = 'rotate(90deg)';
+                    caret.classList.remove('fa-chevron-right');
+                    caret.classList.add('fa-chevron-down');
+                } else {
+                    // Collapse: rotate back to 0deg to point right
+                    caret.style.transform = 'rotate(0deg)';
+                    caret.classList.remove('fa-chevron-down');
+                    caret.classList.add('fa-chevron-right');
+                }
+                // Update aria-expanded
+                this.setAttribute('aria-expanded', willBeVisible ? 'true' : 'false');
+            }
+        });
+    });
+});
+
+// Smart Analytics Widget
+(function(){
+  const url = "{% url 'ticketing:analytics_widget' %}";
+  const ajaxFilterUrl = "{% url 'ticketing:ajax_filter_dashboard' %}";
+  const csvUrl = "{% url 'ticketing:export_widget_csv' %}";
+  const xlsxUrl = "{% url 'ticketing:export_widget_excel' %}";
+  const select = document.getElementById('analyticsViewSelect');
+  const topN = document.getElementById('analyticsTopN');
+  const trendDays = document.getElementById('analyticsTrendDays');
+  const refreshBtn = document.getElementById('analyticsRefresh');
+  const tableContainer = document.getElementById('analyticsTableContainer');
+  const chartCanvas = document.getElementById('analyticsMiniChart');
+  const pagerInfo = document.getElementById('analyticsPager');
+  const pgPrev = document.getElementById('pgPrev');
+  const pgNext = document.getElementById('pgNext');
+  const exportCsvBtn = document.getElementById('exportWidgetCSV');
+  const exportXlsxBtn = document.getElementById('exportWidgetExcel');
+  
+  if (!chartCanvas) return; // Exit if widget not present
+  
+  const chartCanvasCtx = chartCanvas.getContext('2d');
+  let miniChart = null;
+  let currentPage = 1;
+  let totalItems = 0;
+  let perPage = parseInt(topN ? topN.value : 10);
+
+  // color scale: green -> orange -> red
+  function colorForRatio(r) {
+    if (r >= 0.75) return '#dc3545'; // red
+    if (r >= 0.45) return '#fd7e14'; // orange
+    return '#198754'; // green
+  }
+
+  function renderChart(labels, values) {
+    if (miniChart) { miniChart.destroy(); miniChart = null; }
+
+    if (!labels || !labels.length) {
+      chartCanvasCtx.clearRect(0, 0, chartCanvasCtx.canvas.width, chartCanvasCtx.canvas.height);
+      return;
+    }
+
+    const total = values.reduce((a, b) => a + Number(b || 0), 0) || 1;
+    const max = Math.max(...values.map(v => Number(v) || 0), 1);
+    const bgColors = values.map(v => colorForRatio((Number(v)||0) / max));
+
+    miniChart = new Chart(chartCanvasCtx, {
+      type: 'bar',
+      plugins: [ChartDataLabels],
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: bgColors,
+          borderRadius: 6,
+          barThickness: 18
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { 
+          x: { display: false }, 
+          y: { 
+            ticks: { font: { size: 12 }, color: '#222' }, 
+            grid: { display: false } 
+          } 
+        },
+        plugins: {
+          legend: { display: false },
+          datalabels: {
+            anchor: 'end',
+            align: 'right',
+            color: '#111',
+            font: { weight: '600', size: 12 },
+            formatter: function(value) {
+              const pct = Math.round((value / total) * 100);
+              return `${value} (${pct}%)`;
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = context.parsed.x;
+                const pct = Math.round((value / total) * 100);
+                return `${value} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // click on chart bar to filter recent tickets
+    chartCanvas.onclick = function(evt) {
+      if (!miniChart) return;
+      const points = miniChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+      if (!points.length) return;
+      const idx = points[0].index;
+      const label = labels[idx];
+      // request recent tickets filtered by that label
+      updateRecentTickets({ filter_by: select.value, filter_value: label });
+    };
+  }
+
+  // sparklines
+  function renderSparklines() {
+    const canvases = tableContainer.querySelectorAll("canvas.sparkline");
+    canvases.forEach((canvas) => {
+      const trendStr = canvas.parentElement.querySelector(".trend-data")?.innerText || "";
+      const arr = trendStr.split(",").map(v => Number(v.trim()) || 0);
+      
+      if (arr.length === 0 || arr.every(v => v === 0)) {
+        return;
+      }
+      
+      new Chart(canvas.getContext("2d"), {
+        type: 'line',
+        data: { 
+          labels: arr.map((_, i) => i + 1), 
+          datasets: [{ 
+            data: arr, 
+            borderWidth: 2, 
+            borderColor: "#0d6efd", 
+            pointRadius: 0, 
+            tension: 0.35,
+            fill: false
+          }] 
+        },
+        options: {
+          responsive: true, 
+          maintainAspectRatio: false,
+          scales: { x: { display: false }, y: { display: false } },
+          plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+      });
+    });
+  }
+
+  // update recent tickets table via ajax_filter_dashboard
+  function updateRecentTickets(params) {
+    const query = new URLSearchParams(params);
+    fetch(ajaxFilterUrl + '?' + query.toString(), { 
+      headers: {'X-Requested-With': 'XMLHttpRequest'} 
+    })
+      .then(r => r.json())
+      .then(data => {
+        const container = document.getElementById("recentTicketsContainer");
+        if (container) {
+          container.innerHTML = data.html || '<div class="p-3 text-muted">No results</div>';
+        }
+      })
+      .catch(err => console.error('Error filtering recent tickets:', err));
+  }
+
+  // load analytics widget
+  async function loadAnalytics() {
+    if (!select || !topN || !tableContainer) return;
+    
+    const view_by = select.value;
+    perPage = parseInt(topN.value || 10);
+    const td = parseInt(trendDays ? trendDays.value : 7);
+    
+    const params = new URLSearchParams({
+      view_by: view_by,
+      top_n: perPage,
+      page: currentPage,
+      trend_days: td
+    });
+    
+    tableContainer.innerHTML = '<div class="p-3 text-muted text-center">Loading...</div>';
+    
+    try {
+      const resp = await fetch(url + '?' + params.toString(), { 
+        headers: { 'X-Requested-With': 'XMLHttpRequest' } 
+      });
+
+      if (!resp.ok) {
+        console.error('Failed to load analytics', resp.status, resp.statusText);
+        let errorMsg = 'Error loading data';
+        try {
+          const errorData = await resp.json();
+          errorMsg = errorData.error || errorData.message || errorMsg;
+          if (errorData.traceback) {
+            console.error('Traceback:', errorData.traceback);
+          }
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMsg = resp.statusText || errorMsg;
+        }
+        tableContainer.innerHTML = `<div class="p-3 text-danger">${errorMsg}</div>`;
+        return;
+      }
+
+      const payload = await resp.json();
+      
+      // Check if response contains an error
+      if (payload.error) {
+        console.error('Analytics widget error:', payload.error);
+        if (payload.traceback) {
+          console.error('Traceback:', payload.traceback);
+        }
+        tableContainer.innerHTML = `<div class="p-3 text-danger">Error: ${payload.error}</div>`;
+        return;
+      }
+
+      tableContainer.innerHTML = payload.html || '<div class="p-3 text-muted">No data</div>';
+
+      renderChart(payload.labels || [], payload.values || []);
+      renderSparklines();
+
+      totalItems = payload.total_items || 0;
+
+      // update pager info
+      const start = (currentPage - 1) * perPage + 1;
+      const end = Math.min(currentPage * perPage, totalItems);
+      if (pagerInfo) {
+        pagerInfo.innerText = `${start}-${end} of ${totalItems}`;
+      }
+      if (pgPrev) {
+        pgPrev.disabled = currentPage <= 1;
+      }
+      if (pgNext) {
+        pgNext.disabled = end >= totalItems;
+      }
+
+      // update export links
+      const exportParams = new URLSearchParams({
+        view_by: view_by,
+        top_n: perPage,
+        page: currentPage,
+        trend_days: td
+      });
+      if (exportCsvBtn) {
+        exportCsvBtn.href = csvUrl + '?' + exportParams.toString();
+      }
+      if (exportXlsxBtn) {
+        exportXlsxBtn.href = xlsxUrl + '?' + exportParams.toString();
+      }
+    } catch (error) {
+      console.error('Analytics widget error:', error);
+      tableContainer.innerHTML = '<div class="p-3 text-danger">Error loading data</div>';
+    }
+  }
+
+  // pagination handlers
+  if (pgPrev) {
+    pgPrev.addEventListener('click', () => {
+      if (currentPage > 1) { 
+        currentPage--; 
+        loadAnalytics(); 
+      }
+    });
+  }
+  
+  if (pgNext) {
+    pgNext.addEventListener('click', () => {
+      const maxPage = Math.ceil((totalItems || 0) / perPage) || 1;
+      if (currentPage < maxPage) { 
+        currentPage++; 
+        loadAnalytics(); 
+      }
+    });
+  }
+
+  // row click drill -> filter recent tickets
+  if (tableContainer) {
+    tableContainer.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const entityType = tr.dataset.entityType;
+      const entityKey = tr.dataset.entityKey;
+      const label = tr.querySelector('td')?.innerText?.trim();
+      if (!label) return;
+      // call ajax filter: send filter_by and filter_value (label)
+      updateRecentTickets({ filter_by: select.value, filter_value: label });
+    });
+  }
+
+  // events
+  if (select) {
+    select.addEventListener('change', () => { currentPage = 1; loadAnalytics(); });
+  }
+  if (topN) {
+    topN.addEventListener('change', () => { currentPage = 1; loadAnalytics(); });
+  }
+  if (trendDays) {
+    trendDays.addEventListener('change', () => { loadAnalytics(); });
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => { loadAnalytics(); });
+  }
+
+  // initial load
+  loadAnalytics();
+})();
+</script>
+
+{% endblock %}

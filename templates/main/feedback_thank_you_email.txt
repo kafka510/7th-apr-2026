@@ -1,0 +1,29 @@
+Thank You for Your Feedback!
+
+Dear {{ user_name }},
+
+Thank you for taking the time to submit your feedback regarding "{{ feedback_subject }}". We truly appreciate your input and the time you took to help us improve our services.
+
+Your Feedback Details:
+- Subject: {{ feedback_subject }}
+- Submitted on: {{ feedback_date }}
+- Status: ✓ Attended
+
+We have reviewed your feedback and are pleased to inform you that your concerns have been addressed. Our team has taken the necessary actions to resolve the issues you mentioned.
+
+{% if has_admin_response %}
+Additional Response from Our Team:
+{{ admin_response }}
+
+{% endif %}
+If you have any further questions or additional feedback, please don't hesitate to reach out to us. We value your continued partnership and look forward to serving you better.
+
+Thank you again for your valuable feedback!
+
+Best regards,
+Peak Energy Team
+
+---
+This is an automated message. Please do not reply to this email.
+© {% now "Y" %} Peak Energy. All rights reserved.
+

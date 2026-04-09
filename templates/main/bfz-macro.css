@@ -1,0 +1,43 @@
+/* bfz-macro.css: Dashboard font size and style macro */
+:root {
+  --bfz-title: 1.18rem;
+  --bfz-filter-label: 0.92rem;
+  --bfz-filter-content: 0.92rem;
+  --bfz-kpi-label: 0.95rem;
+  --bfz-kpi-value: 1.08rem;
+  --bfz-kpi-symbol: 1.3rem;
+}
+
+.bfz-title {
+  font-size: var(--bfz-title) !important;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #0072CE;
+}
+.bfz-filter-label {
+  font-size: var(--bfz-filter-label) !important;
+  font-weight: 600;
+  color: #0072CE;
+}
+.bfz-filter-content, .bfz-filter-select {
+  font-size: var(--bfz-filter-content) !important;
+}
+.bfz-kpi-label {
+  font-size: var(--bfz-kpi-label) !important;
+  font-weight: 600;
+  color: #0072CE;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+.bfz-kpi-value {
+  font-size: var(--bfz-kpi-value) !important;
+  font-weight: 700;
+  color: #0072CE;
+  margin-left: 0.2rem;
+  white-space: nowrap;
+}
+.bfz-kpi-symbol {
+  font-size: var(--bfz-kpi-symbol) !important;
+  margin-bottom: 0 !important;
+  margin-right: 0.5rem !important;
+} 
